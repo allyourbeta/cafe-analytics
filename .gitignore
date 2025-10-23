@@ -20,3 +20,13 @@ dist/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Frontend build
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+database/cafe_reports.db
