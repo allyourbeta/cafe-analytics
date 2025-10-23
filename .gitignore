@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.py[cod]
+*.class
+.env
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
