@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const API_BASE = 'http://127.0.0.1:5500/api';
 
+// Interfaces
 export interface RevenueItem {
   item_name: string;
   category: string;
@@ -9,24 +10,93 @@ export interface RevenueItem {
   revenue: number;
 }
 
-export interface RevenueResponse {
-  success: boolean;
-  data: RevenueItem[];
-  date_range: {
-    start: string;
-    end: string;
-  };
+export interface SalesHour {
+  hour: string;
+  sales: number;
 }
 
-export const getItemsByRevenue = async (
-  startDate: string,
-  endDate: string
-): Promise<RevenueResponse> => {
-  const response = await axios.get<RevenueResponse>(
-    `${API_BASE}/reports/items-by-revenue`,
-    {
-      params: { start: startDate, end: endDate }
-    }
-  );
+export interface LaborHour {
+  hour: string;
+  sales: number;
+  labor_cost: number;
+  labor_pct: number;
+}
+
+export interface ProfitItem {
+  item_name: string;
+  category: string;
+  units_sold: number;
+  total_profit: number;
+  margin_pct: number;
+}
+
+export interface MarginItem {
+  item_name: string;
+  category: string;
+  current_price: number;
+  current_cost: number;
+  profit_per_unit: number;
+  margin_pct: number;
+}
+
+export interface DailyForecast {
+  date: string;
+  day_of_week: string;
+  forecasted_sales: number;
+  basis: string;
+}
+
+export interface HourlyForecast {
+  hour: string;
+  avg_sales: number;
+}
+
+// R3: Items by Revenue
+export const getItemsByRevenue = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/items-by-revenue`, {
+    params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R1: Sales per Hour
+export const getSalesPerHour = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, {
+    params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R2: Labor Percent per Hour
+export const getLaborPercent = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/labor-percent`, {
+    params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R4: Items by Profit
+export const getItemsByProfit = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/items-by-profit`, {
+    params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R5: Items by Margin
+export const getItemsByMargin = async () => {
+  const response = await axios.get(`${API_BASE}/reports/items-by-margin`);
+  return response.data;
+};
+
+// P1: Daily Forecast
+export const getDailyForecast = async () => {
+  const response = await axios.get(`${API_BASE}/forecasts/daily`);
+  return response.data;
+};
+
+// P2: Hourly Forecast
+export const getHourlyForecast = async () => {
+  const response = await axios.get(`${API_BASE}/forecasts/hourly`);
   return response.data;
 };
