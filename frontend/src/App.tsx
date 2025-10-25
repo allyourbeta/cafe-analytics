@@ -11,12 +11,12 @@ import HourlyForecast from './components/HourlyForecast';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-400">
+    <div className="min-h-screen bg-gray-200">
       <Dashboard />
 
       <div className="px-8 pb-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Sales Reports</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 mt-12">Sales Reports</h2>
 
           <div className="grid grid-cols-2 gap-6">
             <ReportCard
