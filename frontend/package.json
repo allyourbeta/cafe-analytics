@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
     "axios": "^1.12.2",
     "date-fns": "^4.1.0",
+    "lucide-react": "^0.548.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
