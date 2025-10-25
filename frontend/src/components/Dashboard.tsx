@@ -80,7 +80,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-8 bg-gray-50">
+      <div className="p-8 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto">
           <div className="text-gray-600">Loading dashboard...</div>
         </div>
@@ -104,41 +104,41 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-4 gap-6 mb-8">
           <KPICard
-            icon={<DollarSign className="w-6 h-6" />}
-            iconBg="bg-orange-500"
-            title="TODAY'S SALES"
-            value={`$${todaySales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-            subtitle={`vs $2,541 yesterday`}
-            trend="12%"
-            trendUp={true}
+              icon={<DollarSign className="w-6 h-6"/>}
+              iconBg="bg-orange-500"
+              title="TODAY'S SALES"
+              value={`$${todaySales.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`}
+              subtitle={`vs $2,541 yesterday`}
+              trend="12%"
+              trendUp={true}
           />
 
           <KPICard
-            icon={<TrendingUp className="w-6 h-6" />}
-            iconBg="bg-orange-500"
-            title="TOP SELLER"
-            value={topSeller}
-            subtitle={`${topSellerUnits} sold`}
+              icon={<TrendingUp className="w-6 h-6"/>}
+              iconBg="bg-orange-500"
+              title="TOP SELLER"
+              value={topSeller}
+              subtitle={`${topSellerUnits} sold`}
           />
 
           <KPICard
-            icon={<Clock className="w-6 h-6" />}
-            iconBg="bg-teal-500"
-            title="LABOR COST"
-            value="28.4%"
-            subtitle="Target: 30% • On target"
+              icon={<Clock className="w-6 h-6"/>}
+              iconBg="bg-teal-500"
+              title="LABOR COST"
+              value="28.4%"
+              subtitle="Target: 30% • On target"
           />
 
           <KPICard
-            icon={<Percent className="w-6 h-6" />}
-            iconBg="bg-orange-500"
-            title="AVG MARGIN"
-            value={`${avgMargin.toFixed(1)}%`}
-            subtitle={`vs 65.8% last period`}
-            trend="2%"
-            trendUp={true}
+              icon={<Percent className="w-6 h-6"/>}
+              iconBg="bg-orange-500"
+              title="AVG MARGIN"
+              value={`${avgMargin.toFixed(1)}%`}
+              subtitle={`vs 65.8% last period`}
+              trend="2%"
+              trendUp={true}
           />
         </div>
       </div>
