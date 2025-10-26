@@ -1,4 +1,5 @@
 import './index.css';
+import { BarChart3, Clock, Percent, DollarSign, TrendingUp, Calendar, Activity } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ReportCard from './components/ReportCard';
 import ItemsByRevenue from './components/ItemsByRevenue';
@@ -11,7 +12,7 @@ import HourlyForecast from './components/HourlyForecast';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-200">
+    <div className="min-h-screen bg-gray-100">
       <Dashboard />
 
       <div className="px-8 pb-8">
@@ -20,7 +21,7 @@ function App() {
 
           <div className="grid grid-cols-2 gap-6">
             <ReportCard
-              icon="📊"
+              icon={<BarChart3 className="w-6 h-6" />}
               iconBg="bg-orange-500"
               title="Items by Revenue"
               description="Top selling items ranked by total revenue"
@@ -29,7 +30,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="⏰"
+              icon={<Clock className="w-6 h-6" />}
               iconBg="bg-blue-500"
               title="Sales per Hour"
               description="Hourly sales breakdown for today"
@@ -38,7 +39,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="💰"
+              icon={<Percent className="w-6 h-6" />}
               iconBg="bg-green-500"
               title="Labor % per Hour"
               description="Labor cost percentage by hour"
@@ -47,7 +48,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="💵"
+              icon={<DollarSign className="w-6 h-6" />}
               iconBg="bg-purple-500"
               title="Items by Profit"
               description="Most profitable menu items"
@@ -56,7 +57,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="📈"
+              icon={<TrendingUp className="w-6 h-6" />}
               iconBg="bg-pink-500"
               title="Items by Margin"
               description="Items with highest profit margins"
@@ -65,7 +66,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="📅"
+              icon={<Calendar className="w-6 h-6" />}
               iconBg="bg-teal-500"
               title="Daily Sales Forecast"
               description="Predicted sales for next 7 days"
@@ -74,7 +75,7 @@ function App() {
             </ReportCard>
 
             <ReportCard
-              icon="🔮"
+              icon={<Activity className="w-6 h-6" />}
               iconBg="bg-blue-500"
               title="Hourly Sales Forecast"
               description="Predicted sales by hour for tomorrow"

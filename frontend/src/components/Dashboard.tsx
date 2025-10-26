@@ -1,21 +1,31 @@
 import { useState, useEffect } from 'react';
+import { DollarSign, TrendingUp, Clock, Percent } from 'lucide-react';
 import { getItemsByRevenue, getSalesPerHour, getItemsByMargin } from '../utils/api';
 
 interface KPICardProps {
-  icon: string;
+  icon: React.ReactNode;
   iconBg: string;
   title: string;
   value: string;
   subtitle: string;
+  trend?: string;
 }
 
-function KPICard({ icon, iconBg, title, value, subtitle }: KPICardProps) {
+function KPICard({ icon, iconBg, title, value, subtitle, trend }: KPICardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className={`${iconBg} rounded-lg p-3 text-2xl inline-block mb-3`}>
-        {icon}
+    <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`${iconBg} rounded-lg p-2.5 text-white`}>
+          {icon}
+        </div>
+        {trend && (
+          <div className="flex items-center gap-1 text-sm font-semibold text-green-600">
+            <TrendingUp className="w-4 h-4" />
+            <span>{trend}</span>
+          </div>
+        )}
       </div>
-      <div className="text-xs font-medium text-gray-500 uppercase mb-1">{title}</div>
+      <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">{title}</div>
       <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
       <div className="text-sm text-gray-600">{subtitle}</div>
     </div>
@@ -69,10 +79,10 @@ export default function Dashboard() {
       <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">edmonds café dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Edmonds Café</h1>
             <p className="text-gray-600 text-sm mt-1">Today: Friday, October 24, 2025</p>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
             📅 Last 30 Days ▾
           </button>
         </div>
@@ -83,32 +93,34 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-4 gap-6">
             <KPICard
-              icon="💵"
+              icon={<DollarSign className="w-6 h-6" />}
               iconBg="bg-orange-500"
               title="TODAY'S SALES"
               value={`$${Math.round(todaySales)}`}
               subtitle="vs $2,541 yesterday"
+              trend="12%"
             />
             <KPICard
-              icon="📊"
+              icon={<TrendingUp className="w-6 h-6" />}
               iconBg="bg-orange-500"
               title="TOP SELLER"
               value={topSeller}
               subtitle={`${topSellerUnits} sold`}
             />
             <KPICard
-              icon="⏰"
+              icon={<Clock className="w-6 h-6" />}
               iconBg="bg-teal-500"
               title="LABOR COST"
               value="28.4%"
               subtitle="Target: 30%"
             />
             <KPICard
-              icon="💰"
+              icon={<Percent className="w-6 h-6" />}
               iconBg="bg-orange-500"
               title="AVG MARGIN"
               value={`${avgMargin.toFixed(1)}%`}
               subtitle="vs 65.8% last period"
+              trend="2%"
             />
           </div>
         </div>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface ReportCardProps {
-  icon: string;
+  icon: React.ReactNode;
   iconBg: string;
   title: string;
   description: string;
@@ -18,7 +19,7 @@ export default function ReportCard({ icon, iconBg, title, description, children 
         className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-4">
-          <div className={`${iconBg} rounded-lg p-3 text-2xl text-white`}>
+          <div className={`${iconBg} rounded-lg p-3 text-white`}>
             {icon}
           </div>
           <div className="text-left">
@@ -26,7 +27,9 @@ export default function ReportCard({ icon, iconBg, title, description, children 
             <p className="text-sm text-gray-600">{description}</p>
           </div>
         </div>
-        <span className="text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+        <ChevronDown
+          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isExpanded && (
