@@ -16,6 +16,7 @@ import {
   getItemsByRevenue,
   getSalesPerHour,
   getItemsByMargin,
+  getLaborPercent,
 } from "../utils/api";
 import ItemsByRevenue from "./ItemsByRevenue";
 import SalesPerHour from "./SalesPerHour";
@@ -87,6 +88,7 @@ export default function Dashboard() {
   const [topSeller, setTopSeller] = useState<string>("Cold Brew");
   const [topSellerUnits, setTopSellerUnits] = useState<number>(0);
   const [avgMargin, setAvgMargin] = useState<number>(0);
+  const [avgLaborPct, setAvgLaborPct] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -322,6 +324,17 @@ export default function Dashboard() {
             0
           ) / marginData.data.length;
         setAvgMargin(avgMarginPct);
+      }
+
+      // Calculate average labor percentage for the date range
+      const laborData = await getLaborPercent(startDate, endDate);
+      if (laborData.data.length > 0) {
+        const avgLabor =
+          laborData.data.reduce(
+            (sum: number, hour: any) => sum + hour.labor_pct,
+            0
+          ) / laborData.data.length;
+        setAvgLaborPct(avgLabor);
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -583,8 +596,8 @@ export default function Dashboard() {
               iconShadow="shadow-lg shadow-cyan-500/40"
               cardBg="bg-gradient-to-br from-cyan-50 to-white"
               title="LABOR COST"
-              value="28.4%"
-              subtitle="Target: 30%"
+              value={`${avgLaborPct.toFixed(1)}%`}
+              subtitle="average for period"
             />
             <KPICard
               icon={<Percent className="w-7 h-7 text-white" />}
