@@ -16,6 +16,7 @@ interface ReportLayoutProps {
   ) => Promise<{ data: Record<string, any>[] }>;
   columns: Column[];
   needsDateRange?: boolean;
+  ChartComponent?: React.ComponentType<{ data: Record<string, any>[] }>;
 }
 
 export default function ReportLayout({
@@ -23,6 +24,7 @@ export default function ReportLayout({
   fetchData,
   columns,
   needsDateRange = true,
+  ChartComponent,
 }: ReportLayoutProps) {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,13 @@ export default function ReportLayout({
       {loading && <p className="text-gray-600">Loading...</p>}
 
       {error && <p className="text-red-600 bg-red-50 p-3 rounded">{error}</p>}
+
+      {/* Chart - appears before table */}
+      {!loading && !error && data.length > 0 && ChartComponent && (
+        <div className="mb-6">
+          <ChartComponent data={data} />
+        </div>
+      )}
 
       {!loading && !error && data.length > 0 && (
         <div className="overflow-x-auto">
