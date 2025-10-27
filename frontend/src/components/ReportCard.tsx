@@ -18,51 +18,31 @@ export default function ReportCard({
 }: ReportCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Determine gradient background based on icon color
-  const getGradientBg = (bgClass: string) => {
-    if (bgClass.includes("orange")) {
-      return "bg-gradient-to-br from-orange-400 to-amber-600";
-    } else if (bgClass.includes("blue")) {
-      return "bg-gradient-to-br from-blue-400 to-blue-600";
-    } else if (bgClass.includes("green")) {
-      return "bg-gradient-to-br from-green-400 to-green-600";
-    } else if (bgClass.includes("purple")) {
-      return "bg-gradient-to-br from-purple-400 to-purple-600";
-    } else if (bgClass.includes("pink")) {
-      return "bg-gradient-to-br from-pink-400 to-pink-600";
-    } else if (bgClass.includes("teal")) {
-      return "bg-gradient-to-br from-teal-400 to-cyan-600";
-    }
-    return bgClass;
-  };
-
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center gap-4"
       >
-        <div className="flex items-center gap-4">
-          <div
-            className={`${getGradientBg(
-              iconBg
-            )} rounded-lg p-3.5 text-white shadow-lg`}
-          >
-            {icon}
-          </div>
-          <div className="text-left">
-            <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600">{description}</p>
-          </div>
+        <div
+          className={`${iconBg} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}
+        >
+          {icon}
+        </div>
+        <div className="text-left flex-1">
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <p className="text-sm text-gray-600">{description}</p>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-gray-400 transition-transform ${
+          className={`w-5 h-5 text-gray-400 ml-auto transition-transform ${
             isExpanded ? "rotate-180" : ""
           }`}
         />
       </button>
 
-      {isExpanded && <div className="border-t border-gray-100">{children}</div>}
+      {isExpanded && (
+        <div className="mt-4 pt-4 border-t border-gray-100">{children}</div>
+      )}
     </div>
   );
 }
