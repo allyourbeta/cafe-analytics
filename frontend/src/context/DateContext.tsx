@@ -9,16 +9,18 @@ interface DateContextType {
 
 const DateContext = createContext<DateContextType | undefined>(undefined);
 
+// Helper to get today's date in YYYY-MM-DD format (local timezone)
+const getTodayLocal = (): string => {
+  const now = new Date();
+  // Force local timezone by creating a new date with timezone offset
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return localDate.toISOString().split("T")[0];
+};
+
 export const DateProvider = ({ children }: { children: ReactNode }) => {
   // Initialize with Aug 1, 2024 to today
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const todayLocal = `${year}-${month}-${day}`;
-
   const [startDate, setStartDate] = useState("2024-08-01");
-  const [endDate, setEndDate] = useState(todayLocal);
+  const [endDate, setEndDate] = useState(getTodayLocal());
   const [selectedPreset, setSelectedPreset] = useState("");
 
   const setDateRange = (start: string, end: string, preset: string) => {

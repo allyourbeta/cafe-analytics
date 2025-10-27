@@ -73,17 +73,18 @@ def sales_per_hour():
         conn = get_db()
         cursor = conn.cursor()
 
+        # Only show the last day (end_date) for hourly breakdown
         query = '''
             SELECT 
-                strftime('%Y-%m-%d %H:00:00', transaction_datetime) as hour,
+                strftime('%H:00', transaction_datetime) as hour,
                 ROUND(SUM(total_amount), 2) as sales
             FROM transactions
-            WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+            WHERE DATE(transaction_datetime) = ?
             GROUP BY hour
             ORDER BY hour
         '''
 
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, (end_date,))
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
