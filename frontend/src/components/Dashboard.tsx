@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -9,6 +9,7 @@ import {
   Activity,
   Menu,
   X,
+  ChevronDown,
 } from "lucide-react";
 import {
   getItemsByRevenue,
@@ -89,6 +90,13 @@ export default function Dashboard() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Date range picker state
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState("Last 30 Days");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
   const reports: ReportItem[] = [
     {
       id: "items-by-revenue",
@@ -147,6 +155,128 @@ export default function Dashboard() {
       component: <HourlyForecast />,
     },
   ];
+
+  // Date formatting helper
+  const formatDateRange = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    };
+
+    return `${startDate.toLocaleDateString(
+      "en-US",
+      options
+    )} - ${endDate.toLocaleDateString("en-US", options)}`;
+  };
+
+  // Calculate date range for presets
+  const calculatePresetDates = (preset: string) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let start = new Date();
+    let end = new Date();
+
+    switch (preset) {
+      case "Today":
+        start = today;
+        end = today;
+        break;
+      case "Yesterday":
+        start = yesterday;
+        end = yesterday;
+        break;
+      case "Last 7 Days":
+        start = new Date(today);
+        start.setDate(start.getDate() - 7);
+        end = today;
+        break;
+      case "Last 30 Days":
+        start = new Date(today);
+        start.setDate(start.getDate() - 30);
+        end = today;
+        break;
+      case "Last 90 Days":
+        start = new Date(today);
+        start.setDate(start.getDate() - 90);
+        end = today;
+        break;
+      case "This Month":
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = today;
+        break;
+      case "Last Month":
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      default:
+        return { start: "", end: "" };
+    }
+
+    return {
+      start: start.toISOString().split("T")[0],
+      end: end.toISOString().split("T")[0],
+    };
+  };
+
+  // Handle preset selection
+  const handlePresetClick = (preset: string) => {
+    if (preset === "Custom Range") {
+      setSelectedPreset("");
+      setStartDate("");
+      setEndDate("");
+    } else {
+      setSelectedPreset(preset);
+      const dates = calculatePresetDates(preset);
+      setStartDate(dates.start);
+      setEndDate(dates.end);
+    }
+  };
+
+  // Handle apply button
+  const handleApplyDateRange = () => {
+    if (startDate && endDate && new Date(endDate) >= new Date(startDate)) {
+      setIsDatePickerOpen(false);
+      // TODO: Refresh data with new date range
+      loadDashboardData();
+    }
+  };
+
+  // Get display text for button
+  const getDateRangeDisplay = () => {
+    if (selectedPreset) {
+      return selectedPreset;
+    }
+    if (startDate && endDate) {
+      return formatDateRange(startDate, endDate);
+    }
+    return "Select Date Range";
+  };
+
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target as Node)
+      ) {
+        setIsDatePickerOpen(false);
+      }
+    };
+
+    if (isDatePickerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDatePickerOpen]);
 
   useEffect(() => {
     loadDashboardData();
@@ -211,10 +341,101 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-        <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2">
-          <span className="text-gray-500">📅</span>
-          Last 30 Days ▾
-        </button>
+        {/* Date Range Picker */}
+        <div className="relative" ref={datePickerRef}>
+          {/* Button (closed state) */}
+          <button
+            onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2 shadow-sm cursor-pointer"
+            aria-label="Select date range"
+          >
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span>{getDateRangeDisplay()}</span>
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          </button>
+
+          {/* Popup (open state) */}
+          {isDatePickerOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-lg rounded-lg p-4 min-w-[320px] z-50"
+              role="dialog"
+            >
+              {/* Presets grid */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {[
+                  "Today",
+                  "Yesterday",
+                  "Last 7 Days",
+                  "Last 30 Days",
+                  "Last 90 Days",
+                  "This Month",
+                  "Last Month",
+                  "Custom Range",
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => handlePresetClick(preset)}
+                    className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                      selectedPreset === preset
+                        ? "bg-orange-50 border-orange-500 text-orange-700 font-medium"
+                        : "border-gray-200 hover:bg-orange-50 hover:border-orange-300"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 my-4" />
+
+              {/* Custom date inputs */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setSelectedPreset("");
+                    }}
+                    className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setSelectedPreset("");
+                    }}
+                    className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Apply button */}
+              <button
+                onClick={handleApplyDateRange}
+                disabled={
+                  !startDate ||
+                  !endDate ||
+                  new Date(endDate) < new Date(startDate)
+                }
+                className="w-full bg-orange-500 text-white py-2 px-4 rounded-md font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Decorative stripe */}
