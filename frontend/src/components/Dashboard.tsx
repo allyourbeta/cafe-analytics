@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useDateRange } from "../context/DateContext";
 import {
   DollarSign,
   TrendingUp,
@@ -90,12 +91,17 @@ export default function Dashboard() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Date range picker state
+  // Date range picker state (local UI state only)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState("Last 30 Days");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // Global date state from context
+  const { startDate, endDate, selectedPreset, setDateRange } = useDateRange();
+
+  // Local state for date picker inputs (temporary until Apply is clicked)
+  const [tempStartDate, setTempStartDate] = useState(startDate);
+  const [tempEndDate, setTempEndDate] = useState(endDate);
+  const [tempPreset, setTempPreset] = useState(selectedPreset);
 
   const reports: ReportItem[] = [
     {
@@ -224,30 +230,34 @@ export default function Dashboard() {
     };
   };
 
-  // Handle preset selection
+  // Handle preset selection (updates temp state)
   const handlePresetClick = (preset: string) => {
     if (preset === "Custom Range") {
-      setSelectedPreset("");
-      setStartDate("");
-      setEndDate("");
+      setTempPreset("");
+      setTempStartDate("");
+      setTempEndDate("");
     } else {
-      setSelectedPreset(preset);
+      setTempPreset(preset);
       const dates = calculatePresetDates(preset);
-      setStartDate(dates.start);
-      setEndDate(dates.end);
+      setTempStartDate(dates.start);
+      setTempEndDate(dates.end);
     }
   };
 
-  // Handle apply button
+  // Handle apply button (commits temp state to global context)
   const handleApplyDateRange = () => {
-    if (startDate && endDate && new Date(endDate) >= new Date(startDate)) {
+    if (
+      tempStartDate &&
+      tempEndDate &&
+      new Date(tempEndDate) >= new Date(tempStartDate)
+    ) {
+      setDateRange(tempStartDate, tempEndDate, tempPreset);
       setIsDatePickerOpen(false);
-      // TODO: Refresh data with new date range
-      loadDashboardData();
+      // Data will refresh automatically via context change in report components
     }
   };
 
-  // Get display text for button
+  // Get display text for button (uses global state)
   const getDateRangeDisplay = () => {
     if (selectedPreset) {
       return selectedPreset;
@@ -257,6 +267,15 @@ export default function Dashboard() {
     }
     return "Select Date Range";
   };
+
+  // Sync temp state when picker opens
+  useEffect(() => {
+    if (isDatePickerOpen) {
+      setTempStartDate(startDate);
+      setTempEndDate(endDate);
+      setTempPreset(selectedPreset);
+    }
+  }, [isDatePickerOpen, startDate, endDate, selectedPreset]);
 
   // Click outside handler
   useEffect(() => {
@@ -376,7 +395,7 @@ export default function Dashboard() {
                     key={preset}
                     onClick={() => handlePresetClick(preset)}
                     className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                      selectedPreset === preset
+                      tempPreset === preset
                         ? "bg-orange-50 border-orange-500 text-orange-700 font-medium"
                         : "border-gray-200 hover:bg-orange-50 hover:border-orange-300"
                     }`}
@@ -397,10 +416,10 @@ export default function Dashboard() {
                   </label>
                   <input
                     type="date"
-                    value={startDate}
+                    value={tempStartDate}
                     onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setSelectedPreset("");
+                      setTempStartDate(e.target.value);
+                      setTempPreset("");
                     }}
                     className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
@@ -411,10 +430,10 @@ export default function Dashboard() {
                   </label>
                   <input
                     type="date"
-                    value={endDate}
+                    value={tempEndDate}
                     onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setSelectedPreset("");
+                      setTempEndDate(e.target.value);
+                      setTempPreset("");
                     }}
                     className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
@@ -425,9 +444,9 @@ export default function Dashboard() {
               <button
                 onClick={handleApplyDateRange}
                 disabled={
-                  !startDate ||
-                  !endDate ||
-                  new Date(endDate) < new Date(startDate)
+                  !tempStartDate ||
+                  !tempEndDate ||
+                  new Date(tempEndDate) < new Date(tempStartDate)
                 }
                 className="w-full bg-orange-500 text-white py-2 px-4 rounded-md font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >

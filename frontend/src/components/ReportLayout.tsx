@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { useDateRange } from "../context/DateContext";
 
 export interface Column {
   key: string;
   label: string;
-  align?: 'left' | 'right';
+  align?: "left" | "right";
   format?: (value: number | string) => string;
 }
 
 interface ReportLayoutProps {
   title: string;
-  fetchData: (startDate?: string, endDate?: string) => Promise<{ data: Record<string, any>[] }>;
+  fetchData: (
+    startDate?: string,
+    endDate?: string
+  ) => Promise<{ data: Record<string, any>[] }>;
   columns: Column[];
   needsDateRange?: boolean;
 }
@@ -18,13 +22,14 @@ export default function ReportLayout({
   title,
   fetchData,
   columns,
-  needsDateRange = true
+  needsDateRange = true,
 }: ReportLayoutProps) {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState('2024-08-01');
-  const [endDate, setEndDate] = useState('2024-10-23');
+
+  // Get dates from global context
+  const { startDate, endDate } = useDateRange();
 
   const loadData = async () => {
     setLoading(true);
@@ -35,48 +40,21 @@ export default function ReportLayout({
         : await fetchData();
       setData(response.data);
     } catch (err) {
-      setError('Failed to load data');
+      setError("Failed to load data");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Reload data when dates change
   useEffect(() => {
     loadData();
-  }, []); // Only run on mount
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadData();
-  };
+  }, [startDate, endDate]); // Refresh when global dates change
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">{title}</h2>
-
-      {needsDateRange && (
-        <form onSubmit={handleSubmit} className="mb-4 flex gap-2">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
-          >
-            Load
-          </button>
-        </form>
-      )}
+      {/* Date range info removed - controlled by global date picker */}
 
       {loading && <p className="text-gray-600">Loading...</p>}
 
@@ -87,11 +65,11 @@ export default function ReportLayout({
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                {columns.map(col => (
+                {columns.map((col) => (
                   <th
                     key={col.key}
                     className={`border border-gray-300 px-4 py-2 ${
-                      col.align === 'right' ? 'text-right' : 'text-left'
+                      col.align === "right" ? "text-right" : "text-left"
                     }`}
                   >
                     {col.label}
@@ -102,11 +80,11 @@ export default function ReportLayout({
             <tbody>
               {data.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50">
-                  {columns.map(col => (
+                  {columns.map((col) => (
                     <td
                       key={col.key}
                       className={`border border-gray-300 px-4 py-2 ${
-                        col.align === 'right' ? 'text-right' : 'text-left'
+                        col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
                       {col.format ? col.format(row[col.key]) : row[col.key]}
