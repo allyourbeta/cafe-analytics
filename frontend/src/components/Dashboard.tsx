@@ -297,20 +297,17 @@ export default function Dashboard() {
     };
   }, [isDatePickerOpen]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
   const loadDashboardData = async () => {
+    setLoading(true);
     try {
-      const revenueData = await getItemsByRevenue("2024-10-01", "2024-10-23");
+      const revenueData = await getItemsByRevenue(startDate, endDate);
       if (revenueData.data.length > 0) {
         const top = revenueData.data[0];
         setTopSeller(top.item_name);
         setTopSellerUnits(top.units_sold);
       }
 
-      const salesData = await getSalesPerHour("2024-10-23", "2024-10-23");
+      const salesData = await getSalesPerHour(startDate, endDate);
       const totalSales = salesData.data.reduce(
         (sum: number, hour: any) => sum + hour.sales,
         0
@@ -332,6 +329,11 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  // Refresh KPIs when global date range changes
+  useEffect(() => {
+    loadDashboardData();
+  }, [startDate, endDate]);
 
   if (loading) {
     return <div className="p-8">Loading...</div>;
@@ -562,10 +564,9 @@ export default function Dashboard() {
               iconBg="bg-gradient-to-br from-orange-400 to-orange-600"
               iconShadow="shadow-lg shadow-orange-500/40"
               cardBg="bg-gradient-to-br from-orange-50 to-white"
-              title="TODAY'S SALES"
+              title="TOTAL SALES"
               value={`$${Math.round(todaySales)}`}
-              subtitle="vs $2,541 yesterday"
-              trend="+12%"
+              subtitle={`for selected period`}
             />
             <KPICard
               icon={<TrendingUp className="w-7 h-7 text-white" />}
@@ -574,7 +575,7 @@ export default function Dashboard() {
               cardBg="bg-gradient-to-br from-amber-50 to-white"
               title="TOP SELLER"
               value={topSeller}
-              subtitle={`${topSellerUnits} sold`}
+              subtitle={`${topSellerUnits} units sold`}
             />
             <KPICard
               icon={<Clock className="w-7 h-7 text-white" />}
@@ -592,8 +593,7 @@ export default function Dashboard() {
               cardBg="bg-gradient-to-br from-yellow-50 to-white"
               title="AVG MARGIN"
               value={`${avgMargin.toFixed(1)}%`}
-              subtitle="vs 65.8% last period"
-              trend="+2%"
+              subtitle="across all items"
             />
           </div>
 
