@@ -1,31 +1,40 @@
-import './index.css';
-import { BarChart3, Clock, Percent, DollarSign, TrendingUp, Calendar, Activity } from 'lucide-react';
-import Dashboard from './components/Dashboard';
-import ReportCard from './components/ReportCard';
-import ItemsByRevenue from './components/ItemsByRevenue';
-import SalesPerHour from './components/SalesPerHour';
-import LaborPercent from './components/LaborPercent';
-import ItemsByProfit from './components/ItemsByProfit';
-import ItemsByMargin from './components/ItemsByMargin';
-import DailyForecast from './components/DailyForecast';
-import HourlyForecast from './components/HourlyForecast';
+import "./index.css";
+import {
+  BarChart3,
+  Clock,
+  Percent,
+  DollarSign,
+  TrendingUp,
+  Calendar,
+  Activity,
+} from "lucide-react";
+import Dashboard from "./components/Dashboard";
+import ReportCard from "./components/ReportCard";
+import ItemsByRevenue from "./components/ItemsByRevenue";
+import SalesPerHour from "./components/SalesPerHour";
+import LaborPercent from "./components/LaborPercent";
+import ItemsByProfit from "./components/ItemsByProfit";
+import ItemsByMargin from "./components/ItemsByMargin";
+import DailyForecast from "./components/DailyForecast";
+import HourlyForecast from "./components/HourlyForecast";
 
 function App() {
   return (
-    <div className="min-h-screen py-12 px-12">
+    <div className="min-h-screen py-12 px-12 bg-gradient-to-br from-slate-800 to-slate-900">
       {/* Main container with max width, dramatic shadow, and prominent rounded corners */}
       <div
-        className="max-w-[1400px] mx-auto bg-white overflow-hidden"
+        className="max-w-[1400px] mx-auto bg-white overflow-hidden shadow-2xl ring-1 ring-white/20"
         style={{
-          borderRadius: '24px',
-          boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)'
+          borderRadius: "24px",
         }}
       >
         <Dashboard />
 
         <div className="px-8 pb-8">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 mt-12">Sales Reports</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 mt-12">
+              Sales Reports
+            </h2>
 
             <div className="grid grid-cols-2 gap-6">
               <ReportCard
