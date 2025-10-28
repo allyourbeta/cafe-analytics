@@ -5,11 +5,17 @@ CREATE TABLE items (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_name TEXT NOT NULL UNIQUE,
     category TEXT NOT NULL CHECK(category IN (
-        'coffee drinks', 
-        'other drinks', 
-        'alcohol', 
-        'external food', 
-        'internal food'
+        'coffeetea',
+        'cold coffeetea',
+        'beer',
+        'hh beer',
+        'wine',
+        'hh wine',
+        'other drinks',
+        'baked goods',
+        'food',
+        'retail',
+        'space rental'
     )),
     current_price DECIMAL(10,2) NOT NULL CHECK(current_price >= 0),
     current_cost DECIMAL(10,2) NOT NULL CHECK(current_cost >= 0),
@@ -26,11 +32,17 @@ CREATE TABLE transactions (
     item_id INTEGER NOT NULL,
     item_name TEXT NOT NULL,
     category TEXT NOT NULL CHECK(category IN (
-        'coffee drinks', 
-        'other drinks', 
-        'alcohol', 
-        'external food', 
-        'internal food'
+        'coffeetea',
+        'cold coffeetea',
+        'beer',
+        'hh beer',
+        'wine',
+        'hh wine',
+        'other drinks',
+        'baked goods',
+        'food',
+        'retail',
+        'space rental'
     )),
     quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
     unit_price DECIMAL(10,2) NOT NULL CHECK(unit_price >= 0),
@@ -64,7 +76,7 @@ CREATE TABLE settings (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO settings (setting_name, setting_value) VALUES 
+INSERT INTO settings (setting_name, setting_value) VALUES
     ('student_hourly_rate', '15.00'),
     ('data_start_date', '2024-08-01'),
     ('cafe_name', 'Campus Cafe'),
