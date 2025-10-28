@@ -105,6 +105,18 @@ export default function Dashboard() {
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [tempPreset, setTempPreset] = useState(selectedPreset);
 
+  // Format the last day in the range for display
+  const formatLastDay = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    };
+    return date.toLocaleDateString("en-US", options);
+  };
+
   const reports: ReportItem[] = [
     {
       id: "items-by-revenue",
@@ -117,7 +129,7 @@ export default function Dashboard() {
     {
       id: "sales-per-hour",
       title: "Sales per Hour",
-      description: "Hourly sales breakdown for today",
+      description: "Hourly sales breakdown for the day",
       icon: <Clock className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
       component: <SalesPerHour />,

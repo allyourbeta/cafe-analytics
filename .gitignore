@@ -6,6 +6,10 @@ __pycache__/
 *.class
 .env
 
+# Backup files, e.g. database backup
+*.backup
+*.bak
+
 # Build outputs
 build/
 dist/
