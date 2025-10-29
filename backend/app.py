@@ -66,35 +66,96 @@ def items_by_revenue():
 # R1: Sales per Labor Hour
 @app.route('/api/reports/sales-per-hour', methods=['GET'])
 def sales_per_hour():
+    mode = request.args.get('mode', 'average')  # 'average' or 'single'
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
+    single_date = request.args.get('date')  # For single mode
 
     try:
         conn = get_db()
         cursor = conn.cursor()
 
-        # Only show the last day (end_date) for hourly breakdown
-        query = '''
-            SELECT 
-                strftime('%H:00', transaction_datetime) as hour,
-                ROUND(SUM(total_amount), 2) as sales
-            FROM transactions
-            WHERE DATE(transaction_datetime) = ?
-            GROUP BY hour
-            ORDER BY hour
-        '''
+        if mode == 'single':
+            # Single day mode - show actual sales for specific day
+            target_date = single_date if single_date else end_date
 
-        cursor.execute(query, (end_date,))
-        rows = cursor.fetchall()
+            query = '''
+                SELECT 
+                    strftime('%H:00', transaction_datetime) as hour,
+                    ROUND(SUM(total_amount), 2) as sales
+                FROM transactions
+                WHERE DATE(transaction_datetime) = ?
+                GROUP BY hour
+                ORDER BY hour
+            '''
 
-        data = [dict(row) for row in rows]
-        conn.close()
+            cursor.execute(query, (target_date,))
+            rows = cursor.fetchall()
+            data = [dict(row) for row in rows]
 
-        return jsonify({
-            'success': True,
-            'data': data,
-            'date_range': {'start': start_date, 'end': end_date}
-        })
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'mode': 'single',
+                'data': data,
+                'date': target_date
+            })
+
+        else:
+            # Average mode - calculate average sales per hour across date range
+            # First, get all days that have data in the range
+            days_query = '''
+                SELECT DISTINCT DATE(transaction_datetime) as day
+                FROM transactions
+                WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+                ORDER BY day
+            '''
+            cursor.execute(days_query, (start_date, end_date))
+            days_with_data = [row['day'] for row in cursor.fetchall()]
+
+            # Calculate total days in range for missing data note
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            end = datetime.strptime(end_date, '%Y-%m-%d')
+            total_days_in_range = (end - start).days + 1
+            days_with_data_count = len(days_with_data)
+            missing_days_count = total_days_in_range - days_with_data_count
+
+            # Get average sales per hour across all days with data
+            query = '''
+                SELECT 
+                    hour,
+                    ROUND(AVG(hourly_sales), 2) as sales
+                FROM (
+                    SELECT 
+                        strftime('%H:00', transaction_datetime) as hour,
+                        DATE(transaction_datetime) as day,
+                        SUM(total_amount) as hourly_sales
+                    FROM transactions
+                    WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+                    GROUP BY day, hour
+                )
+                GROUP BY hour
+                ORDER BY hour
+            '''
+
+            cursor.execute(query, (start_date, end_date))
+            rows = cursor.fetchall()
+            data = [dict(row) for row in rows]
+
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'mode': 'average',
+                'data': data,
+                'date_range': {'start': start_date, 'end': end_date},
+                'metadata': {
+                    'total_days_in_range': total_days_in_range,
+                    'days_with_data': days_with_data_count,
+                    'missing_days': missing_days_count
+                }
+            })
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

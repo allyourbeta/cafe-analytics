@@ -60,10 +60,12 @@ export const getItemsByRevenue = async (startDate: string, endDate: string) => {
 };
 
 // R1: Sales per Hour
-export const getSalesPerHour = async (startDate: string, endDate: string) => {
-  const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, {
-    params: { start: startDate, end: endDate }
-  });
+export const getSalesPerHour = async (startDate: string, endDate: string, mode: 'average' | 'single' = 'average', singleDate?: string) => {
+  const params: any = { start: startDate, end: endDate, mode };
+  if (mode === 'single' && singleDate) {
+    params.date = singleDate;
+  }
+  const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, { params });
   return response.data;
 };
 

@@ -1,15 +1,6 @@
-import ReportLayout, { type Column } from "./ReportLayout";
+import { useState, useEffect } from "react";
+import { useDateRange } from "../context/DateContext";
 import { getSalesPerHour } from "../utils/api";
-
-const columns: Column[] = [
-  { key: "hour", label: "Hour", align: "left" },
-  {
-    key: "sales",
-    label: "Sales",
-    align: "right",
-    format: (val) => `$${Number(val).toFixed(2)}`,
-  },
-];
 
 // Vertical bar chart - visual magnitude representation
 const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
@@ -45,17 +36,6 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
         borderRadius: "12px",
       }}
     >
-      <h3
-        style={{
-          marginBottom: "24px",
-          fontSize: "18px",
-          fontWeight: "700",
-          color: "#111827",
-        }}
-      >
-        Hourly Sales Pattern
-      </h3>
-
       {/* Vertical bar chart */}
       <div
         style={{
@@ -244,13 +224,78 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
 };
 
 export default function SalesPerHour() {
+  const [data, setData] = useState<Record<string, any>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metadata, setMetadata] = useState<any>(null);
+
+  // Get dates from global context
+  const { startDate, endDate } = useDateRange();
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    // Parse date string as local date to avoid timezone shift
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    };
+    return date.toLocaleDateString("en-US", options);
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getSalesPerHour(startDate, endDate, 'average');
+      setData(response.data);
+      if (response.metadata) {
+        setMetadata(response.metadata);
+      }
+    } catch (err) {
+      setError("Failed to load data");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data when dates change
+  useEffect(() => {
+    loadData();
+  }, [startDate, endDate]);
+
+  if (loading) {
+    return <div className="p-6 text-gray-600">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>;
+  }
+
+  if (data.length === 0) {
+    return <div className="p-6 text-gray-500">No data for this period</div>;
+  }
+
   return (
-    <ReportLayout
-      title="Sales per Labor Hour"
-      fetchData={getSalesPerHour}
-      columns={columns}
-      needsDateRange={true}
-      ChartComponent={SalesChart}
-    />
+    <div className="p-6">
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          Average hourly pattern: {startDate === endDate
+            ? formatDate(startDate)
+            : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+        </h3>
+        {metadata && metadata.missing_days > 0 && (
+          <p className="text-sm text-gray-600 mb-4">
+            Note: Missing data for {metadata.missing_days} day{metadata.missing_days > 1 ? 's' : ''} in range.
+          </p>
+        )}
+      </div>
+
+      <SalesChart data={data} />
+    </div>
   );
 }

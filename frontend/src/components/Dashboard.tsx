@@ -108,7 +108,10 @@ export default function Dashboard() {
   // Format the last day in the range for display
   const formatLastDay = (dateStr: string) => {
     if (!dateStr) return "";
-    const date = new Date(dateStr);
+    // Parse date string as local date to avoid timezone shift
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
       day: "numeric",
@@ -178,8 +181,12 @@ export default function Dashboard() {
 
   // Date formatting helper
   const formatDateRange = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    // Parse date strings as local dates to avoid timezone shift
+    const [startYear, startMonth, startDay] = start.split('-').map(Number);
+    const [endYear, endMonth, endDay] = end.split('-').map(Number);
+
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    const endDate = new Date(endYear, endMonth - 1, endDay);
 
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
@@ -187,10 +194,15 @@ export default function Dashboard() {
       year: "numeric",
     };
 
-    return `${startDate.toLocaleDateString(
-      "en-US",
-      options
-    )} - ${endDate.toLocaleDateString("en-US", options)}`;
+    const startFormatted = startDate.toLocaleDateString("en-US", options);
+    const endFormatted = endDate.toLocaleDateString("en-US", options);
+
+    // If start and end are the same, just show one date
+    if (start === end) {
+      return startFormatted;
+    }
+
+    return `${startFormatted} - ${endFormatted}`;
   };
 
   // Calculate date range for presets
