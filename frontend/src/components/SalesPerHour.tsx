@@ -11,7 +11,7 @@ const columns: Column[] = [
   },
 ];
 
-// Heat map timeline - instant visual pattern recognition
+// Vertical bar chart - visual magnitude representation
 const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
   const maxSales = Math.max(...data.map((item) => item.sales));
   const minSales = Math.min(...data.map((item) => item.sales));
@@ -23,18 +23,18 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
     data[0]
   );
 
-  // Get color based on sales intensity
-  const getHeatColor = (sales: number) => {
+  // Get color based on sales intensity (blue gradient)
+  const getBarColor = (sales: number) => {
     const intensity = (sales - minSales) / (maxSales - minSales);
     if (intensity > 0.8)
-      return { bg: "#DC2626", text: "#FFFFFF", label: "PEAK" }; // Deep red
+      return { bg: "#1E40AF", text: "#FFFFFF", label: "PEAK" }; // Bold blue
     if (intensity > 0.6)
-      return { bg: "#EA580C", text: "#FFFFFF", label: "HOT" }; // Bright orange
+      return { bg: "#2563EB", text: "#FFFFFF", label: "HIGH" }; // Bright blue
     if (intensity > 0.4)
-      return { bg: "#FB923C", text: "#FFFFFF", label: "WARM" }; // Soft orange
+      return { bg: "#3B82F6", text: "#FFFFFF", label: "GOOD" }; // Medium blue
     if (intensity > 0.2)
-      return { bg: "#FED7AA", text: "#92400E", label: "WARM" }; // Light orange
-    return { bg: "#E5E7EB", text: "#6B7280", label: "COOL" }; // Gray
+      return { bg: "#60A5FA", text: "#FFFFFF", label: "MODERATE" }; // Light blue
+    return { bg: "#BFDBFE", text: "#1E40AF", label: "LOW" }; // Very light blue
   };
 
   return (
@@ -53,36 +53,35 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
           color: "#111827",
         }}
       >
-        Sales Heat Map - Hourly Pattern
+        Hourly Sales Pattern
       </h3>
 
-      {/* Heat map timeline */}
+      {/* Vertical bar chart */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
+          display: "flex",
+          alignItems: "flex-end",
           gap: "8px",
           marginBottom: "24px",
+          height: "300px",
+          padding: "0 8px",
         }}
       >
         {data.map((item, index) => {
-          const colors = getHeatColor(item.sales);
+          const colors = getBarColor(item.sales);
           const isPeak = item.sales === peakHour.sales;
+          const heightPercent = (item.sales / maxSales) * 100;
+
           return (
             <div
               key={index}
               style={{
-                backgroundColor: colors.bg,
-                color: colors.text,
-                padding: "16px 8px",
-                borderRadius: "8px",
-                textAlign: "center",
-                transition: "all 0.3s ease",
-                boxShadow: isPeak
-                  ? "0 0 20px rgba(220, 38, 38, 0.5)"
-                  : "0 1px 3px rgba(0,0,0,0.1)",
-                transform: isPeak ? "scale(1.05)" : "scale(1)",
-                cursor: "pointer",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                height: "100%",
                 position: "relative",
               }}
             >
@@ -90,15 +89,15 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
                 <div
                   style={{
                     position: "absolute",
-                    top: "-8px",
-                    right: "-8px",
+                    top: "-24px",
                     backgroundColor: "#FEF3C7",
                     color: "#92400E",
                     fontSize: "10px",
                     fontWeight: "700",
-                    padding: "2px 6px",
+                    padding: "4px 8px",
                     borderRadius: "4px",
                     boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   🔥 PEAK
@@ -106,15 +105,41 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
               )}
               <div
                 style={{
-                  fontSize: "13px",
+                  fontSize: "11px",
                   fontWeight: "600",
+                  color: colors.bg,
                   marginBottom: "4px",
                 }}
               >
-                {item.hour}
-              </div>
-              <div style={{ fontSize: "16px", fontWeight: "700" }}>
                 ${item.sales.toFixed(0)}
+              </div>
+              <div
+                style={{
+                  width: "100%",
+                  height: `${heightPercent}%`,
+                  backgroundColor: colors.bg,
+                  borderRadius: "8px 8px 0 0",
+                  transition: "all 0.3s ease",
+                  boxShadow: isPeak
+                    ? "0 0 20px rgba(30, 64, 175, 0.5)"
+                    : "0 2px 4px rgba(0,0,0,0.1)",
+                  cursor: "pointer",
+                  minHeight: "20px",
+                }}
+                title={`${item.hour}: $${item.sales.toFixed(2)}`}
+              />
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6B7280",
+                  marginTop: "8px",
+                  transform: "rotate(-45deg)",
+                  transformOrigin: "center",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {item.hour}
               </div>
             </div>
           );
@@ -132,16 +157,16 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
       >
         <div
           style={{
-            backgroundColor: "#FEF3C7",
+            backgroundColor: "#DBEAFE",
             padding: "16px",
             borderRadius: "8px",
-            border: "2px solid #FDE68A",
+            border: "2px solid #BFDBFE",
           }}
         >
           <div
             style={{
               fontSize: "12px",
-              color: "#92400E",
+              color: "#1E40AF",
               fontWeight: "600",
               marginBottom: "4px",
             }}
@@ -149,11 +174,11 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
             🔥 PEAK HOUR
           </div>
           <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#92400E" }}
+            style={{ fontSize: "24px", fontWeight: "700", color: "#1E40AF" }}
           >
             {peakHour.hour}
           </div>
-          <div style={{ fontSize: "14px", color: "#92400E", marginTop: "2px" }}>
+          <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
             ${peakHour.sales.toFixed(0)}
           </div>
         </div>
@@ -188,16 +213,16 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
 
         <div
           style={{
-            backgroundColor: "#E0E7FF",
+            backgroundColor: "#DBEAFE",
             padding: "16px",
             borderRadius: "8px",
-            border: "2px solid #C7D2FE",
+            border: "2px solid #BFDBFE",
           }}
         >
           <div
             style={{
               fontSize: "12px",
-              color: "#4338CA",
+              color: "#1E40AF",
               fontWeight: "600",
               marginBottom: "4px",
             }}
@@ -205,11 +230,11 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
             📊 AVG PER HOUR
           </div>
           <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#4338CA" }}
+            style={{ fontSize: "24px", fontWeight: "700", color: "#1E40AF" }}
           >
             ${(totalSales / data.length).toFixed(0)}
           </div>
-          <div style={{ fontSize: "14px", color: "#4338CA", marginTop: "2px" }}>
+          <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
             Per labor hour
           </div>
         </div>

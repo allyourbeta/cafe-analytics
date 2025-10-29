@@ -34,3 +34,4 @@ frontend/.vite/
 npm-debug.log*
 
 database/cafe_reports.db
+*.zip

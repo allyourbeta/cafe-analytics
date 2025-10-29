@@ -90,7 +90,7 @@ export default function Dashboard() {
   const [avgMargin, setAvgMargin] = useState<number>(0);
   const [avgLaborPct, setAvgLaborPct] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<string | null>("items-by-revenue");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Date range picker state (local UI state only)
