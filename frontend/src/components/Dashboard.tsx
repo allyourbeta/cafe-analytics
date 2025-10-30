@@ -147,7 +147,7 @@ export default function Dashboard() {
     },
     {
       id: "items-by-profit",
-      title: "Items by Profit",
+      title: "Items by Profit $$",
       description: "Most profitable menu items",
       icon: <DollarSign className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
@@ -155,7 +155,7 @@ export default function Dashboard() {
     },
     {
       id: "items-by-margin",
-      title: "Items by Margin",
+      title: "Items by Profit Margin %",
       description: "Items with highest profit margins",
       icon: <TrendingUp className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",

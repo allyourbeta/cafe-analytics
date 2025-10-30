@@ -1,35 +1,24 @@
-import ReportLayout, { type Column } from "./ReportLayout";
+import { useState, useEffect } from "react";
+import { useDateRange } from "../context/DateContext";
 import { getItemsByRevenue } from "../utils/api";
+import { getCategoryColor, getCategoryDisplayName, ALL_CATEGORIES } from "../utils/categoryColors";
 
-const columns: Column[] = [
-  { key: "item_name", label: "Item", align: "left" },
-  { key: "category", label: "Category", align: "left" },
-  { key: "units_sold", label: "Units", align: "right" },
+const columns = [
+  { key: "item_name", label: "Item", align: "left" as const },
+  { key: "category", label: "Category", align: "left" as const },
+  { key: "units_sold", label: "Units", align: "right" as const },
   {
     key: "revenue",
     label: "Revenue",
-    align: "right",
-    format: (val) => `$${Number(val).toFixed(2)}`,
+    align: "right" as const,
+    format: (val: number) => `$${Number(val).toFixed(2)}`,
   },
 ];
 
-// Simple CSS bar chart - NO external libraries
+// Simple CSS bar chart
 const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
   const top10 = data.slice(0, 10);
   const maxRevenue = Math.max(...top10.map((item) => item.revenue));
-
-  // Color by category for consistency
-  const categoryColors: Record<string, string> = {
-    alcohol: "#f97316", // Orange
-    "coffee drinks": "#fbbf24", // Amber
-    "internal food": "#06b6d4", // Cyan
-    "external food": "#a855f7", // Purple
-    default: "#6b7280", // Gray fallback
-  };
-
-  const getColor = (category: string) => {
-    return categoryColors[category.toLowerCase()] || categoryColors["default"];
-  };
 
   return (
     <div
@@ -71,7 +60,7 @@ const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
                   style={{
                     width: `${widthPercent}%`,
                     height: "100%",
-                    backgroundColor: getColor(item.category),
+                    backgroundColor: getCategoryColor(item.category),
                     borderRadius: "4px",
                     display: "flex",
                     alignItems: "center",
@@ -100,13 +89,108 @@ const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
 };
 
 export default function ItemsByRevenue() {
+  const [data, setData] = useState<Record<string, any>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const { startDate, endDate } = useDateRange();
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getItemsByRevenue(startDate, endDate);
+      setData(response.data);
+    } catch (err) {
+      setError("Failed to load data");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [startDate, endDate]);
+
+  // Filter data by selected category
+  const filteredData = selectedCategory === "all"
+    ? data
+    : data.filter(item => item.category === selectedCategory);
+
+  if (loading) {
+    return <div className="p-6 text-gray-600">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>;
+  }
+
+  if (data.length === 0) {
+    return <div className="p-6 text-gray-500">No data for this period</div>;
+  }
+
   return (
-    <ReportLayout
-      title="Items by Revenue"
-      fetchData={getItemsByRevenue}
-      columns={columns}
-      needsDateRange={true}
-      ChartComponent={RevenueChart}
-    />
+    <div className="p-6">
+      {/* Title with category filter */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Items by Revenue</h2>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+        >
+          <option value="all">All Categories</option>
+          {ALL_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>
+              {getCategoryDisplayName(cat)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Chart */}
+      <RevenueChart data={filteredData} />
+
+      {/* Data table */}
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100">
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`border border-gray-300 px-4 py-2 ${
+                    col.align === "right" ? "text-right" : "text-left"
+                  }`}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map((row, i) => (
+              <tr key={i} className="hover:bg-gray-50">
+                {columns.map((col) => (
+                  <td
+                    key={col.key}
+                    className={`border border-gray-300 px-4 py-2 ${
+                      col.align === "right" ? "text-right" : "text-left"
+                    }`}
+                  >
+                    {col.format ? col.format(row[col.key]) : row[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-2 text-sm text-gray-600">
+          Total rows: {filteredData.length}
+        </div>
+      </div>
+    </div>
   );
 }

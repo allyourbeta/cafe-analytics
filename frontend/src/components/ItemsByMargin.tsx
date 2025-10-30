@@ -1,5 +1,6 @@
 import ReportLayout, { type Column } from "./ReportLayout";
 import { getItemsByMargin } from "../utils/api";
+import { getCategoryColor } from "../utils/categoryColors";
 
 const columns: Column[] = [
   { key: "item_name", label: "Item", align: "left" },
@@ -33,18 +34,6 @@ const columns: Column[] = [
 // Horizontal bar chart for margin %
 const MarginChart = ({ data }: { data: Record<string, any>[] }) => {
   const top10 = data.slice(0, 10);
-
-  const categoryColors: Record<string, string> = {
-    alcohol: "#f97316",
-    "coffee drinks": "#fbbf24",
-    "internal food": "#06b6d4",
-    "external food": "#a855f7",
-    default: "#6b7280",
-  };
-
-  const getColor = (category: string) => {
-    return categoryColors[category.toLowerCase()] || categoryColors["default"];
-  };
 
   return (
     <div
@@ -85,7 +74,7 @@ const MarginChart = ({ data }: { data: Record<string, any>[] }) => {
                   style={{
                     width: `${item.margin_pct}%`,
                     height: "100%",
-                    backgroundColor: getColor(item.category),
+                    backgroundColor: getCategoryColor(item.category),
                     borderRadius: "4px",
                     display: "flex",
                     alignItems: "center",
@@ -116,7 +105,7 @@ const MarginChart = ({ data }: { data: Record<string, any>[] }) => {
 export default function ItemsByMargin() {
   return (
     <ReportLayout
-      title="Items by Profitability %"
+      title="Items by Profit Margin %"
       fetchData={getItemsByMargin}
       columns={columns}
       needsDateRange={false}
