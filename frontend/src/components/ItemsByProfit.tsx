@@ -1,17 +1,24 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getItemsByProfit } from "../utils/api";
-import { getCategoryColor, getCategoryDisplayName, ALL_CATEGORIES } from "../utils/categoryColors";
+import { getCategoryColor } from "../utils/categoryColors";
+import { formatCurrency, formatNumber } from "../utils/formatters";
+import CategoryDropdown from "./CategoryDropdown";
 
 const columns = [
   { key: "item_name", label: "Item", align: "left" as const },
   { key: "category", label: "Category", align: "left" as const },
-  { key: "units_sold", label: "Units", align: "right" as const },
+  {
+    key: "units_sold",
+    label: "Units",
+    align: "right" as const,
+    format: (val: number) => formatNumber(val, 0),
+  },
   {
     key: "total_profit",
     label: "Total Profit",
     align: "right" as const,
-    format: (val: number) => `$${Number(val).toFixed(2)}`,
+    format: (val: number) => formatCurrency(val, 0),
   },
   {
     key: "margin_pct",
@@ -82,7 +89,7 @@ const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
                       color: "white",
                     }}
                   >
-                    ${item.total_profit.toFixed(0)}
+                    {formatCurrency(item.total_profit, 0)}
                   </span>
                 </div>
               </div>
@@ -138,22 +145,13 @@ export default function ItemsByProfit() {
   }
 
   return (
-    <div className="p-6">
-      {/* Title with category filter */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Items by Profit $$</h2>
-        <select
+    <div>
+      {/* Category filter - positioned at top right */}
+      <div className="flex justify-end mb-6">
+        <CategoryDropdown
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-        >
-          <option value="all">All Categories</option>
-          {ALL_CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {getCategoryDisplayName(cat)}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedCategory}
+        />
       </div>
 
       {/* Chart */}

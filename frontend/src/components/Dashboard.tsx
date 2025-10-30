@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useDateRange } from "../context/DateContext";
+import { getTodayPacificTime } from "../utils/formatters";
 import {
   DollarSign,
   TrendingUp,
@@ -395,7 +396,7 @@ export default function Dashboard() {
               Edmonds Café
             </h1>
             <p className="text-sm text-gray-500">
-              Today: Friday, October 24, 2025
+              Today: {getTodayPacificTime()}
             </p>
           </div>
         </div>
