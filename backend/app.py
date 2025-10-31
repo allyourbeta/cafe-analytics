@@ -42,7 +42,7 @@ def items_by_revenue():
                 ROUND(SUM(t.total_amount), 2) as revenue
             FROM transactions t
             JOIN items i ON t.item_id = i.item_id
-            WHERE DATE(t.transaction_datetime) BETWEEN ? AND ?
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
             GROUP BY t.item_id, i.item_name, i.category
             ORDER BY revenue DESC
         '''
@@ -81,10 +81,10 @@ def sales_per_hour():
 
             query = '''
                 SELECT 
-                    strftime('%H:00', transaction_datetime) as hour,
+                    strftime('%H:00', transaction_date) as hour,
                     ROUND(SUM(total_amount), 2) as sales
                 FROM transactions
-                WHERE DATE(transaction_datetime) = ?
+                WHERE DATE(transaction_date) = ?
                 GROUP BY hour
                 ORDER BY hour
             '''
@@ -106,9 +106,9 @@ def sales_per_hour():
             # Average mode - calculate average sales per hour across date range
             # First, get all days that have data in the range
             days_query = '''
-                SELECT DISTINCT DATE(transaction_datetime) as day
+                SELECT DISTINCT DATE(transaction_date) as day
                 FROM transactions
-                WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+                WHERE DATE(transaction_date) BETWEEN ? AND ?
                 ORDER BY day
             '''
             cursor.execute(days_query, (start_date, end_date))
@@ -128,11 +128,11 @@ def sales_per_hour():
                     ROUND(AVG(hourly_sales), 2) as sales
                 FROM (
                     SELECT 
-                        strftime('%H:00', transaction_datetime) as hour,
-                        DATE(transaction_datetime) as day,
+                        strftime('%H:00', transaction_date) as hour,
+                        DATE(transaction_date) as day,
                         SUM(total_amount) as hourly_sales
                     FROM transactions
-                    WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+                    WHERE DATE(transaction_date) BETWEEN ? AND ?
                     GROUP BY day, hour
                 )
                 GROUP BY hour
@@ -174,10 +174,10 @@ def labor_percent():
         query = '''
             WITH hourly_sales AS (
                 SELECT 
-                    strftime('%Y-%m-%d %H:00:00', transaction_datetime) as hour,
+                    strftime('%Y-%m-%d %H:00:00', transaction_date) as hour,
                     ROUND(SUM(total_amount), 2) as sales
                 FROM transactions
-                WHERE DATE(transaction_datetime) BETWEEN ? AND ?
+                WHERE DATE(transaction_date) BETWEEN ? AND ?
                 GROUP BY hour
             ),
             hourly_labor AS (
@@ -229,11 +229,12 @@ def items_by_profit():
                 i.item_name,
                 i.category,
                 SUM(t.quantity) as units_sold,
-                ROUND(SUM((t.unit_price - t.unit_cost) * t.quantity), 2) as total_profit,
-                ROUND(SUM((t.unit_price - t.unit_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
+                
+                ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
+                ROUND(SUM((t.unit_price - i.current_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
             FROM transactions t
             JOIN items i ON t.item_id = i.item_id
-            WHERE DATE(t.transaction_datetime) BETWEEN ? AND ?
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
             GROUP BY t.item_id, i.item_name, i.category
             ORDER BY total_profit DESC
         '''
@@ -309,7 +310,7 @@ def daily_forecast():
             query = '''
                 SELECT ROUND(SUM(total_amount), 2) as daily_sales
                 FROM transactions
-                WHERE DATE(transaction_datetime) = ?
+                WHERE DATE(transaction_date) = ?
             '''
 
             cursor.execute(query, (last_week.isoformat(),))
@@ -345,11 +346,11 @@ def hourly_forecast():
 
         query = '''
             SELECT 
-                strftime('%H:00', transaction_datetime) as hour,
+                strftime('%H:00', transaction_date) as hour,
                 ROUND(SUM(total_amount), 2) as avg_sales
             FROM transactions
-            WHERE DATE(transaction_datetime) = ?
-            GROUP BY strftime('%H', transaction_datetime)
+            WHERE DATE(transaction_date) = ?
+            GROUP BY strftime('%H', transaction_date)
             ORDER BY hour
         '''
 

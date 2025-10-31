@@ -5,6 +5,11 @@ __pycache__/
 *.py[cod]
 *.class
 .env
+*.csv
+*.xls
+*.xlsx
+*.db
+
 
 # Backup files, e.g. database backup
 *.backup
@@ -35,7 +40,3 @@ npm-debug.log*
 
 database/cafe_reports.db
 *.zip
-scripts/*.xls
-scripts/*.xlsx
-scripts/*.csv
-
