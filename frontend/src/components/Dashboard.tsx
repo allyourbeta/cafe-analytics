@@ -18,6 +18,7 @@ import {
   getSalesPerHour,
   getItemsByMargin,
   getLaborPercent,
+  getItemsByProfit,
 } from "../utils/api";
 import ItemsByRevenue from "./ItemsByRevenue";
 import SalesPerHour from "./SalesPerHour";
@@ -93,6 +94,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<string | null>("items-by-revenue");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [topSellerRevenue, setTopSellerRevenue] = useState<number>(0);
 
   // Date range picker state (local UI state only)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -332,6 +334,7 @@ export default function Dashboard() {
         const top = revenueData.data[0];
         setTopSeller(top.item_name);
         setTopSellerUnits(top.units_sold);
+        setTopSellerRevenue(top.revenue);
       }
 
       const salesData = await getSalesPerHour(startDate, endDate);
@@ -341,24 +344,46 @@ export default function Dashboard() {
       );
       setTodaySales(totalSales);
 
-      const marginData = await getItemsByMargin();
-      if (marginData.data.length > 0) {
-        const avgMarginPct =
-          marginData.data.reduce(
-            (sum: number, item: any) => sum + item.margin_pct,
-            0
-          ) / marginData.data.length;
+      // Calculate average margin weighted by revenue
+      // Use profit data which includes sales volume
+      const profitData = await getItemsByProfit(startDate, endDate);
+      if (profitData.data.length > 0) {
+        // Calculate total profit and total revenue across all items
+        const totalProfit = profitData.data.reduce(
+          (sum: number, item: any) => sum + item.total_profit,
+          0
+        );
+
+        // Calculate revenue for each item: total_profit / (margin_pct / 100)
+        // Then sum to get total revenue
+        const totalRevenue = profitData.data.reduce(
+          (sum: number, item: any) => {
+            if (item.margin_pct > 0) {
+              const itemRevenue = item.total_profit / (item.margin_pct / 100);
+              return sum + itemRevenue;
+            }
+            return sum;
+          },
+          0
+        );
+
+        // Weighted average margin = total profit / total revenue * 100
+        const avgMarginPct = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
         setAvgMargin(avgMarginPct);
       }
 
-      // Calculate average labor percentage for the date range
+      // Calculate average labor percentage for the date range (weighted by sales volume)
       const laborData = await getLaborPercent(startDate, endDate);
       if (laborData.data.length > 0) {
-        const avgLabor =
-          laborData.data.reduce(
-            (sum: number, hour: any) => sum + hour.labor_pct,
-            0
-          ) / laborData.data.length;
+        const totalLaborCost = laborData.data.reduce(
+          (sum: number, hour: any) => sum + hour.labor_cost,
+          0
+        );
+        const totalSales = laborData.data.reduce(
+          (sum: number, hour: any) => sum + hour.sales,
+          0
+        );
+        const avgLabor = totalSales > 0 ? (totalLaborCost / totalSales) * 100 : 0;
         setAvgLaborPct(avgLabor);
       }
     } catch (error) {
@@ -611,16 +636,16 @@ export default function Dashboard() {
               iconBg="bg-gradient-to-br from-amber-400 to-amber-600"
               iconShadow="shadow-lg shadow-amber-500/40"
               cardBg="bg-gradient-to-br from-amber-50 to-white"
-              title="TOP SELLER"
+              title="TOP SELLER ($$)"
               value={topSeller}
-              subtitle={`${topSellerUnits} units sold`}
+              subtitle={`${topSellerUnits} units • $${Math.round(topSellerRevenue)} revenue`}
             />
             <KPICard
               icon={<Clock className="w-7 h-7 text-white" />}
               iconBg="bg-gradient-to-br from-cyan-400 to-cyan-600"
               iconShadow="shadow-lg shadow-cyan-500/40"
               cardBg="bg-gradient-to-br from-cyan-50 to-white"
-              title="LABOR COST"
+              title="TOTAL LABOR COST"
               value={`${avgLaborPct.toFixed(1)}%`}
               subtitle="average for period"
             />
@@ -629,7 +654,7 @@ export default function Dashboard() {
               iconBg="bg-gradient-to-br from-yellow-400 to-yellow-600"
               iconShadow="shadow-lg shadow-yellow-500/40"
               cardBg="bg-gradient-to-br from-yellow-50 to-white"
-              title="AVG MARGIN"
+              title="AVERAGE MARGIN"
               value={`${avgMargin.toFixed(1)}%`}
               subtitle="across all items"
             />

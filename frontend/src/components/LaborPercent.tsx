@@ -70,8 +70,11 @@ const LaborChart = ({
     setIsEditing(false);
   };
 
-  const avgLabor =
-    data.reduce((sum, item) => sum + item.labor_pct, 0) / data.length;
+  // Calculate weighted average: total labor cost / total sales
+  // This is the true labor % (not simple average of percentages)
+  const totalLaborCost = data.reduce((sum, item) => sum + item.labor_cost, 0);
+  const totalSales = data.reduce((sum, item) => sum + item.sales, 0);
+  const avgLabor = totalSales > 0 ? (totalLaborCost / totalSales) * 100 : 0;
   const underTargetCount = data.filter(
     (item) => item.labor_pct <= target
   ).length;
