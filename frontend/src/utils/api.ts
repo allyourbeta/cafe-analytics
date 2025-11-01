@@ -70,9 +70,9 @@ export const getSalesPerHour = async (startDate: string, endDate: string, mode: 
 };
 
 // R2: Labor Percent per Hour
-export const getLaborPercent = async (startDate: string, endDate: string) => {
+export const getLaborPercent = async (startDate: string, endDate: string, includeSalaried: boolean = true) => {
   const response = await axios.get(`${API_BASE}/reports/labor-percent`, {
-    params: { start: startDate, end: endDate }
+    params: { start: startDate, end: endDate, include_salaried: includeSalaried }
   });
   return response.data;
 };

@@ -110,13 +110,14 @@ def prorate_shift_hours(
 def calculate_hourly_labor_costs(
         conn,
         start_date: str,
-        end_date: str
+        end_date: str,
+        include_salaried: bool = True
 ) -> Dict[str, float]:
     """
     Calculate total labor cost for each hour across all shifts in date range.
 
     Labor rates are retrieved from the settings table:
-    - 'hourly' employees use 'hourly_labor_rate'
+    - 'hourly' employees (students) use 'hourly_labor_rate'
     - 'salaried' employees use 'salaried_labor_rate'
 
     This function:
@@ -129,6 +130,7 @@ def calculate_hourly_labor_costs(
         conn: SQLite database connection
         start_date: Start date in 'YYYY-MM-DD' format
         end_date: End date in 'YYYY-MM-DD' format
+        include_salaried: If True, includes salaried employees. If False, only hourly (students).
 
     Returns:
         Dictionary mapping hour strings to total labor costs
@@ -144,6 +146,10 @@ def calculate_hourly_labor_costs(
         >>> costs = calculate_hourly_labor_costs(conn, '2024-10-01', '2024-10-31')
         >>> print(costs['2024-10-30 09:00:00'])
         180.00  # Total of all employees working during 9am hour on Oct 30
+
+        >>> costs_students_only = calculate_hourly_labor_costs(conn, '2024-10-01', '2024-10-31', include_salaried=False)
+        >>> print(costs_students_only['2024-10-30 09:00:00'])
+        90.00  # Only hourly/student employees
     """
     cursor = conn.cursor()
 
@@ -155,17 +161,32 @@ def calculate_hourly_labor_costs(
     hourly_rate = settings.get('hourly_labor_rate', 20.00)  # Default $20 if not set
     salaried_rate = settings.get('salaried_labor_rate', 30.00)  # Default $30 if not set
 
-    # Get all shifts in date range
-    query = '''
-        SELECT 
-            shift_start, 
-            shift_end, 
-            employee_type,
-            employee_name
-        FROM labor_hours
-        WHERE shift_date BETWEEN ? AND ?
-        ORDER BY shift_start
-    '''
+    # Build query with optional employee type filter
+    if include_salaried:
+        # Get all shifts (both hourly students and salaried)
+        query = '''
+            SELECT 
+                shift_start, 
+                shift_end, 
+                employee_type,
+                employee_name
+            FROM labor_hours
+            WHERE shift_date BETWEEN ? AND ?
+            ORDER BY shift_start
+        '''
+    else:
+        # Get only hourly (student) shifts
+        query = '''
+            SELECT 
+                shift_start, 
+                shift_end, 
+                employee_type,
+                employee_name
+            FROM labor_hours
+            WHERE shift_date BETWEEN ? AND ?
+                AND employee_type = 'hourly'
+            ORDER BY shift_start
+        '''
 
     cursor.execute(query, (start_date, end_date))
     shifts = cursor.fetchall()

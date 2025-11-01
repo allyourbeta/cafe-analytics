@@ -1,5 +1,6 @@
 import ReportLayout, { type Column } from "./ReportLayout";
 import { getLaborPercent } from "../utils/api";
+import { useDateRange } from "../context/DateContext";
 import React from "react";
 
 const columns: Column[] = [
@@ -25,7 +26,15 @@ const columns: Column[] = [
 ];
 
 // Stoplight gauge system - instant visual labor cost control
-const LaborChart = ({ data }: { data: Record<string, any>[] }) => {
+const LaborChart = ({
+  data,
+  includeSalaried,
+  setIncludeSalaried
+}: {
+  data: Record<string, any>[],
+  includeSalaried: boolean,
+  setIncludeSalaried: (value: boolean) => void
+}) => {
   const [target, setTarget] = React.useState(30);
   const [isEditing, setIsEditing] = React.useState(false);
   const [tempTarget, setTempTarget] = React.useState("30");
@@ -77,13 +86,14 @@ const LaborChart = ({ data }: { data: Record<string, any>[] }) => {
         borderRadius: "12px",
       }}
     >
-      {/* Header with editable target */}
+      {/* Header with editable target and toggle */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: "12px",
           marginBottom: "24px",
+          flexWrap: "wrap",
         }}
       >
         <h3
@@ -158,6 +168,50 @@ const LaborChart = ({ data }: { data: Record<string, any>[] }) => {
           )}
           <span style={{ fontSize: "14px", color: "#6B7280" }}>)</span>
         </div>
+
+        {/* Toggle for Salaried+Students vs Students-only */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginLeft: "auto",
+          backgroundColor: "#F3F4F6",
+          padding: "4px",
+          borderRadius: "8px",
+        }}>
+          <button
+            onClick={() => setIncludeSalaried(true)}
+            style={{
+              padding: "6px 12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              backgroundColor: includeSalaried ? "#3B82F6" : "transparent",
+              color: includeSalaried ? "#FFFFFF" : "#6B7280",
+            }}
+          >
+            Salaried+Students
+          </button>
+          <button
+            onClick={() => setIncludeSalaried(false)}
+            style={{
+              padding: "6px 12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              backgroundColor: !includeSalaried ? "#3B82F6" : "transparent",
+              color: !includeSalaried ? "#FFFFFF" : "#6B7280",
+            }}
+          >
+            Students-only
+          </button>
+        </div>
       </div>
 
       {/* Stoplight gauge blocks */}
@@ -202,7 +256,7 @@ const LaborChart = ({ data }: { data: Record<string, any>[] }) => {
               </div>
               <div
                 style={{
-                  fontSize: "26px",
+                  fontSize: "22px",
                   fontWeight: "700",
                   marginBottom: "4px",
                 }}
@@ -312,13 +366,59 @@ const LaborChart = ({ data }: { data: Record<string, any>[] }) => {
 };
 
 export default function LaborPercent() {
+  const { startDate, endDate } = useDateRange(); // Use global date context
+  const [data, setData] = React.useState<Record<string, any>[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [includeSalaried, setIncludeSalaried] = React.useState(true);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getLaborPercent(startDate, endDate, includeSalaried);
+      if (response.success) {
+        setData(response.data || []);
+      } else {
+        setError(response.error || 'Failed to fetch data');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, [startDate, endDate, includeSalaried]);
+
   return (
-    <ReportLayout
-      title="Labor % per Labor Hour"
-      fetchData={getLaborPercent}
-      columns={columns}
-      needsDateRange={true}
-      ChartComponent={LaborChart}
-    />
+    <div style={{ padding: "24px" }}>
+      {loading && <div style={{ textAlign: "center", padding: "48px" }}>Loading...</div>}
+      {error && (
+        <div style={{
+          padding: "16px",
+          backgroundColor: "#FEE2E2",
+          border: "1px solid #FECACA",
+          borderRadius: "8px",
+          color: "#991B1B",
+        }}>
+          Error: {error}
+        </div>
+      )}
+      {!loading && !error && data.length > 0 && (
+        <LaborChart
+          data={data}
+          includeSalaried={includeSalaried}
+          setIncludeSalaried={setIncludeSalaried}
+        />
+      )}
+      {!loading && !error && data.length === 0 && (
+        <div style={{ textAlign: "center", padding: "48px", color: "#6B7280" }}>
+          No data available for the selected date range
+        </div>
+      )}
+    </div>
   );
 }

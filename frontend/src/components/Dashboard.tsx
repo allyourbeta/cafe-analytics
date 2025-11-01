@@ -393,7 +393,7 @@ export default function Dashboard() {
           </button>
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-1">
-              Edmonds Café
+              edmonds' café
             </h1>
             <p className="text-sm text-gray-500">
               Today: {getTodayPacificTime()}

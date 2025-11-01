@@ -167,6 +167,7 @@ def sales_per_hour():
 def labor_percent():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
+    include_salaried = request.args.get('include_salaried', 'true').lower() == 'true'
 
     try:
         conn = get_db()
@@ -188,7 +189,7 @@ def labor_percent():
 
         # Calculate hourly labor costs with proper proration
         # This function handles splitting shifts across hour boundaries
-        labor_costs = calculate_hourly_labor_costs(conn, start_date, end_date)
+        labor_costs = calculate_hourly_labor_costs(conn, start_date, end_date, include_salaried)
 
         # Combine sales and labor data
         # Get all hours that have either sales or labor
@@ -199,11 +200,14 @@ def labor_percent():
             sales = sales_data.get(hour, 0)
             labor_cost = labor_costs.get(hour, 0)
 
-            # Calculate labor percentage (avoid division by zero)
-            if sales > 0:
-                labor_pct = round(labor_cost / sales * 100, 2)
+            # Calculate labor percentage with zero sales edge case handling
+            if sales == 0:
+                if labor_cost == 0:
+                    labor_pct = 0  # No sales, no labor = 0%
+                else:
+                    labor_pct = 100  # Labor but no sales = 100% (capped, not infinity)
             else:
-                labor_pct = 0
+                labor_pct = round(labor_cost / sales * 100, 2)
 
             data.append({
                 'hour': hour,
@@ -217,7 +221,8 @@ def labor_percent():
         return jsonify({
             'success': True,
             'data': data,
-            'date_range': {'start': start_date, 'end': end_date}
+            'date_range': {'start': start_date, 'end': end_date},
+            'include_salaried': include_salaried
         })
 
     except Exception as e:
