@@ -29,19 +29,91 @@ const columns = [
 ];
 
 // Horizontal bar chart by category
-const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
-  const top10 = data.slice(0, 10);
-  const maxProfit = Math.max(...top10.map((item) => item.total_profit));
+const ProfitChart = ({
+  data,
+  sortOrder,
+  setSortOrder,
+  selectedCategory,
+  setSelectedCategory
+}: {
+  data: Record<string, any>[],
+  sortOrder: 'top' | 'bottom',
+  setSortOrder: (order: 'top' | 'bottom') => void,
+  selectedCategory: string,
+  setSelectedCategory: (category: string) => void
+}) => {
+  // Get top 10 or bottom 10 based on sort order
+  const displayData = sortOrder === 'top'
+    ? data.slice(0, 10)
+    : data.slice(-10).reverse();
+
+  const maxProfit = Math.max(...displayData.map((item) => item.total_profit));
 
   return (
     <div
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
-      <h3 style={{ marginBottom: "20px", fontSize: "16px", fontWeight: "600" }}>
-        Top 10 Items by Total Profit
-      </h3>
+      {/* Header with title, toggle, and category dropdown all in one line */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "20px",
+        gap: "16px",
+        flexWrap: "wrap"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
+            Items by Profit $$
+          </h3>
+
+          {/* Top/Bottom toggle */}
+          <div style={{ display: "flex", gap: "4px", backgroundColor: "#F3F4F6", padding: "4px", borderRadius: "6px" }}>
+            <button
+              onClick={() => setSortOrder('top')}
+              style={{
+                padding: "6px 12px",
+                fontSize: "13px",
+                fontWeight: "600",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: sortOrder === 'top' ? "#3B82F6" : "transparent",
+                color: sortOrder === 'top' ? "#FFFFFF" : "#6B7280",
+              }}
+            >
+              Top 10
+            </button>
+            <button
+              onClick={() => setSortOrder('bottom')}
+              style={{
+                padding: "6px 12px",
+                fontSize: "13px",
+                fontWeight: "600",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                backgroundColor: sortOrder === 'bottom' ? "#3B82F6" : "transparent",
+                color: sortOrder === 'bottom' ? "#FFFFFF" : "#6B7280",
+              }}
+            >
+              Bottom 10
+            </button>
+          </div>
+        </div>
+
+        {/* Category dropdown */}
+        <CategoryDropdown
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+        />
+      </div>
+
+      {/* Bar chart */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {top10.map((item, index) => {
+        {displayData.map((item, index) => {
           const widthPercent = (item.total_profit / maxProfit) * 100;
           return (
             <div
@@ -106,6 +178,7 @@ export default function ItemsByProfit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<'top' | 'bottom'>('top');
 
   const { startDate, endDate } = useDateRange();
 
@@ -132,6 +205,11 @@ export default function ItemsByProfit() {
     ? data
     : data.filter(item => item.category === selectedCategory);
 
+  // Sort data based on sortOrder (reverse for bottom 10 in table)
+  const sortedData = sortOrder === 'top'
+    ? filteredData
+    : [...filteredData].reverse();
+
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
   }
@@ -146,16 +224,14 @@ export default function ItemsByProfit() {
 
   return (
     <div>
-      {/* Category filter - positioned at top right */}
-      <div className="flex justify-end mb-6">
-        <CategoryDropdown
-          value={selectedCategory}
-          onChange={setSelectedCategory}
-        />
-      </div>
-
-      {/* Chart */}
-      <ProfitChart data={filteredData} />
+      {/* Chart with inline controls */}
+      <ProfitChart
+        data={filteredData}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+      />
 
       {/* Data table */}
       <div className="mt-6 overflow-x-auto">
@@ -175,7 +251,7 @@ export default function ItemsByProfit() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((row, i) => (
+            {sortedData.map((row, i) => (
               <tr key={i} className="hover:bg-gray-50">
                 {columns.map((col) => (
                   <td
