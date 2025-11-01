@@ -18,15 +18,63 @@ const getTodayLocal = (): string => {
 };
 
 export const DateProvider = ({ children }: { children: ReactNode }) => {
-  // Initialize with Aug 1, 2024 to today
-  const [startDate, setStartDate] = useState("2024-08-01");
-  const [endDate, setEndDate] = useState(getTodayLocal());
-  const [selectedPreset, setSelectedPreset] = useState("");
+  // Initialize with saved date range from sessionStorage (persists across refreshes, clears when browser closes)
+  // Falls back to Aug 1, 2024 to today if nothing saved
+  const [startDate, setStartDate] = useState<string>(() => {
+    const saved = sessionStorage.getItem('cafeDateRange');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.startDate;
+      } catch (e) {
+        console.error('Error parsing saved date range:', e);
+      }
+    }
+    return "2024-08-01";
+  });
+
+  const [endDate, setEndDate] = useState<string>(() => {
+    const saved = sessionStorage.getItem('cafeDateRange');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.endDate;
+      } catch (e) {
+        console.error('Error parsing saved date range:', e);
+      }
+    }
+    return getTodayLocal();
+  });
+
+  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
+    const saved = sessionStorage.getItem('cafeDateRange');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.preset || "";
+      } catch (e) {
+        console.error('Error parsing saved date range:', e);
+      }
+    }
+    return "";
+  });
 
   const setDateRange = (start: string, end: string, preset: string) => {
     setStartDate(start);
     setEndDate(end);
     setSelectedPreset(preset);
+
+    // Save to sessionStorage so it persists across page refreshes
+    // (but clears when browser is closed - fresh start each day)
+    try {
+      sessionStorage.setItem('cafeDateRange', JSON.stringify({
+        startDate: start,
+        endDate: end,
+        preset: preset
+      }));
+    } catch (e) {
+      console.error('Error saving date range to sessionStorage:', e);
+    }
   };
 
   return (
