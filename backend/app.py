@@ -3,6 +3,7 @@ from flask_cors import CORS
 import sqlite3
 from datetime import datetime, timedelta
 import os
+from labor_utils import calculate_hourly_labor_costs
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -161,7 +162,7 @@ def sales_per_hour():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# R2: Labor % per Labor Hour
+# R2: Labor % per Labor Hour (with accurate proration)
 @app.route('/api/reports/labor-percent', methods=['GET'])
 def labor_percent():
     start_date = request.args.get('start', '2024-08-01')
@@ -171,37 +172,46 @@ def labor_percent():
         conn = get_db()
         cursor = conn.cursor()
 
-        query = '''
-            WITH hourly_sales AS (
-                SELECT 
-                    strftime('%Y-%m-%d %H:00:00', transaction_date) as hour,
-                    ROUND(SUM(total_amount), 2) as sales
-                FROM transactions
-                WHERE DATE(transaction_date) BETWEEN ? AND ?
-                GROUP BY hour
-            ),
-            hourly_labor AS (
-                SELECT 
-                    strftime('%Y-%m-%d %H:00:00', shift_start) as hour,
-                    ROUND(SUM(labor_cost), 2) as labor_cost
-                FROM labor_hours
-                WHERE DATE(shift_start) BETWEEN ? AND ?
-                GROUP BY hour
-            )
+        # Get hourly sales from transactions
+        sales_query = '''
             SELECT 
-                s.hour,
-                s.sales,
-                COALESCE(l.labor_cost, 0) as labor_cost,
-                ROUND(COALESCE(l.labor_cost, 0) / NULLIF(s.sales, 0) * 100, 2) as labor_pct
-            FROM hourly_sales s
-            LEFT JOIN hourly_labor l ON s.hour = l.hour
-            ORDER BY s.hour
+                strftime('%Y-%m-%d %H:00:00', transaction_date) as hour,
+                ROUND(SUM(total_amount), 2) as sales
+            FROM transactions
+            WHERE DATE(transaction_date) BETWEEN ? AND ?
+            GROUP BY hour
+            ORDER BY hour
         '''
 
-        cursor.execute(query, (start_date, end_date, start_date, end_date))
-        rows = cursor.fetchall()
+        cursor.execute(sales_query, (start_date, end_date))
+        sales_data = {row['hour']: row['sales'] for row in cursor.fetchall()}
 
-        data = [dict(row) for row in rows]
+        # Calculate hourly labor costs with proper proration
+        # This function handles splitting shifts across hour boundaries
+        labor_costs = calculate_hourly_labor_costs(conn, start_date, end_date)
+
+        # Combine sales and labor data
+        # Get all hours that have either sales or labor
+        all_hours = set(sales_data.keys()) | set(labor_costs.keys())
+
+        data = []
+        for hour in sorted(all_hours):
+            sales = sales_data.get(hour, 0)
+            labor_cost = labor_costs.get(hour, 0)
+
+            # Calculate labor percentage (avoid division by zero)
+            if sales > 0:
+                labor_pct = round(labor_cost / sales * 100, 2)
+            else:
+                labor_pct = 0
+
+            data.append({
+                'hour': hour,
+                'sales': sales,
+                'labor_cost': round(labor_cost, 2),
+                'labor_pct': labor_pct
+            })
+
         conn.close()
 
         return jsonify({
@@ -229,7 +239,7 @@ def items_by_profit():
                 i.item_name,
                 i.category,
                 SUM(t.quantity) as units_sold,
-                
+
                 ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
                 ROUND(SUM((t.unit_price - i.current_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
             FROM transactions t

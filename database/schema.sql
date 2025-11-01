@@ -45,14 +45,16 @@ CREATE INDEX idx_transactions_category ON transactions(category);
 
 CREATE TABLE labor_hours (
     labor_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    shift_date DATE NOT NULL,
+    shift_date DATE NOT NULL,              -- Denormalized for quick date filtering
+    shift_start TIMESTAMP NOT NULL,        -- When shift started (e.g., '2024-10-30 08:15:00')
+    shift_end TIMESTAMP NOT NULL,          -- When shift ended (e.g., '2024-10-30 16:30:00')
     employee_name TEXT NOT NULL,
-    hours_worked DECIMAL(10,2) NOT NULL CHECK(hours_worked >= 0),
-    hourly_rate DECIMAL(10,2) NOT NULL CHECK(hourly_rate >= 0),
     employee_type TEXT NOT NULL CHECK(employee_type IN ('salaried', 'hourly'))
+    -- Note: Pay rates come from settings table, not stored per-shift
 );
 
 CREATE INDEX idx_labor_date ON labor_hours(shift_date);
+CREATE INDEX idx_labor_start ON labor_hours(shift_start);
 
 CREATE TABLE settings (
     setting_key TEXT PRIMARY KEY,
@@ -60,7 +62,7 @@ CREATE TABLE settings (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO settings (setting_key, setting_value) VALUES 
+INSERT INTO settings (setting_key, setting_value) VALUES
     ('hourly_labor_rate', '20.00'),
     ('salaried_labor_rate', '30.00'),
     ('data_start_date', '2024-07-01'),
