@@ -38,6 +38,7 @@ const LaborChart = ({
   const [target, setTarget] = React.useState(30);
   const [isEditing, setIsEditing] = React.useState(false);
   const [tempTarget, setTempTarget] = React.useState("30");
+  const [hoveredItem, setHoveredItem] = React.useState<Record<string, any> | null>(null);
 
   // Get stoplight color based on performance vs target
   const getStoplightStatus = (laborPct: number) => {
@@ -221,10 +222,13 @@ const LaborChart = ({
           gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))",
           gap: "8px",
           marginBottom: "24px",
+          position: "relative", // For tooltip positioning
         }}
       >
         {data.map((item, index) => {
           const status = getStoplightStatus(item.labor_pct);
+          const isHovered = hoveredItem?.hour === item.hour;
+
           return (
             <div
               key={index}
@@ -234,16 +238,14 @@ const LaborChart = ({
                 padding: "16px 8px",
                 borderRadius: "8px",
                 textAlign: "center",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                transition: "transform 0.2s",
+                boxShadow: isHovered ? "0 4px 12px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.1)",
+                transition: "all 0.2s",
                 cursor: "pointer",
+                position: "relative",
+                transform: isHovered ? "scale(1.05)" : "scale(1)",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = "scale(1.05)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = "scale(1)")
-              }
+              onMouseEnter={() => setHoveredItem(item)}
+              onMouseLeave={() => setHoveredItem(null)}
             >
               <div
                 style={{
@@ -264,6 +266,72 @@ const LaborChart = ({
                 {item.labor_pct.toFixed(1)}%
               </div>
               <div style={{ fontSize: "18px" }}>{status.icon}</div>
+
+              {/* Tooltip */}
+              {isHovered && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "100%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    marginBottom: "8px",
+                    backgroundColor: "#1F2937",
+                    color: "#FFFFFF",
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                    whiteSpace: "nowrap",
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    zIndex: 1000,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {/* Arrow pointing down */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "6px solid transparent",
+                      borderRight: "6px solid transparent",
+                      borderTop: "6px solid #1F2937",
+                    }}
+                  />
+
+                  {/* Time slot header - show as range (e.g., 0700-0800) */}
+                  <div style={{ fontWeight: "700", marginBottom: "8px", fontSize: "13px" }}>
+                    {(() => {
+                      const hourDate = new Date(item.hour);
+                      const startHour = hourDate.getHours().toString().padStart(2, '0') + '00';
+                      const endHour = ((hourDate.getHours() + 1) % 24).toString().padStart(2, '0') + '00';
+                      return `${startHour}-${endHour}`;
+                    })()}
+                  </div>
+
+                  <div style={{ marginBottom: "4px", fontSize: "13px" }}>
+                    <strong>Revenue:</strong> ${item.sales.toFixed(2)}
+                  </div>
+                  <div style={{ marginBottom: "8px", color: "#FCA5A5", fontSize: "13px" }}>
+                    <strong>Labor Cost:</strong> ${item.labor_cost.toFixed(2)} ({item.labor_pct.toFixed(1)}%)
+                  </div>
+
+                  {/* Always show salaried when in "Salaried+Students" mode, even if 0 */}
+                  {includeSalaried && (
+                    <div style={{ marginBottom: "4px", fontSize: "13px", color: "#D1D5DB" }}>
+                      Salaried: {item.salaried_hours.toFixed(1)} hrs = ${item.salaried_cost.toFixed(2)}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: "13px", color: "#D1D5DB" }}>
+                    Students: {item.student_hours.toFixed(1)} hrs = ${item.student_cost.toFixed(2)}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

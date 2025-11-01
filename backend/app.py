@@ -187,18 +187,26 @@ def labor_percent():
         cursor.execute(sales_query, (start_date, end_date))
         sales_data = {row['hour']: row['sales'] for row in cursor.fetchall()}
 
-        # Calculate hourly labor costs with proper proration
-        # This function handles splitting shifts across hour boundaries
-        labor_costs = calculate_hourly_labor_costs(conn, start_date, end_date, include_salaried)
+        # Calculate hourly labor costs with proper proration and breakdown
+        # Returns: {'hour': {'total_cost': X, 'salaried_hours': Y, 'salaried_cost': Z, ...}}
+        labor_breakdown = calculate_hourly_labor_costs(conn, start_date, end_date, include_salaried)
 
         # Combine sales and labor data
         # Get all hours that have either sales or labor
-        all_hours = set(sales_data.keys()) | set(labor_costs.keys())
+        all_hours = set(sales_data.keys()) | set(labor_breakdown.keys())
 
         data = []
         for hour in sorted(all_hours):
             sales = sales_data.get(hour, 0)
-            labor_cost = labor_costs.get(hour, 0)
+            breakdown = labor_breakdown.get(hour, {
+                'total_cost': 0,
+                'salaried_hours': 0,
+                'salaried_cost': 0,
+                'student_hours': 0,
+                'student_cost': 0
+            })
+
+            labor_cost = breakdown['total_cost']
 
             # Calculate labor percentage with zero sales edge case handling
             if sales == 0:
@@ -213,7 +221,12 @@ def labor_percent():
                 'hour': hour,
                 'sales': sales,
                 'labor_cost': round(labor_cost, 2),
-                'labor_pct': labor_pct
+                'labor_pct': labor_pct,
+                # Breakdown for tooltip
+                'salaried_hours': round(breakdown['salaried_hours'], 2),
+                'salaried_cost': round(breakdown['salaried_cost'], 2),
+                'student_hours': round(breakdown['student_hours'], 2),
+                'student_cost': round(breakdown['student_cost'], 2)
             })
 
         conn.close()

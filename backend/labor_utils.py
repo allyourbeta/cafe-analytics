@@ -112,9 +112,10 @@ def calculate_hourly_labor_costs(
         start_date: str,
         end_date: str,
         include_salaried: bool = True
-) -> Dict[str, float]:
+) -> Dict[str, Dict[str, float]]:
     """
     Calculate total labor cost for each hour across all shifts in date range.
+    Now returns detailed breakdown by employee type (salaried vs hourly/students).
 
     Labor rates are retrieved from the settings table:
     - 'hourly' employees (students) use 'hourly_labor_rate'
@@ -125,6 +126,7 @@ def calculate_hourly_labor_costs(
     2. Fetches all shifts in the date range from the database
     3. Prorates each shift across clock hours using prorate_shift_hours()
     4. Aggregates costs by hour across all shifts
+    5. Tracks breakdown by employee type
 
     Args:
         conn: SQLite database connection
@@ -133,11 +135,15 @@ def calculate_hourly_labor_costs(
         include_salaried: If True, includes salaried employees. If False, only hourly (students).
 
     Returns:
-        Dictionary mapping hour strings to total labor costs
+        Dictionary mapping hour strings to breakdown dictionaries
         Example: {
-            '2024-10-30 08:00:00': 125.50,  # Multiple employees' costs combined
-            '2024-10-30 09:00:00': 180.00,
-            '2024-10-30 10:00:00': 160.00,
+            '2024-10-30 08:00:00': {
+                'total_cost': 125.50,
+                'salaried_hours': 2.0,
+                'salaried_cost': 60.00,
+                'student_hours': 3.275,
+                'student_cost': 65.50
+            },
             ...
         }
 
@@ -145,11 +151,8 @@ def calculate_hourly_labor_costs(
         >>> conn = sqlite3.connect('cafe_reports.db')
         >>> costs = calculate_hourly_labor_costs(conn, '2024-10-01', '2024-10-31')
         >>> print(costs['2024-10-30 09:00:00'])
-        180.00  # Total of all employees working during 9am hour on Oct 30
-
-        >>> costs_students_only = calculate_hourly_labor_costs(conn, '2024-10-01', '2024-10-31', include_salaried=False)
-        >>> print(costs_students_only['2024-10-30 09:00:00'])
-        90.00  # Only hourly/student employees
+        {'total_cost': 180.00, 'salaried_hours': 4.0, 'salaried_cost': 120.00,
+         'student_hours': 3.0, 'student_cost': 60.00}
     """
     cursor = conn.cursor()
 
@@ -191,9 +194,9 @@ def calculate_hourly_labor_costs(
     cursor.execute(query, (start_date, end_date))
     shifts = cursor.fetchall()
 
-    # Accumulate labor costs by hour
-    # Structure: {'2024-10-30 08:00:00': 125.50, ...}
-    hourly_costs = {}
+    # Accumulate labor costs by hour with breakdown
+    # Structure: {'2024-10-30 08:00:00': {'total_cost': 125.50, 'salaried_hours': 2.0, ...}, ...}
+    hourly_breakdown = {}
 
     for shift in shifts:
         # Convert database strings to datetime objects
@@ -210,16 +213,33 @@ def calculate_hourly_labor_costs(
         # Prorate this shift across hours
         prorated = prorate_shift_hours(shift_start, shift_end, pay_rate)
 
-        # Add this shift's costs to the totals
+        # Add this shift's costs to the totals with breakdown by type
         for hour_data in prorated:
             hour = hour_data['hour']
+            hours = hour_data['hours']
             cost = hour_data['cost']
 
-            if hour not in hourly_costs:
-                hourly_costs[hour] = 0
-            hourly_costs[hour] += cost
+            if hour not in hourly_breakdown:
+                hourly_breakdown[hour] = {
+                    'total_cost': 0,
+                    'salaried_hours': 0,
+                    'salaried_cost': 0,
+                    'student_hours': 0,
+                    'student_cost': 0
+                }
 
-    return hourly_costs
+            # Add to total
+            hourly_breakdown[hour]['total_cost'] += cost
+
+            # Add to appropriate category
+            if employee_type == 'salaried':
+                hourly_breakdown[hour]['salaried_hours'] += hours
+                hourly_breakdown[hour]['salaried_cost'] += cost
+            else:  # 'hourly' = students
+                hourly_breakdown[hour]['student_hours'] += hours
+                hourly_breakdown[hour]['student_cost'] += cost
+
+    return hourly_breakdown
 
 
 def get_shift_summary(shift_start: datetime, shift_end: datetime, hourly_rate: float) -> Dict[str, Any]:
