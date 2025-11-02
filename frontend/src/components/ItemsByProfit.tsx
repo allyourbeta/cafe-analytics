@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { getItemsByProfit } from "../utils/api";
-import { getCategoryColor } from "../utils/categoryColors";
+import { getItemsByProfit, getCategoriesByProfit } from "../utils/api";
+import { getCategoryColor, getCategoryDisplayName } from "../utils/categoryColors";
 import { formatCurrency, formatNumber } from "../utils/formatters";
 import CategoryDropdown from "./CategoryDropdown";
 
@@ -34,16 +34,23 @@ const ProfitChart = ({
   sortOrder,
   setSortOrder,
   selectedCategory,
-  setSelectedCategory
+  setSelectedCategory,
+  viewMode,
+  setViewMode
 }: {
   data: Record<string, any>[],
   sortOrder: 'top' | 'bottom',
   setSortOrder: (order: 'top' | 'bottom') => void,
   selectedCategory: string,
-  setSelectedCategory: (category: string) => void
+  setSelectedCategory: (category: string) => void,
+  viewMode: 'item' | 'category',
+  setViewMode: (mode: 'item' | 'category') => void
 }) => {
-  // Get top 10 or bottom 10 based on sort order
-  const displayData = sortOrder === 'top'
+  // In category mode, show all categories (no top/bottom split)
+  // In item mode, show top 10 or bottom 10
+  const displayData = viewMode === 'category'
+    ? data  // Show all categories
+    : sortOrder === 'top'
     ? data.slice(0, 10)
     : data.slice(-10).reverse();
 
@@ -53,7 +60,7 @@ const ProfitChart = ({
     <div
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
-      {/* Header with title, toggle, and category dropdown all in one line */}
+      {/* Header with title, view mode toggle, top/bottom toggle, and category dropdown */}
       <div style={{
         display: "flex",
         alignItems: "center",
@@ -67,10 +74,10 @@ const ProfitChart = ({
             Items by Profit $$
           </h3>
 
-          {/* Top/Bottom toggle */}
+          {/* View Mode Toggle (By Item / By Category) */}
           <div style={{ display: "flex", gap: "4px", backgroundColor: "#F3F4F6", padding: "4px", borderRadius: "6px" }}>
             <button
-              onClick={() => setSortOrder('top')}
+              onClick={() => setViewMode('item')}
               style={{
                 padding: "6px 12px",
                 fontSize: "13px",
@@ -79,14 +86,14 @@ const ProfitChart = ({
                 borderRadius: "4px",
                 cursor: "pointer",
                 transition: "all 0.2s",
-                backgroundColor: sortOrder === 'top' ? "#3B82F6" : "transparent",
-                color: sortOrder === 'top' ? "#FFFFFF" : "#6B7280",
+                backgroundColor: viewMode === 'item' ? "#10B981" : "transparent",
+                color: viewMode === 'item' ? "#FFFFFF" : "#6B7280",
               }}
             >
-              Top 10
+              By Item
             </button>
             <button
-              onClick={() => setSortOrder('bottom')}
+              onClick={() => setViewMode('category')}
               style={{
                 padding: "6px 12px",
                 fontSize: "13px",
@@ -95,26 +102,74 @@ const ProfitChart = ({
                 borderRadius: "4px",
                 cursor: "pointer",
                 transition: "all 0.2s",
-                backgroundColor: sortOrder === 'bottom' ? "#3B82F6" : "transparent",
-                color: sortOrder === 'bottom' ? "#FFFFFF" : "#6B7280",
+                backgroundColor: viewMode === 'category' ? "#10B981" : "transparent",
+                color: viewMode === 'category' ? "#FFFFFF" : "#6B7280",
               }}
             >
-              Bottom 10
+              By Category
             </button>
           </div>
+
+          {/* Top/Bottom toggle - only show in item mode */}
+          {viewMode === 'item' && (
+            <div style={{ display: "flex", gap: "4px", backgroundColor: "#F3F4F6", padding: "4px", borderRadius: "6px" }}>
+              <button
+                onClick={() => setSortOrder('top')}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  backgroundColor: sortOrder === 'top' ? "#3B82F6" : "transparent",
+                  color: sortOrder === 'top' ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                Top 10
+              </button>
+              <button
+                onClick={() => setSortOrder('bottom')}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  backgroundColor: sortOrder === 'bottom' ? "#3B82F6" : "transparent",
+                  color: sortOrder === 'bottom' ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                Bottom 10
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Category dropdown */}
-        <CategoryDropdown
-          value={selectedCategory}
-          onChange={setSelectedCategory}
-        />
+        {/* Category dropdown - only enabled in item mode */}
+        <div style={{ opacity: viewMode === 'category' ? 0.5 : 1 }}>
+          <CategoryDropdown
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            disabled={viewMode === 'category'}
+          />
+        </div>
       </div>
 
       {/* Bar chart */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {displayData.map((item, index) => {
           const widthPercent = (item.total_profit / maxProfit) * 100;
+          const displayName = viewMode === 'category'
+            ? getCategoryDisplayName(item.category)
+            : item.item_name;
+          const barColor = viewMode === 'category'
+            ? getCategoryColor(item.category)
+            : getCategoryColor(item.category);
+
           return (
             <div
               key={index}
@@ -122,7 +177,7 @@ const ProfitChart = ({
             >
               <div
                 style={{
-                  width: "120px",
+                  width: "160px",
                   fontSize: "14px",
                   fontWeight: "500",
                   overflow: "hidden",
@@ -130,7 +185,7 @@ const ProfitChart = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {item.item_name}
+                {displayName}
               </div>
               <div
                 style={{
@@ -145,7 +200,7 @@ const ProfitChart = ({
                   style={{
                     width: `${widthPercent}%`,
                     height: "100%",
-                    backgroundColor: getCategoryColor(item.category),
+                    backgroundColor: barColor,
                     borderRadius: "4px",
                     display: "flex",
                     alignItems: "center",
@@ -175,10 +230,12 @@ const ProfitChart = ({
 
 export default function ItemsByProfit() {
   const [data, setData] = useState<Record<string, any>[]>([]);
+  const [categoryData, setCategoryData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<'top' | 'bottom'>('top');
+  const [viewMode, setViewMode] = useState<'item' | 'category'>('item');
 
   const { startDate, endDate } = useDateRange();
 
@@ -186,8 +243,13 @@ export default function ItemsByProfit() {
     setLoading(true);
     setError(null);
     try {
-      const response = await getItemsByProfit(startDate, endDate);
-      setData(response.data);
+      // Fetch both item and category data
+      const [itemResponse, categoryResponse] = await Promise.all([
+        getItemsByProfit(startDate, endDate),
+        getCategoriesByProfit(startDate, endDate)
+      ]);
+      setData(itemResponse.data);
+      setCategoryData(categoryResponse.data);
     } catch (err) {
       setError("Failed to load data");
       console.error(err);
@@ -200,8 +262,13 @@ export default function ItemsByProfit() {
     loadData();
   }, [startDate, endDate]);
 
-  // Filter data by selected category
-  const filteredData = selectedCategory === "all"
+  // Select the appropriate data based on view mode
+  const currentData = viewMode === 'category' ? categoryData : data;
+
+  // Filter data by selected category (only in item mode)
+  const filteredData = viewMode === 'category'
+    ? categoryData  // Show all categories
+    : selectedCategory === "all"
     ? data
     : data.filter(item => item.category === selectedCategory);
 
@@ -231,6 +298,8 @@ export default function ItemsByProfit() {
         setSortOrder={setSortOrder}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
       />
 
       {/* Data table */}
@@ -238,31 +307,57 @@ export default function ItemsByProfit() {
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`border border-gray-300 px-4 py-2 ${
-                    col.align === "right" ? "text-right" : "text-left"
-                  }`}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedData.map((row, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                {columns.map((col) => (
-                  <td
+              {viewMode === 'category' ? (
+                <>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Category</th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">Units</th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">Total Profit</th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">Margin %</th>
+                </>
+              ) : (
+                columns.map((col) => (
+                  <th
                     key={col.key}
                     className={`border border-gray-300 px-4 py-2 ${
                       col.align === "right" ? "text-right" : "text-left"
                     }`}
                   >
-                    {col.format ? col.format(row[col.key]) : row[col.key]}
-                  </td>
-                ))}
+                    {col.label}
+                  </th>
+                ))
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedData.map((row, i) => (
+              <tr key={i} className="hover:bg-gray-50">
+                {viewMode === 'category' ? (
+                  <>
+                    <td className="border border-gray-300 px-4 py-2 text-left">
+                      {getCategoryDisplayName(row.category)}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {formatNumber(row.units_sold, 0)}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {formatCurrency(row.total_profit, 0)}
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-right">
+                      {`${Number(row.margin_pct).toFixed(1)}%`}
+                    </td>
+                  </>
+                ) : (
+                  columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`border border-gray-300 px-4 py-2 ${
+                        col.align === "right" ? "text-right" : "text-left"
+                      }`}
+                    >
+                      {col.format ? col.format(row[col.key]) : row[col.key]}
+                    </td>
+                  ))
+                )}
               </tr>
             ))}
           </tbody>

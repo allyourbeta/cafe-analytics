@@ -318,6 +318,83 @@ def items_by_margin():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# R6: Categories by Revenue (aggregated by category)
+@app.route('/api/reports/categories-by-revenue', methods=['GET'])
+def categories_by_revenue():
+    start_date = request.args.get('start', '2024-08-01')
+    end_date = request.args.get('end', '2024-10-23')
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT 
+                i.category,
+                SUM(t.quantity) as units_sold,
+                ROUND(SUM(t.total_amount), 2) as revenue
+            FROM transactions t
+            JOIN items i ON t.item_id = i.item_id
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+            GROUP BY i.category
+            ORDER BY revenue DESC
+        '''
+
+        cursor.execute(query, (start_date, end_date))
+        rows = cursor.fetchall()
+
+        categories = [dict(row) for row in rows]
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': categories,
+            'date_range': {'start': start_date, 'end': end_date}
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# R7: Categories by Profit (aggregated by category)
+@app.route('/api/reports/categories-by-profit', methods=['GET'])
+def categories_by_profit():
+    start_date = request.args.get('start', '2024-08-01')
+    end_date = request.args.get('end', '2024-10-23')
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT 
+                i.category,
+                SUM(t.quantity) as units_sold,
+                ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
+                ROUND(SUM((t.unit_price - i.current_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
+            FROM transactions t
+            JOIN items i ON t.item_id = i.item_id
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+            GROUP BY i.category
+            ORDER BY total_profit DESC
+        '''
+
+        cursor.execute(query, (start_date, end_date))
+        rows = cursor.fetchall()
+
+        categories = [dict(row) for row in rows]
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': categories,
+            'date_range': {'start': start_date, 'end': end_date}
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # P1: Daily Sales Forecast (next 7 days)
 @app.route('/api/forecasts/daily', methods=['GET'])
 def daily_forecast():

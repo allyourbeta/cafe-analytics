@@ -1,13 +1,13 @@
 // Category color mapping for consistent styling across reports
 // Using Tableau Classic 11-color palette (industry standard)
 export const CATEGORY_COLORS: Record<string, string> = {
-  'coffeetea': '#8c564b',           // Brown - coffee color
-  'cold coffeetea': '#d62728',      // Cyan - cool, refreshing
+  'coffeetea': '#d62728',           //
+  'cold coffeetea': '#1f77b4',
   'beer': '#ff7f0e',                // Orange - amber beer
   'hh beer': '#bcbd22',             // Yellow-green - distinct from regular beer
-  'wine': '#8c564b',                // Red - classic wine
+  'wine': '#8c564b',                //
   'hh wine': '#e377c2',             // Pink - rosé wine
-  'other drinks': '#1f77b4',        // Blue - neutral, stands out
+  'other drinks': '#f5d111',        // Blue - neutral, stands out
   'baked goods': '#ff9896',         // Light coral - warm, appetizing
   'food': '#2ca02c',                // Green - fresh, healthy
   'retail': '#7f7f7f',              // Gray - neutral, non-food

@@ -39,6 +39,19 @@ export interface MarginItem {
   margin_pct: number;
 }
 
+export interface CategoryRevenue {
+  category: string;
+  units_sold: number;
+  revenue: number;
+}
+
+export interface CategoryProfit {
+  category: string;
+  units_sold: number;
+  total_profit: number;
+  margin_pct: number;
+}
+
 export interface DailyForecast {
   date: string;
   day_of_week: string;
@@ -100,5 +113,21 @@ export const getDailyForecast = async () => {
 // P2: Hourly Forecast
 export const getHourlyForecast = async () => {
   const response = await axios.get(`${API_BASE}/forecasts/hourly`);
+  return response.data;
+};
+
+// R6: Categories by Revenue
+export const getCategoriesByRevenue = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/categories-by-revenue`, {
+    params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R7: Categories by Profit
+export const getCategoriesByProfit = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/categories-by-profit`, {
+    params: { start: startDate, end: endDate }
+  });
   return response.data;
 };
