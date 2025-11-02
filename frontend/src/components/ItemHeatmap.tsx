@@ -22,6 +22,7 @@ interface HeatmapCell {
   units: number;
 }
 
+// Display order: Monday through Sunday (weekends on right)
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]; // 7am-9pm
 
@@ -31,6 +32,7 @@ export default function ItemHeatmap() {
   const [heatmapData, setHeatmapData] = useState<HeatmapCell[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { startDate, endDate } = useDateRange();
 
@@ -95,8 +97,13 @@ export default function ItemHeatmap() {
   const maxRevenue = Math.max(...heatmapData.map(cell => cell.revenue), 1);
 
   // Get revenue for a specific cell
-  const getRevenue = (dayNum: number, hour: number): number => {
-    const key = `${dayNum}-${hour}`;
+  // Maps display index to database day_num (DB uses Sun=0, Mon=1, ..., Sat=6)
+  const getRevenue = (displayDayIndex: number, hour: number): number => {
+    // Convert display index to database day_num
+    // Display: Mon(0), Tue(1), ..., Sat(5), Sun(6)
+    // Database: Sun(0), Mon(1), ..., Sat(6)
+    const dbDayNum = displayDayIndex === 6 ? 0 : displayDayIndex + 1;
+    const key = `${dbDayNum}-${hour}`;
     return dataMap.get(key) || 0;
   };
 
@@ -134,40 +141,68 @@ export default function ItemHeatmap() {
 
   return (
     <div className="flex gap-6">
-      {/* Left side - Item list */}
-      <div className="w-64 flex-shrink-0">
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Top 25 Items</h3>
-          <div className="space-y-1 max-h-[800px] overflow-y-auto">
-            {topItems.map((item) => (
+      {/* Left side - Item list (collapsible) */}
+      {!sidebarCollapsed && (
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">Top 25 Items</h3>
               <button
-                key={item.item_id}
-                onClick={() => setSelectedItem(item)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
-                  selectedItem?.item_id === item.item_id
-                    ? 'bg-blue-50 border-2 border-blue-500'
-                    : 'hover:bg-gray-50 border-2 border-transparent'
-                }`}
+                onClick={() => setSidebarCollapsed(true)}
+                className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded transition-colors"
+                title="Collapse sidebar"
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getCategoryColor(item.category) }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-gray-900 truncate">
-                      {item.item_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatCurrency(item.total_revenue, 0)}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-1 max-h-[450px] overflow-y-auto">
+              {topItems.map((item) => (
+                <button
+                  key={item.item_id}
+                  onClick={() => setSelectedItem(item)}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
+                    selectedItem?.item_id === item.item_id
+                      ? 'bg-blue-50 border-2 border-blue-500'
+                      : 'hover:bg-gray-50 border-2 border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: getCategoryColor(item.category) }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 truncate">
+                        {item.item_name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatCurrency(item.total_revenue, 0)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Collapsed sidebar button */}
+      {sidebarCollapsed && (
+        <div className="flex-shrink-0">
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            className="bg-white rounded-lg shadow p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            title="Expand sidebar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Right side - Heatmap */}
       <div className="flex-1">
@@ -208,7 +243,7 @@ export default function ItemHeatmap() {
 
                   {/* Cells */}
                   {DAYS.map((day, dayIndex) => {
-                    const revenue = getRevenue(dayIndex + 1, hour);
+                    const revenue = getRevenue(dayIndex, hour);
                     const intensity = getColorIntensity(revenue);
                     const bgColor = getBlueColor(intensity);
 
