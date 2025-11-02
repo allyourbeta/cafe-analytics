@@ -143,13 +143,14 @@ export default function Dashboard() {
             component: <SalesPerHour/>,
         },
         {
-            id: "labor-percent",
-            title: "Labor % per Hour",
-            description: "Labor cost percentage by hour",
-            icon: <Percent className="w-5 h-5 text-white"/>,
-            iconBg: "bg-gradient-to-br from-green-400 to-green-600",
-            component: <LaborPercent/>,
+            id: "item-heatmap",
+            title: "Sales Heatmap",
+            description: "Hourly sales patterns by day of week",
+            icon: <Grid3x3 className="w-5 h-5 text-white"/>,
+            iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+            component: <ItemHeatmap/>,
         },
+
         {
             id: "items-by-profit",
             title: "Items by Profit $$",
@@ -166,7 +167,14 @@ export default function Dashboard() {
             iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
             component: <ItemsByMargin/>,
         },
-
+        {
+            id: "labor-percent",
+            title: "Labor % per Hour",
+            description: "Labor cost percentage by hour",
+            icon: <Percent className="w-5 h-5 text-white"/>,
+            iconBg: "bg-gradient-to-br from-green-400 to-green-600",
+            component: <LaborPercent/>,
+        },
         {
             id: "daily-forecast",
             title: "Daily Sales Forecast",
@@ -183,14 +191,7 @@ export default function Dashboard() {
             iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
             component: <HourlyForecast/>,
         },
-        {
-            id: "item-heatmap",
-            title: "Sales Heatmap",
-            description: "Hourly sales patterns by day of week",
-            icon: <Grid3x3 className="w-5 h-5 text-white"/>,
-            iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
-            component: <ItemHeatmap/>,
-        },
+
     ];
 
     // Date formatting helper
