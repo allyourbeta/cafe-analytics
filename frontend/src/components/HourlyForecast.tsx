@@ -1,19 +1,13 @@
 import ReportLayout, { type Column } from "./ReportLayout";
 import { getHourlyForecast } from "../utils/api";
 
-const columns: Column[] = [
-  { key: "hour", label: "Hour", align: "left" },
-  {
-    key: "avg_sales",
-    label: "Forecasted Sales",
-    align: "right",
-    format: (val) => `$${Number(val).toFixed(2)}`,
-  },
-];
-
-// Dual line chart - tomorrow forecast
+// Chart component for the hourly forecast
 const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
-  const maxSales = Math.max(...data.map((item) => item.avg_sales));
+  const maxSales = Math.max(...data.map((item) => item.avg_sales), 1);
+
+  // Constants for scaling the bar heights
+  const minBarHeight = 4; // Minimum height for a bar in pixels
+  const maxBarHeight = 220; // Maximum height for a bar in pixels
 
   return (
     <div
@@ -33,7 +27,11 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
         }}
       >
         {data.map((item, index) => {
-          const heightPercent = (item.avg_sales / maxSales) * 100;
+          // Calculate bar height with a minimum value to ensure visibility
+          const barHeight =
+            minBarHeight +
+            (item.avg_sales / maxSales) * (maxBarHeight - minBarHeight);
+
           return (
             <div
               key={index}
@@ -58,11 +56,10 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
               <div
                 style={{
                   width: "100%",
-                  height: `${heightPercent}%`,
+                  height: `${barHeight}px`,
                   background: "linear-gradient(to top, #3b82f6, #60a5fa)",
                   borderRadius: "4px 4px 0 0",
                   transition: "height 0.3s ease",
-                  minHeight: "2px",
                 }}
               />
               <div
@@ -83,7 +80,7 @@ export default function HourlyForecast() {
     <ReportLayout
       title="Hourly Sales Forecast (Tomorrow)"
       fetchData={getHourlyForecast}
-      columns={columns}
+      columns={[]}
       needsDateRange={false}
       ChartComponent={HourlyChart}
     />

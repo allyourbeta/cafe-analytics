@@ -1,21 +1,13 @@
 import ReportLayout, { type Column } from "./ReportLayout";
 import { getDailyForecast } from "../utils/api";
 
-const columns: Column[] = [
-  { key: "date", label: "Date", align: "left" },
-  { key: "day_of_week", label: "Day", align: "left" },
-  {
-    key: "forecasted_sales",
-    label: "Forecasted Sales",
-    align: "right",
-    format: (val) => `$${Number(val).toFixed(2)}`,
-  },
-  { key: "basis", label: "Basis", align: "left" },
-];
-
-// Combo chart - bars for past, line for future
+// Chart component for the daily forecast
 const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
-  const maxSales = Math.max(...data.map((item) => item.forecasted_sales));
+  const maxSales = Math.max(...data.map((item) => item.forecasted_sales), 1);
+
+  // Constants for scaling the bar heights
+  const minBarHeight = 4; // Minimum height for a bar in pixels
+  const maxBarHeight = 220; // Maximum height for a bar in pixels
 
   return (
     <div
@@ -35,8 +27,11 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
         }}
       >
         {data.map((item, index) => {
-          const heightPercent = (item.forecasted_sales / maxSales) * 100;
+          const barHeight =
+            minBarHeight +
+            (item.forecasted_sales / maxSales) * (maxBarHeight - minBarHeight);
           const isPast = item.basis && item.basis.includes("actual");
+
           return (
             <div
               key={index}
@@ -61,13 +56,12 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
               <div
                 style={{
                   width: "100%",
-                  height: `${heightPercent}%`,
+                  height: `${barHeight}px`,
                   background: isPast
                     ? "linear-gradient(to top, #06b6d4, #22d3ee)"
                     : "linear-gradient(to top, #3b82f6, #60a5fa)",
                   borderRadius: "4px 4px 0 0",
                   transition: "height 0.3s ease",
-                  minHeight: "2px",
                   opacity: isPast ? 0.7 : 1,
                 }}
               />
@@ -127,7 +121,7 @@ export default function DailyForecast() {
     <ReportLayout
       title="Daily Sales Forecast (Next 7 Days)"
       fetchData={getDailyForecast}
-      columns={columns}
+      columns={[]}
       needsDateRange={false}
       ChartComponent={ForecastChart}
     />

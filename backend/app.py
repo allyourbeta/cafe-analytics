@@ -502,23 +502,39 @@ def daily_forecast():
             forecast_date = today + timedelta(days=i)
             day_of_week = forecast_date.strftime('%A')
 
-            # Get last week same day
-            last_week = forecast_date - timedelta(days=7)
+            # --- Define the two historical dates for the forecast --- #
+            date_one_week_ago = forecast_date - timedelta(days=7)
+            date_two_weeks_ago = forecast_date - timedelta(days=14)
 
-            query = '''
-                SELECT ROUND(SUM(total_amount), 2) as daily_sales
-                FROM transactions
-                WHERE DATE(transaction_date) = ?
-            '''
+            historical_dates = [date_one_week_ago, date_two_weeks_ago]
+            sales_points = []
 
-            cursor.execute(query, (last_week.isoformat(),))
-            result = cursor.fetchone()
+            # --- Fetch sales data for each historical date --- #
+            for historical_date in historical_dates:
+                query = '''
+                    SELECT SUM(total_amount) as daily_sales
+                    FROM transactions
+                    WHERE DATE(transaction_date) = ?
+                '''
+                cursor.execute(query, (historical_date.isoformat(),))
+                result = cursor.fetchone()
+                sales = result['daily_sales'] if result and result['daily_sales'] else 0
+                
+                # Only include non-zero sales in our calculation
+                if sales > 0:
+                    sales_points.append(sales)
+
+            # --- Calculate the average, excluding zero-sale days --- #
+            if not sales_points:
+                forecasted_sales = 0
+            else:
+                forecasted_sales = sum(sales_points) / len(sales_points)
 
             forecasts.append({
                 'date': forecast_date.isoformat(),
                 'day_of_week': day_of_week,
-                'forecasted_sales': result['daily_sales'] if result['daily_sales'] else 0,
-                'basis': 'Last week same day'
+                'forecasted_sales': round(forecasted_sales, 2),
+                'basis': '50/50 Avg Last 2 Weeks'
             })
 
         conn.close()
@@ -540,29 +556,72 @@ def hourly_forecast():
         cursor = conn.cursor()
 
         tomorrow = (datetime.now() + timedelta(days=1)).date()
-        last_week_same_day = tomorrow - timedelta(days=7)
 
-        query = '''
-            SELECT 
-                strftime('%H:00', transaction_date) as hour,
-                ROUND(SUM(total_amount), 2) as avg_sales
-            FROM transactions
-            WHERE DATE(transaction_date) = ?
-            GROUP BY strftime('%H', transaction_date)
-            ORDER BY hour
-        '''
+        # --- Define the two historical dates for the forecast --- #
 
-        cursor.execute(query, (last_week_same_day.isoformat(),))
-        rows = cursor.fetchall()
+        # 1. Same day of the week, one week ago
+        last_week_date = tomorrow - timedelta(days=7)
 
-        forecasts = [dict(row) for row in rows]
+        # 2. Same day of the week, two weeks ago
+        two_weeks_ago_date = tomorrow - timedelta(days=14)
+
+        historical_dates = [last_week_date, two_weeks_ago_date]
+        
+        # --- Fetch hourly sales data for each historical date --- #
+        
+        hourly_sales_data = {}
+        for date in historical_dates:
+            query = '''
+                SELECT 
+                    strftime('%H', transaction_date) as hour_num,
+                    SUM(total_amount) as sales
+                FROM transactions
+                WHERE DATE(transaction_date) = ?
+                GROUP BY hour_num
+            '''
+            cursor.execute(query, (date.isoformat(),))
+            rows = cursor.fetchall()
+            
+            # Store sales data per hour for the given date
+            sales_by_hour = {row['hour_num']: row['sales'] for row in rows}
+            hourly_sales_data[date.isoformat()] = sales_by_hour
+
+        # --- Calculate the 50/50 weighted average forecast --- #
+
+        forecasts = []
+        # Iterate through all business hours (e.g., 7 AM to 9 PM)
+        for hour in range(7, 22):
+            hour_str = f"{hour:02d}"
+            sales_points = []
+            
+            # Get sales for this hour from each historical date
+            sale_last_week = hourly_sales_data.get(last_week_date.isoformat(), {}).get(hour_str, 0)
+            sale_two_weeks_ago = hourly_sales_data.get(two_weeks_ago_date.isoformat(), {}).get(hour_str, 0)
+            
+            # Add to list only if sales were recorded (not zero)
+            if sale_last_week > 0:
+                sales_points.append(sale_last_week)
+            if sale_two_weeks_ago > 0:
+                sales_points.append(sale_two_weeks_ago)
+
+            # Calculate average, excluding zero-sale days
+            if not sales_points:
+                avg_sales = 0
+            else:
+                avg_sales = sum(sales_points) / len(sales_points)
+
+            forecasts.append({
+                'hour': f"{hour_str}:00",
+                'avg_sales': round(avg_sales, 2)
+            })
+
         conn.close()
 
         return jsonify({
             'success': True,
             'data': forecasts,
             'forecast_date': tomorrow.isoformat(),
-            'basis': 'Last week same day'
+            'basis': '50/50 average of the last two same-day-of-week sales'
         })
 
     except Exception as e:
