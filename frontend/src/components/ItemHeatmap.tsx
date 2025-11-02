@@ -212,7 +212,7 @@ export default function ItemHeatmap() {
               {selectedItem?.item_name} - Hourly Sales Pattern
             </h3>
             <p className="text-sm text-gray-500 mt-1">
-              Revenue by day and hour • Hover for exact amounts
+              Revenue by day and hour
             </p>
           </div>
 
@@ -256,7 +256,7 @@ export default function ItemHeatmap() {
                         <div
                           className="h-8 rounded border border-gray-200 flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
                           style={{ backgroundColor: bgColor }}
-                          title={revenue > 0 ? `${formatCurrency(revenue, 0)}` : 'No sales'}
+                          // title={revenue > 0 ? `${formatCurrency(revenue, 0)}` : 'No sales'}
                         >
                           {revenue > 0 && intensity > 0.5 && (
                             <span className="text-white text-[10px]">
