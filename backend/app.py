@@ -395,6 +395,99 @@ def categories_by_profit():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# R8: Get top items for heatmap selector
+@app.route('/api/reports/top-items', methods=['GET'])
+def top_items():
+    start_date = request.args.get('start', '2024-08-01')
+    end_date = request.args.get('end', '2024-10-23')
+    limit = int(request.args.get('limit', 25))
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT 
+                i.item_id,
+                i.item_name,
+                i.category,
+                ROUND(SUM(t.total_amount), 2) as total_revenue
+            FROM transactions t
+            JOIN items i ON t.item_id = i.item_id
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+            GROUP BY i.item_id, i.item_name, i.category
+            ORDER BY total_revenue DESC
+            LIMIT ?
+        '''
+
+        cursor.execute(query, (start_date, end_date, limit))
+        rows = cursor.fetchall()
+
+        items = [dict(row) for row in rows]
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': items,
+            'date_range': {'start': start_date, 'end': end_date}
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# R9: Item heatmap data (hourly × daily patterns)
+@app.route('/api/reports/item-heatmap', methods=['GET'])
+def item_heatmap():
+    start_date = request.args.get('start', '2024-08-01')
+    end_date = request.args.get('end', '2024-10-23')
+    item_id = request.args.get('item_id')
+
+    if not item_id:
+        return jsonify({'success': False, 'error': 'item_id required'}), 400
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT 
+                CASE CAST(strftime('%w', transaction_date) AS INTEGER)
+                    WHEN 0 THEN 'Sunday'
+                    WHEN 1 THEN 'Monday'
+                    WHEN 2 THEN 'Tuesday'
+                    WHEN 3 THEN 'Wednesday'
+                    WHEN 4 THEN 'Thursday'
+                    WHEN 5 THEN 'Friday'
+                    WHEN 6 THEN 'Saturday'
+                END as day_of_week,
+                CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
+                CAST(strftime('%H', transaction_date) AS INTEGER) as hour,
+                ROUND(SUM(total_amount), 2) as revenue,
+                SUM(quantity) as units
+            FROM transactions
+            WHERE item_id = ?
+              AND DATE(transaction_date) BETWEEN ? AND ?
+            GROUP BY day_of_week, day_num, hour
+            ORDER BY day_num, hour
+        '''
+
+        cursor.execute(query, (item_id, start_date, end_date))
+        rows = cursor.fetchall()
+
+        data = [dict(row) for row in rows]
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': data,
+            'date_range': {'start': start_date, 'end': end_date}
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # P1: Daily Sales Forecast (next 7 days)
 @app.route('/api/forecasts/daily', methods=['GET'])
 def daily_forecast():

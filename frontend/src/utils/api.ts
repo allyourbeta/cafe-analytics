@@ -64,6 +64,21 @@ export interface HourlyForecast {
   avg_sales: number;
 }
 
+export interface TopItem {
+  item_id: number;
+  item_name: string;
+  category: string;
+  total_revenue: number;
+}
+
+export interface HeatmapCell {
+  day_of_week: string;
+  day_num: number;
+  hour: number;
+  revenue: number;
+  units: number;
+}
+
 // R3: Items by Revenue
 export const getItemsByRevenue = async (startDate: string, endDate: string) => {
   const response = await axios.get(`${API_BASE}/reports/items-by-revenue`, {
@@ -128,6 +143,22 @@ export const getCategoriesByRevenue = async (startDate: string, endDate: string)
 export const getCategoriesByProfit = async (startDate: string, endDate: string) => {
   const response = await axios.get(`${API_BASE}/reports/categories-by-profit`, {
     params: { start: startDate, end: endDate }
+  });
+  return response.data;
+};
+
+// R8: Get top items for heatmap
+export const getTopItems = async (startDate: string, endDate: string, limit: number = 25) => {
+  const response = await axios.get(`${API_BASE}/reports/top-items`, {
+    params: { start: startDate, end: endDate, limit }
+  });
+  return response.data;
+};
+
+// R9: Get item heatmap data
+export const getItemHeatmap = async (itemId: number, startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/reports/item-heatmap`, {
+    params: { item_id: itemId, start: startDate, end: endDate }
   });
   return response.data;
 };
