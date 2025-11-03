@@ -129,7 +129,7 @@ export default function Dashboard() {
         {
             id: "items-by-revenue",
             title: "Items by Revenue",
-            description: "Top selling items ranked by total revenue",
+            description: "Items and categories ranked by revenue",
             icon: <BarChart3 className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-orange-400 to-orange-600",
             component: <ItemsByRevenue/>,
@@ -137,7 +137,7 @@ export default function Dashboard() {
         {
             id: "sales-per-hour",
             title: "Sales per Hour",
-            description: "Hourly sales breakdown for the day",
+            description: "Hourly sales breakdown over the period",
             icon: <Clock className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
             component: <SalesPerHour/>,
@@ -145,7 +145,7 @@ export default function Dashboard() {
         {
             id: "item-heatmap",
             title: "Sales Heatmap",
-            description: "Hourly sales patterns by day of week",
+            description: "Hourly sales breakdown, by day of week, for top-25 items",
             icon: <Grid3x3 className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
             component: <ItemHeatmap/>,
@@ -154,7 +154,7 @@ export default function Dashboard() {
         {
             id: "items-by-profit",
             title: "Items by Profit $$",
-            description: "Most profitable menu items",
+            description: "Items and categories ranked by profit $$",
             icon: <DollarSign className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
             component: <ItemsByProfit/>,
@@ -162,7 +162,7 @@ export default function Dashboard() {
         {
             id: "items-by-margin",
             title: "Items by Profit Margin %",
-            description: "Items with highest profit margins",
+            description: "Items ranked by profit margin %",
             icon: <TrendingUp className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
             component: <ItemsByMargin/>,
@@ -170,7 +170,7 @@ export default function Dashboard() {
         {
             id: "labor-percent",
             title: "Labor % per Hour",
-            description: "Labor cost percentage by hour",
+            description: "Labor cost, as % of revenue, per hour",
             icon: <Percent className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-green-400 to-green-600",
             component: <LaborPercent/>,
@@ -186,7 +186,7 @@ export default function Dashboard() {
         {
             id: "hourly-forecast",
             title: "Hourly Sales Forecast",
-            description: "Predicted sales by hour for tomorrow",
+            description: "Predicted sales by hour for next three weeks",
             icon: <Activity className="w-5 h-5 text-white"/>,
             iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
             component: <HourlyForecast/>,
