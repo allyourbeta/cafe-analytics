@@ -91,9 +91,9 @@ function KPICard({
 
 export default function Dashboard() {
   const [todaySales, setTodaySales] = useState<number>(0);
+  const [avgDailySales, setAvgDailySales] = useState<number>(0);
   const [topSeller, setTopSeller] = useState<string>("Cold Brew");
   const [topSellerUnits, setTopSellerUnits] = useState<number>(0);
-  const [avgMargin, setAvgMargin] = useState<number>(0);
   const [avgLaborPct, setAvgLaborPct] = useState<number>(0);
   const [avgStudentLaborPct, setAvgStudentLaborPct] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -362,36 +362,17 @@ export default function Dashboard() {
       }
 
       const salesData = await getTotalSales(startDate, endDate);
-      setTodaySales(salesData.data.total_sales);
+      const totalSales = salesData.data.total_sales;
+      setTodaySales(totalSales);
 
-      // Calculate average margin weighted by revenue
-      // Use profit data which includes sales volume
-      const profitData = await getItemsByProfit(startDate, endDate);
-      if (profitData.data.length > 0) {
-        // Calculate total profit and total revenue across all items
-        const totalProfit = profitData.data.reduce(
-          (sum: number, item: any) => sum + item.total_profit,
-          0
-        );
-
-        // Calculate revenue for each item: total_profit / (margin_pct / 100)
-        // Then sum to get total revenue
-        const totalRevenue = profitData.data.reduce(
-          (sum: number, item: any) => {
-            if (item.margin_pct > 0) {
-              const itemRevenue = item.total_profit / (item.margin_pct / 100);
-              return sum + itemRevenue;
-            }
-            return sum;
-          },
-          0
-        );
-
-        // Weighted average margin = total profit / total revenue * 100
-        const avgMarginPct =
-          totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-        setAvgMargin(avgMarginPct);
-      }
+      // Calculate daily average sales
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const numberOfDays =
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+        1;
+      const dailyAvg = numberOfDays > 0 ? totalSales / numberOfDays : 0;
+      setAvgDailySales(dailyAvg);
 
       // Calculate average labor percentage for the date range (weighted by sales volume)
       // Get total labor (salaried + students)
@@ -697,6 +678,15 @@ export default function Dashboard() {
               subtitle={`for selected period`}
             />
             <KPICard
+              icon={<BarChart3 className="w-7 h-7 text-white" />}
+              iconBg="bg-gradient-to-br from-blue-400 to-blue-600"
+              iconShadow="shadow-lg shadow-blue-500/40"
+              cardBg="bg-gradient-to-br from-blue-50 to-white"
+              title="DAILY AVG SALES"
+              value={`$${Math.round(avgDailySales).toLocaleString()}`}
+              subtitle="average per day"
+            />
+            <KPICard
               icon={<TrendingUp className="w-7 h-7 text-white" />}
               iconBg="bg-gradient-to-br from-amber-400 to-amber-600"
               iconShadow="shadow-lg shadow-amber-500/40"
@@ -713,19 +703,10 @@ export default function Dashboard() {
               iconShadow="shadow-lg shadow-cyan-500/40"
               cardBg="bg-gradient-to-br from-cyan-50 to-white"
               title="TOTAL LABOR COST"
-              value={`${avgLaborPct.toFixed(1)}% / ${avgStudentLaborPct.toFixed(
+              value={`${avgLaborPct.toFixed(1)}% | ${avgStudentLaborPct.toFixed(
                 1
               )}%`}
               subtitle="with salaried / only students"
-            />
-            <KPICard
-              icon={<Percent className="w-7 h-7 text-white" />}
-              iconBg="bg-gradient-to-br from-yellow-400 to-yellow-600"
-              iconShadow="shadow-lg shadow-yellow-500/40"
-              cardBg="bg-gradient-to-br from-yellow-50 to-white"
-              title="AVERAGE MARGIN"
-              value={`${avgMargin.toFixed(1)}%`}
-              subtitle="across all items"
             />
           </div>
 
