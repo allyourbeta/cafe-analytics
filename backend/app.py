@@ -64,6 +64,42 @@ def items_by_revenue():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# Total Sales for date range
+@app.route('/api/total-sales', methods=['GET'])
+def total_sales():
+    start_date = request.args.get('start', '2024-08-01')
+    end_date = request.args.get('end', '2024-10-23')
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT ROUND(SUM(total_amount), 2) as total_sales
+            FROM transactions
+            WHERE DATE(transaction_date) BETWEEN ? AND ?
+        '''
+
+        cursor.execute(query, (start_date, end_date))
+        row = cursor.fetchone()
+        
+        total = row['total_sales'] if row['total_sales'] is not None else 0
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_sales': total,
+                'start_date': start_date,
+                'end_date': end_date
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # R1: Sales per Labor Hour
 @app.route('/api/reports/sales-per-hour', methods=['GET'])
 def sales_per_hour():

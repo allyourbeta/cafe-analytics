@@ -127,6 +127,14 @@ export const getSalesPerHour = async (
   return response.data;
 };
 
+// Total Sales for date range
+export const getTotalSales = async (startDate: string, endDate: string) => {
+  const response = await axios.get(`${API_BASE}/total-sales`, {
+    params: { start: startDate, end: endDate },
+  });
+  return response.data;
+};
+
 // R2: Labor Percent per Hour
 export const getLaborPercent = async (
   startDate: string,

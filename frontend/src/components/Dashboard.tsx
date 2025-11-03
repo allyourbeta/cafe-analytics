@@ -17,10 +17,10 @@ import {
 } from "lucide-react";
 import {
   getItemsByRevenue,
-  getSalesPerHour,
-  getItemsByMargin,
-  getLaborPercent,
   getItemsByProfit,
+  getSalesPerHour,
+  getLaborPercent,
+  getTotalSales,
 } from "../utils/api";
 import ItemsByRevenue from "./ItemsByRevenue";
 import SalesPerHour from "./SalesPerHour";
@@ -95,6 +95,7 @@ export default function Dashboard() {
   const [topSellerUnits, setTopSellerUnits] = useState<number>(0);
   const [avgMargin, setAvgMargin] = useState<number>(0);
   const [avgLaborPct, setAvgLaborPct] = useState<number>(0);
+  const [avgStudentLaborPct, setAvgStudentLaborPct] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<string | null>(
     "items-by-revenue"
@@ -360,12 +361,8 @@ export default function Dashboard() {
         setTopSellerRevenue(top.revenue);
       }
 
-      const salesData = await getSalesPerHour(startDate, endDate);
-      const totalSales = salesData.data.reduce(
-        (sum: number, hour: any) => sum + hour.sales,
-        0
-      );
-      setTodaySales(totalSales);
+      const salesData = await getTotalSales(startDate, endDate);
+      setTodaySales(salesData.data.total_sales);
 
       // Calculate average margin weighted by revenue
       // Use profit data which includes sales volume
@@ -397,19 +394,36 @@ export default function Dashboard() {
       }
 
       // Calculate average labor percentage for the date range (weighted by sales volume)
-      const laborData = await getLaborPercent(startDate, endDate);
-      if (laborData.data.length > 0) {
-        const totalLaborCost = laborData.data.reduce(
+      // Get total labor (salaried + students)
+      const laborDataTotal = await getLaborPercent(startDate, endDate, true);
+      if (laborDataTotal.data.length > 0) {
+        const totalLaborCost = laborDataTotal.data.reduce(
           (sum: number, hour: any) => sum + hour.labor_cost,
           0
         );
-        const totalSales = laborData.data.reduce(
+        const totalSales = laborDataTotal.data.reduce(
           (sum: number, hour: any) => sum + hour.sales,
           0
         );
         const avgLabor =
           totalSales > 0 ? (totalLaborCost / totalSales) * 100 : 0;
         setAvgLaborPct(avgLabor);
+      }
+
+      // Get student-only labor
+      const laborDataStudent = await getLaborPercent(startDate, endDate, false);
+      if (laborDataStudent.data.length > 0) {
+        const studentLaborCost = laborDataStudent.data.reduce(
+          (sum: number, hour: any) => sum + hour.labor_cost,
+          0
+        );
+        const totalSales = laborDataStudent.data.reduce(
+          (sum: number, hour: any) => sum + hour.sales,
+          0
+        );
+        const avgStudentLabor =
+          totalSales > 0 ? (studentLaborCost / totalSales) * 100 : 0;
+        setAvgStudentLaborPct(avgStudentLabor);
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -679,7 +693,7 @@ export default function Dashboard() {
               iconShadow="shadow-lg shadow-orange-500/40"
               cardBg="bg-gradient-to-br from-orange-50 to-white"
               title="TOTAL SALES"
-              value={`$${Math.round(todaySales)}`}
+              value={`$${Math.round(todaySales).toLocaleString()}`}
               subtitle={`for selected period`}
             />
             <KPICard
@@ -689,9 +703,9 @@ export default function Dashboard() {
               cardBg="bg-gradient-to-br from-amber-50 to-white"
               title="TOP SELLER ($$)"
               value={topSeller}
-              subtitle={`${topSellerUnits} units • $${Math.round(
+              subtitle={`${topSellerUnits.toLocaleString()} units • $${Math.round(
                 topSellerRevenue
-              )} revenue`}
+              ).toLocaleString()} revenue`}
             />
             <KPICard
               icon={<Clock className="w-7 h-7 text-white" />}
@@ -699,8 +713,10 @@ export default function Dashboard() {
               iconShadow="shadow-lg shadow-cyan-500/40"
               cardBg="bg-gradient-to-br from-cyan-50 to-white"
               title="TOTAL LABOR COST"
-              value={`${avgLaborPct.toFixed(1)}%`}
-              subtitle="average for period"
+              value={`${avgLaborPct.toFixed(1)}% / ${avgStudentLaborPct.toFixed(
+                1
+              )}%`}
+              subtitle="with salaried / only students"
             />
             <KPICard
               icon={<Percent className="w-7 h-7 text-white" />}
