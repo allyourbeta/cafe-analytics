@@ -69,7 +69,7 @@ export default function ReportLayout({
         </div>
       )}
 
-      {!loading && !error && data.length > 0 && (
+      {!loading && !error && data.length > 0 && columns.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-300">
             <thead>

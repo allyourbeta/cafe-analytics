@@ -180,7 +180,7 @@ export default function Dashboard() {
     {
       id: "daily-forecast",
       title: "Daily Sales Forecast",
-      description: "Predicted sales for the next 3 weeks",
+      description: "Predicted sales for the next three weeks",
       icon: <Calendar className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-cyan-400 to-cyan-600",
       component: <DailyForecast />,
