@@ -1,6 +1,8 @@
 -- Cafe Analytics Database Schema
--- Updated: 2025-10-30
--- Key Change: item_id now uses TouchNet IDs (no autoincrement)
+-- Updated: 2025-11-03
+-- Key Changes: 
+--   - item_id now uses TouchNet IDs (no autoincrement)
+--   - Added unique constraint for idempotent transaction imports
 
 CREATE TABLE items (
     item_id INTEGER PRIMARY KEY,
@@ -42,6 +44,11 @@ CREATE TABLE transactions (
 CREATE INDEX idx_transactions_date ON transactions(transaction_date);
 CREATE INDEX idx_transactions_item ON transactions(item_id);
 CREATE INDEX idx_transactions_category ON transactions(category);
+
+-- Unique constraint for idempotent imports: prevents duplicate transactions
+-- Same timestamp + item + register = same transaction (millisecond precision makes this safe)
+CREATE UNIQUE INDEX idx_transactions_unique 
+ON transactions(transaction_date, item_id, register_num);
 
 CREATE TABLE labor_hours (
     labor_id INTEGER PRIMARY KEY AUTOINCREMENT,
