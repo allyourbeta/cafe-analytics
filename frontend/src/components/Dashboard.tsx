@@ -30,7 +30,7 @@ import ItemsByMargin from "./ItemsByMargin";
 import DailyForecast from "./DailyForecast";
 import HourlyForecast from "./HourlyForecast";
 import ItemHeatmap from "./ItemHeatmap";
-import ItemDemandForecast from "./TestReport"; // Using TestReport as ItemDemandForecast
+import ItemDemandForecast from "./ItemDemandForecast";
 
 interface KPICardProps {
   icon: React.ReactNode;

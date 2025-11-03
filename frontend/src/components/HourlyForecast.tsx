@@ -510,6 +510,8 @@ export default function HourlyForecast() {
       columns={[]}
       needsDateRange={false}
       ChartComponent={HourlyChart}
+      enableCache={true}
+      cacheKey="hourly_forecast"
     />
   );
 }

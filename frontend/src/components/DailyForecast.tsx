@@ -497,6 +497,8 @@ export default function DailyForecast() {
       columns={[]}
       needsDateRange={false}
       ChartComponent={ForecastChart}
+      enableCache={true}
+      cacheKey="daily_forecast"
     />
   );
 }
