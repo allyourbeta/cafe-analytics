@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE = 'http://127.0.0.1:5500/api';
+const API_BASE = "http://127.0.0.1:5500/api";
 
 // Interfaces
 export interface RevenueItem {
@@ -79,28 +79,64 @@ export interface HeatmapCell {
   units: number;
 }
 
+export interface WeeklyForecast {
+  week: number;
+  quantity: number;
+}
+
+export interface ItemDemandForecast {
+  item_id: number;
+  item_name: string;
+  category: string;
+  is_new: boolean;
+  weekly_forecast: WeeklyForecast[];
+  total_forecast: number;
+}
+
+export interface CategoryDemandForecast {
+  category: string;
+  is_new: boolean;
+  weekly_forecast: WeeklyForecast[];
+  total_forecast: number;
+}
+
 // R3: Items by Revenue
 export const getItemsByRevenue = async (startDate: string, endDate: string) => {
   const response = await axios.get(`${API_BASE}/reports/items-by-revenue`, {
-    params: { start: startDate, end: endDate }
+    params: { start: startDate, end: endDate },
   });
   return response.data;
 };
 
 // R1: Sales per Hour
-export const getSalesPerHour = async (startDate: string, endDate: string, mode: 'average' | 'single' = 'average', singleDate?: string) => {
+export const getSalesPerHour = async (
+  startDate: string,
+  endDate: string,
+  mode: "average" | "single" = "average",
+  singleDate?: string
+) => {
   const params: any = { start: startDate, end: endDate, mode };
-  if (mode === 'single' && singleDate) {
+  if (mode === "single" && singleDate) {
     params.date = singleDate;
   }
-  const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, { params });
+  const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, {
+    params,
+  });
   return response.data;
 };
 
 // R2: Labor Percent per Hour
-export const getLaborPercent = async (startDate: string, endDate: string, includeSalaried: boolean = true) => {
+export const getLaborPercent = async (
+  startDate: string,
+  endDate: string,
+  includeSalaried: boolean = true
+) => {
   const response = await axios.get(`${API_BASE}/reports/labor-percent`, {
-    params: { start: startDate, end: endDate, include_salaried: includeSalaried }
+    params: {
+      start: startDate,
+      end: endDate,
+      include_salaried: includeSalaried,
+    },
   });
   return response.data;
 };
@@ -108,7 +144,7 @@ export const getLaborPercent = async (startDate: string, endDate: string, includ
 // R4: Items by Profit
 export const getItemsByProfit = async (startDate: string, endDate: string) => {
   const response = await axios.get(`${API_BASE}/reports/items-by-profit`, {
-    params: { start: startDate, end: endDate }
+    params: { start: startDate, end: endDate },
   });
   return response.data;
 };
@@ -132,33 +168,62 @@ export const getHourlyForecast = async () => {
 };
 
 // R6: Categories by Revenue
-export const getCategoriesByRevenue = async (startDate: string, endDate: string) => {
-  const response = await axios.get(`${API_BASE}/reports/categories-by-revenue`, {
-    params: { start: startDate, end: endDate }
-  });
+export const getCategoriesByRevenue = async (
+  startDate: string,
+  endDate: string
+) => {
+  const response = await axios.get(
+    `${API_BASE}/reports/categories-by-revenue`,
+    {
+      params: { start: startDate, end: endDate },
+    }
+  );
   return response.data;
 };
 
 // R7: Categories by Profit
-export const getCategoriesByProfit = async (startDate: string, endDate: string) => {
+export const getCategoriesByProfit = async (
+  startDate: string,
+  endDate: string
+) => {
   const response = await axios.get(`${API_BASE}/reports/categories-by-profit`, {
-    params: { start: startDate, end: endDate }
+    params: { start: startDate, end: endDate },
   });
   return response.data;
 };
 
 // R8: Get top items for heatmap
-export const getTopItems = async (startDate: string, endDate: string, limit: number = 25) => {
+export const getTopItems = async (
+  startDate: string,
+  endDate: string,
+  limit: number = 25
+) => {
   const response = await axios.get(`${API_BASE}/reports/top-items`, {
-    params: { start: startDate, end: endDate, limit }
+    params: { start: startDate, end: endDate, limit },
   });
   return response.data;
 };
 
 // R9: Get item heatmap data
-export const getItemHeatmap = async (itemId: number, startDate: string, endDate: string) => {
+export const getItemHeatmap = async (
+  itemId: number,
+  startDate: string,
+  endDate: string
+) => {
   const response = await axios.get(`${API_BASE}/reports/item-heatmap`, {
-    params: { item_id: itemId, start: startDate, end: endDate }
+    params: { item_id: itemId, start: startDate, end: endDate },
   });
+  return response.data;
+};
+
+// P3: Item Demand Forecast
+export const getItemDemandForecast = async () => {
+  const response = await axios.get(`${API_BASE}/forecasts/items`);
+  return response.data;
+};
+
+// P4: Category Demand Forecast
+export const getCategoryDemandForecast = async () => {
+  const response = await axios.get(`${API_BASE}/forecasts/categories`);
   return response.data;
 };

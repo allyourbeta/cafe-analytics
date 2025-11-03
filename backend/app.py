@@ -635,6 +635,221 @@ def hourly_forecast():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# P3: Item Demand Forecast (next 21 days, grouped by week)
+@app.route('/api/forecasts/items', methods=['GET'])
+def item_demand_forecast():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        today = datetime.now().date()
+
+        # Get all items from the menu
+        cursor.execute('SELECT item_id, item_name, category FROM items ORDER BY item_name')
+        items = cursor.fetchall()
+
+        all_forecasts = []
+
+        for item in items:
+            item_id = item['item_id']
+            item_name = item['item_name']
+            category = item['category']
+
+            daily_forecasts = []
+            is_new_item = True  # Assume new until we find historical data
+
+            # Generate forecasts for the next 21 days
+            for day_offset in range(1, 22):
+                forecast_date = today + timedelta(days=day_offset)
+                day_of_week = forecast_date.strftime('%A')
+
+                # Historical dates for this forecast (same day of week)
+                historical_dates = [
+                    forecast_date - timedelta(days=7),
+                    forecast_date - timedelta(days=14),
+                    forecast_date - timedelta(days=21),
+                    forecast_date - timedelta(days=28),
+                ]
+
+                # Fetch quantities sold on historical dates
+                quantities = []
+                for date in historical_dates:
+                    if date < today:
+                        query = '''
+                            SELECT SUM(quantity) as total_qty
+                            FROM transactions
+                            WHERE item_id = ?
+                            AND DATE(transaction_date) = ?
+                        '''
+                        cursor.execute(query, (item_id, date.isoformat()))
+                        result = cursor.fetchone()
+                        
+                        if result['total_qty'] is not None:
+                            quantities.append(result['total_qty'])
+                            is_new_item = False  # Found historical data
+                        # If NULL, don't add to list (item didn't exist or wasn't sold)
+
+                # Calculate forecast
+                if len(quantities) > 0:
+                    avg_quantity = sum(quantities) / len(quantities)
+                    forecast_qty = round(avg_quantity)  # Round to whole number
+                else:
+                    forecast_qty = 0
+
+                daily_forecasts.append({
+                    'date': forecast_date.isoformat(),
+                    'day_of_week': day_of_week,
+                    'quantity': forecast_qty
+                })
+
+            # Group by week
+            weekly_forecast = [
+                {
+                    'week': 1,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[0:7])
+                },
+                {
+                    'week': 2,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[7:14])
+                },
+                {
+                    'week': 3,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[14:21])
+                }
+            ]
+
+            total_forecast = sum(w['quantity'] for w in weekly_forecast)
+
+            all_forecasts.append({
+                'item_id': item_id,
+                'item_name': item_name,
+                'category': category,
+                'is_new': is_new_item,
+                'weekly_forecast': weekly_forecast,
+                'total_forecast': total_forecast
+            })
+
+        conn.close()
+
+        # Sort by total forecast descending
+        all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
+
+        return jsonify({
+            'success': True,
+            'data': all_forecasts
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# P4: Category Demand Forecast (next 21 days, grouped by week)
+@app.route('/api/forecasts/categories', methods=['GET'])
+def category_demand_forecast():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        today = datetime.now().date()
+
+        # Get all unique categories
+        cursor.execute('SELECT DISTINCT category FROM items ORDER BY category')
+        categories = [row['category'] for row in cursor.fetchall()]
+
+        all_forecasts = []
+
+        for category in categories:
+            # Get all items in this category
+            cursor.execute('SELECT item_id FROM items WHERE category = ?', (category,))
+            item_ids = [row['item_id'] for row in cursor.fetchall()]
+
+            if not item_ids:
+                continue
+
+            daily_forecasts = []
+            is_new_category = True
+
+            # Generate forecasts for the next 21 days
+            for day_offset in range(1, 22):
+                forecast_date = today + timedelta(days=day_offset)
+                day_of_week = forecast_date.strftime('%A')
+
+                # Historical dates
+                historical_dates = [
+                    forecast_date - timedelta(days=7),
+                    forecast_date - timedelta(days=14),
+                    forecast_date - timedelta(days=21),
+                    forecast_date - timedelta(days=28),
+                ]
+
+                # Fetch total quantities for all items in category
+                quantities = []
+                for date in historical_dates:
+                    if date < today:
+                        placeholders = ','.join('?' * len(item_ids))
+                        query = f'''
+                            SELECT SUM(quantity) as total_qty
+                            FROM transactions
+                            WHERE item_id IN ({placeholders})
+                            AND DATE(transaction_date) = ?
+                        '''
+                        cursor.execute(query, (*item_ids, date.isoformat()))
+                        result = cursor.fetchone()
+                        
+                        if result['total_qty'] is not None:
+                            quantities.append(result['total_qty'])
+                            is_new_category = False
+
+                # Calculate forecast
+                if len(quantities) > 0:
+                    avg_quantity = sum(quantities) / len(quantities)
+                    forecast_qty = round(avg_quantity)
+                else:
+                    forecast_qty = 0
+
+                daily_forecasts.append({
+                    'date': forecast_date.isoformat(),
+                    'day_of_week': day_of_week,
+                    'quantity': forecast_qty
+                })
+
+            # Group by week
+            weekly_forecast = [
+                {
+                    'week': 1,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[0:7])
+                },
+                {
+                    'week': 2,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[7:14])
+                },
+                {
+                    'week': 3,
+                    'quantity': sum(d['quantity'] for d in daily_forecasts[14:21])
+                }
+            ]
+
+            total_forecast = sum(w['quantity'] for w in weekly_forecast)
+
+            all_forecasts.append({
+                'category': category,
+                'is_new': is_new_category,
+                'weekly_forecast': weekly_forecast,
+                'total_forecast': total_forecast
+            })
+
+        conn.close()
+
+        # Sort by total forecast descending
+        all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
+
+        return jsonify({
+            'success': True,
+            'data': all_forecasts
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print("🚀 Backend starting...")
     print("📊 Running at: http://localhost:5500")
@@ -647,4 +862,6 @@ if __name__ == '__main__':
     print("  /api/reports/items-by-margin")
     print("  /api/forecasts/daily")
     print("  /api/forecasts/hourly")
+    print("  /api/forecasts/items")
+    print("  /api/forecasts/categories")
     app.run(debug=True, port=5500, host='0.0.0.0')

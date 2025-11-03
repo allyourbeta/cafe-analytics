@@ -13,6 +13,7 @@ import {
   X,
   ChevronDown,
   Grid3x3,
+  Package,
 } from "lucide-react";
 import {
   getItemsByRevenue,
@@ -29,6 +30,7 @@ import ItemsByMargin from "./ItemsByMargin";
 import DailyForecast from "./DailyForecast";
 import HourlyForecast from "./HourlyForecast";
 import ItemHeatmap from "./ItemHeatmap";
+import ItemDemandForecast from "./TestReport"; // Using TestReport as ItemDemandForecast
 
 interface KPICardProps {
   icon: React.ReactNode;
@@ -192,6 +194,14 @@ export default function Dashboard() {
       icon: <Activity className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
       component: <HourlyForecast />,
+    },
+    {
+      id: "item-demand",
+      title: "Item Demand Forecast",
+      description: "3-week quantity forecast for inventory planning",
+      icon: <Package className="w-5 h-5 text-white" />,
+      iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
+      component: <ItemDemandForecast />,
     },
   ];
 
@@ -549,30 +559,43 @@ export default function Dashboard() {
               Sales Reports
             </h2>
             <nav className="space-y-1">
-              {reports.map((report) => (
-                <button
-                  key={report.id}
-                  onClick={() => setSelectedReport(report.id)}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
-                    selectedReport === report.id
-                      ? "bg-white shadow-md border border-orange-200"
-                      : "hover:bg-white hover:shadow-sm"
-                  }`}
-                >
-                  <div
-                    className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+              {reports.map((report, index) => (
+                <div key={report.id}>
+                  {/* Divider before forecast reports */}
+                  {index === reports.length - 3 && (
+                    <div className="pt-4 pb-3 px-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px bg-gradient-to-r from-cyan-400 to-blue-400 flex-1"></div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Forecasts
+                        </span>
+                        <div className="h-px bg-gradient-to-l from-cyan-400 to-blue-400 flex-1"></div>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setSelectedReport(report.id)}
+                    className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
+                      selectedReport === report.id
+                        ? "bg-white shadow-md border border-orange-200"
+                        : "hover:bg-white hover:shadow-sm"
+                    }`}
                   >
-                    {report.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {report.title}
+                    <div
+                      className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                    >
+                      {report.icon}
                     </div>
-                    <div className="text-xs text-gray-600 mt-0.5">
-                      {report.description}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {report.title}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {report.description}
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </nav>
           </div>
@@ -600,33 +623,46 @@ export default function Dashboard() {
                 </button>
               </div>
               <nav className="p-4 space-y-1">
-                {reports.map((report) => (
-                  <button
-                    key={report.id}
-                    onClick={() => {
-                      setSelectedReport(report.id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
-                      selectedReport === report.id
-                        ? "bg-orange-50 border border-orange-200"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div
-                      className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                {reports.map((report, index) => (
+                  <div key={report.id}>
+                    {/* Divider before forecast reports */}
+                    {index === reports.length - 3 && (
+                      <div className="pt-4 pb-3 px-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-px bg-gradient-to-r from-cyan-400 to-blue-400 flex-1"></div>
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Forecasts
+                          </span>
+                          <div className="h-px bg-gradient-to-l from-cyan-400 to-blue-400 flex-1"></div>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedReport(report.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
+                        selectedReport === report.id
+                          ? "bg-orange-50 border border-orange-200"
+                          : "hover:bg-gray-50"
+                      }`}
                     >
-                      {report.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {report.title}
+                      <div
+                        className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                      >
+                        {report.icon}
                       </div>
-                      <div className="text-xs text-gray-600 mt-0.5">
-                        {report.description}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {report.title}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          {report.description}
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 ))}
               </nav>
             </aside>
