@@ -297,7 +297,7 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
           letterSpacing: "-0.02em",
         }}
       >
-        21-Day Hourly Sales Forecast
+        3-Week Hourly Sales Forecast
       </h3>
 
       {/* Carousel Container */}

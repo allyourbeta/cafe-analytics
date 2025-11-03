@@ -81,6 +81,8 @@ export interface HeatmapCell {
 
 export interface WeeklyForecast {
   week: number;
+  start_date: string;
+  end_date: string;
   quantity: number;
 }
 

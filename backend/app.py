@@ -701,18 +701,24 @@ def item_demand_forecast():
                     'quantity': forecast_qty
                 })
 
-            # Group by week
+            # Group by week with date ranges
             weekly_forecast = [
                 {
                     'week': 1,
+                    'start_date': daily_forecasts[0]['date'],
+                    'end_date': daily_forecasts[6]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[0:7])
                 },
                 {
                     'week': 2,
+                    'start_date': daily_forecasts[7]['date'],
+                    'end_date': daily_forecasts[13]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[7:14])
                 },
                 {
                     'week': 3,
+                    'start_date': daily_forecasts[14]['date'],
+                    'end_date': daily_forecasts[20]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[14:21])
                 }
             ]
@@ -811,18 +817,24 @@ def category_demand_forecast():
                     'quantity': forecast_qty
                 })
 
-            # Group by week
+            # Group by week with date ranges
             weekly_forecast = [
                 {
                     'week': 1,
+                    'start_date': daily_forecasts[0]['date'],
+                    'end_date': daily_forecasts[6]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[0:7])
                 },
                 {
                     'week': 2,
+                    'start_date': daily_forecasts[7]['date'],
+                    'end_date': daily_forecasts[13]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[7:14])
                 },
                 {
                     'week': 3,
+                    'start_date': daily_forecasts[14]['date'],
+                    'end_date': daily_forecasts[20]['date'],
                     'quantity': sum(d['quantity'] for d in daily_forecasts[14:21])
                 }
             ]
