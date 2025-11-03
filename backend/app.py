@@ -488,7 +488,7 @@ def item_heatmap():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# P1: Daily Sales Forecast (next 7 days)
+# P1: Daily Sales Forecast (next 21 days)
 @app.route('/api/forecasts/daily', methods=['GET'])
 def daily_forecast():
     try:
@@ -498,33 +498,38 @@ def daily_forecast():
         forecasts = []
         today = datetime.now().date()
 
-        for i in range(1, 8):
+        # Generate a forecast for the next 21 days
+        for i in range(1, 22):
             forecast_date = today + timedelta(days=i)
             day_of_week = forecast_date.strftime('%A')
 
-            # --- Define the two historical dates for the forecast --- #
-            date_one_week_ago = forecast_date - timedelta(days=7)
-            date_two_weeks_ago = forecast_date - timedelta(days=14)
-
-            historical_dates = [date_one_week_ago, date_two_weeks_ago]
+            # Always attempt to look at the four previous corresponding weekdays
+            historical_dates = [
+                forecast_date - timedelta(days=7),
+                forecast_date - timedelta(days=14),
+                forecast_date - timedelta(days=21),
+                forecast_date - timedelta(days=28),
+            ]
+            
             sales_points = []
 
-            # --- Fetch sales data for each historical date --- #
+            # Fetch sales data, but only for historical dates that are actually in the past
             for historical_date in historical_dates:
-                query = '''
-                    SELECT SUM(total_amount) as daily_sales
-                    FROM transactions
-                    WHERE DATE(transaction_date) = ?
-                '''
-                cursor.execute(query, (historical_date.isoformat(),))
-                result = cursor.fetchone()
-                sales = result['daily_sales'] if result and result['daily_sales'] else 0
-                
-                # Only include non-zero sales in our calculation
-                if sales > 0:
-                    sales_points.append(sales)
+                if historical_date < today:
+                    query = '''
+                        SELECT SUM(total_amount) as daily_sales
+                        FROM transactions
+                        WHERE DATE(transaction_date) = ?
+                    '''
+                    cursor.execute(query, (historical_date.isoformat(),))
+                    result = cursor.fetchone()
+                    sales = result['daily_sales'] if result and result['daily_sales'] else 0
+                    
+                    # Only include non-zero sales in the average
+                    if sales > 0:
+                        sales_points.append(sales)
 
-            # --- Calculate the average, excluding zero-sale days --- #
+            # Calculate the forecast based on the available, non-zero data points
             if not sales_points:
                 forecasted_sales = 0
             else:
@@ -534,7 +539,7 @@ def daily_forecast():
                 'date': forecast_date.isoformat(),
                 'day_of_week': day_of_week,
                 'forecasted_sales': round(forecasted_sales, 2),
-                'basis': '50/50 Avg Last 2 Weeks'
+                'basis': f'Avg of last {len(sales_points)} valid weeks'
             })
 
         conn.close()
