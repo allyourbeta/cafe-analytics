@@ -8,6 +8,9 @@ type ViewMode = "average" | "day-of-week";
 const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
   if (!data || data.length === 0) return null;
 
+  // Safety check: ensure data has the expected structure
+  if (!data[0]?.sales) return null;
+
   const maxSales = Math.max(...data.map((item) => item.sales));
   const minSales = Math.min(...data.map((item) => item.sales));
   const totalSales = data.reduce((sum, item) => sum + item.sales, 0);
@@ -256,31 +259,18 @@ const DayOfWeekCharts = ({ data }: { data: Record<string, any>[] }) => {
           <div
             key={dayIndex}
             style={{
-              marginBottom: dayIndex < data.length - 1 ? "0" : "0",
+              marginBottom: "16px",
             }}
           >
-            {/* Fixed header section with background */}
-            <div
-              style={{
-                background: isWeekend
-                  ? "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)"
-                  : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                borderRadius: "12px 12px 0 0",
-                padding: "12px 16px",
-                marginBottom: "0",
-                borderBottom: isWeekend
-                  ? "2px solid #e9d5ff"
-                  : "2px solid #e2e8f0",
-              }}
-            >
+            {/* Day name - simple label */}
+            <div style={{ marginBottom: "8px" }}>
               <h4
                 style={{
-                  fontSize: "16px",
+                  fontSize: "14px",
                   fontWeight: "600",
-                  color: isWeekend ? "#7c3aed" : "#1e293b",
-                  textAlign: "center",
-                  letterSpacing: "-0.01em",
+                  color: "#374151",
                   margin: 0,
+                  letterSpacing: "-0.01em",
                 }}
               >
                 {dayData.day_of_week}

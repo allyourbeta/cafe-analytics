@@ -140,23 +140,34 @@ def sales_per_hour():
             })
 
         elif mode == 'day-of-week':
-            # Day-of-week mode - using same pattern as item-heatmap query
+            # Day-of-week mode - calculate average sales per hour for each day of week
+            # We need to divide by the count of that specific day of week, not all days
             query = '''
+                WITH hourly_sales AS (
+                    SELECT 
+                        CASE CAST(strftime('%w', transaction_date) AS INTEGER)
+                            WHEN 0 THEN 'Sunday'
+                            WHEN 1 THEN 'Monday'
+                            WHEN 2 THEN 'Tuesday'
+                            WHEN 3 THEN 'Wednesday'
+                            WHEN 4 THEN 'Thursday'
+                            WHEN 5 THEN 'Friday'
+                            WHEN 6 THEN 'Saturday'
+                        END as day_of_week,
+                        CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
+                        strftime('%H:00', transaction_date) as hour,
+                        DATE(transaction_date) as date,
+                        SUM(total_amount) as daily_hourly_sales
+                    FROM transactions
+                    WHERE DATE(transaction_date) BETWEEN ? AND ?
+                    GROUP BY day_of_week, day_num, hour, date
+                )
                 SELECT 
-                    CASE CAST(strftime('%w', transaction_date) AS INTEGER)
-                        WHEN 0 THEN 'Sunday'
-                        WHEN 1 THEN 'Monday'
-                        WHEN 2 THEN 'Tuesday'
-                        WHEN 3 THEN 'Wednesday'
-                        WHEN 4 THEN 'Thursday'
-                        WHEN 5 THEN 'Friday'
-                        WHEN 6 THEN 'Saturday'
-                    END as day_of_week,
-                    CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
-                    strftime('%H:00', transaction_date) as hour,
-                    ROUND(SUM(total_amount), 2) as sales
-                FROM transactions
-                WHERE DATE(transaction_date) BETWEEN ? AND ?
+                    day_of_week,
+                    day_num,
+                    hour,
+                    ROUND(AVG(daily_hourly_sales), 2) as sales
+                FROM hourly_sales
                 GROUP BY day_of_week, day_num, hour
                 ORDER BY day_num, hour
             '''
