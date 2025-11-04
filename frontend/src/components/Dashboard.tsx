@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Grid3x3,
   Package,
 } from "lucide-react";
@@ -101,6 +103,7 @@ export default function Dashboard() {
     "items-by-revenue"
   );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [topSellerRevenue, setTopSellerRevenue] = useState<number>(0);
 
   // Date range picker state (local UI state only)
@@ -548,53 +551,77 @@ export default function Dashboard() {
       {/* Main layout with sidebar */}
       <div className="flex gap-6">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-72 flex-shrink-0">
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 px-2">
-              Sales Reports
-            </h2>
-            <nav className="space-y-1">
-              {reports.map((report, index) => (
-                <div key={report.id}>
-                  {/* Divider before forecast reports */}
-                  {index === reports.length - 3 && (
-                    <div className="pt-4 pb-3 px-2">
-                      <div className="flex items-center gap-3">
-                        <div className="h-px bg-gradient-to-r from-cyan-400 to-blue-400 flex-1"></div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Forecasts
-                        </span>
-                        <div className="h-px bg-gradient-to-l from-cyan-400 to-blue-400 flex-1"></div>
+        {!sidebarCollapsed && (
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="flex items-center justify-between mb-4 px-2">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                  Sales Reports
+                </h2>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded transition-colors"
+                  title="Collapse sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </div>
+              <nav className="space-y-1">
+                {reports.map((report, index) => (
+                  <div key={report.id}>
+                    {/* Divider before forecast reports */}
+                    {index === reports.length - 3 && (
+                      <div className="pt-4 pb-3 px-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-px bg-gradient-to-r from-cyan-400 to-blue-400 flex-1"></div>
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Forecasts
+                          </span>
+                          <div className="h-px bg-gradient-to-l from-cyan-400 to-blue-400 flex-1"></div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setSelectedReport(report.id)}
-                    className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
-                      selectedReport === report.id
-                        ? "bg-white shadow-md border border-orange-200"
-                        : "hover:bg-white hover:shadow-sm"
-                    }`}
-                  >
-                    <div
-                      className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                    )}
+                    <button
+                      onClick={() => setSelectedReport(report.id)}
+                      className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
+                        selectedReport === report.id
+                          ? "bg-white shadow-md border border-orange-200"
+                          : "hover:bg-white hover:shadow-sm"
+                      }`}
                     >
-                      {report.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {report.title}
+                      <div
+                        className={`${report.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                      >
+                        {report.icon}
                       </div>
-                      <div className="text-xs text-gray-600 mt-0.5">
-                        {report.description}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {report.title}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          {report.description}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                </div>
-              ))}
-            </nav>
+                    </button>
+                  </div>
+                ))}
+              </nav>
+            </div>
+          </aside>
+        )}
+
+        {/* Collapsed sidebar button */}
+        {sidebarCollapsed && (
+          <div className="hidden lg:block flex-shrink-0">
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="bg-white rounded-lg shadow p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border border-gray-200"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
-        </aside>
+        )}
 
         {/* Mobile Drawer */}
         {isMobileMenuOpen && (
