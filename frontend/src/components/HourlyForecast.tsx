@@ -141,30 +141,17 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
           return (
             <div
               key={idx}
-              style={{ marginBottom: idx < weekData.length - 1 ? "24px" : "0" }}
+              style={{ marginBottom: idx < weekData.length - 1 ? "16px" : "0" }}
             >
-              {/* Fixed header section with background */}
-              <div
-                style={{
-                  background: isWeekend
-                    ? "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)"
-                    : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                  borderRadius: "12px 12px 0 0",
-                  padding: "12px 16px",
-                  marginBottom: "0",
-                  borderBottom: isWeekend
-                    ? "2px solid #e9d5ff"
-                    : "2px solid #e2e8f0",
-                }}
-              >
+              {/* Day name - simple label */}
+              <div style={{ marginBottom: "8px" }}>
                 <h4
                   style={{
-                    fontSize: "16px",
+                    fontSize: "14px",
                     fontWeight: "600",
-                    color: isWeekend ? "#7c3aed" : "#1e293b",
-                    textAlign: "center",
-                    letterSpacing: "-0.01em",
+                    color: "#374151",
                     margin: 0,
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   {getDateLabel(dayData.date, dayData.day_of_week)}
@@ -383,19 +370,6 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
 
   return (
     <div style={{ padding: "20px", backgroundColor: "transparent" }}>
-      <h3
-        style={{
-          marginBottom: "32px",
-          fontSize: "20px",
-          fontWeight: "700",
-          color: "#0f172a",
-          textAlign: "center",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        3-Week Hourly Sales Forecast
-      </h3>
-
       {/* Top Navigation Bar */}
       <div style={{ marginBottom: "24px" }}>
         <NavigationBar />
@@ -410,8 +384,8 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
         style={{
           position: "relative",
           height: days[currentDay]
-            ? `${days[currentDay].length * 300}px`
-            : "900px",
+            ? `${days[currentDay].length * 280}px`
+            : "840px",
           perspective: "2000px",
           perspectiveOrigin: "50% 50%",
           marginBottom: "32px",
@@ -550,7 +524,7 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
 export default function HourlyForecast() {
   return (
     <ReportLayout
-      title="Hourly Sales Forecast (21 Days)"
+      title="Hourly Sales Forecast (15-21 Days)"
       fetchData={getHourlyForecast}
       columns={[]}
       needsDateRange={false}
