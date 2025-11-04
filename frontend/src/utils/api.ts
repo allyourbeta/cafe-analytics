@@ -114,7 +114,7 @@ export const getItemsByRevenue = async (startDate: string, endDate: string) => {
 export const getSalesPerHour = async (
   startDate: string,
   endDate: string,
-  mode: "average" | "single" = "average",
+  mode: "average" | "single" | "day-of-week" = "average",
   singleDate?: string
 ) => {
   const params: any = { start: startDate, end: endDate, mode };

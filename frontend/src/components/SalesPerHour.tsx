@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getSalesPerHour } from "../utils/api";
 
+type ViewMode = "average" | "day-of-week";
+
 // Vertical bar chart - visual magnitude representation
 const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
+  if (!data || data.length === 0) return null;
+
   const maxSales = Math.max(...data.map((item) => item.sales));
   const minSales = Math.min(...data.map((item) => item.sales));
   const totalSales = data.reduce((sum, item) => sum + item.sales, 0);
@@ -223,11 +227,186 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
   );
 };
 
+// Component for day-of-week view with seven stacked charts
+const DayOfWeekCharts = ({ data }: { data: Record<string, any>[] }) => {
+  if (!data || data.length === 0) return null;
+
+  // Calculate max sales across all days for consistent scaling
+  const maxSales = Math.max(
+    ...data.flatMap((day) => (day.hourly_data || []).map((h: any) => h.sales)),
+    1
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {data.map((dayData, dayIndex) => {
+        if (!dayData.hourly_data || dayData.hourly_data.length === 0) {
+          return null;
+        }
+
+        const isWeekend =
+          dayData.day_of_week === "Saturday" ||
+          dayData.day_of_week === "Sunday";
+        const peakHour = dayData.hourly_data.reduce(
+          (max: any, item: any) => (item.sales > max.sales ? item : max),
+          dayData.hourly_data[0]
+        );
+
+        return (
+          <div
+            key={dayIndex}
+            style={{
+              marginBottom: dayIndex < data.length - 1 ? "0" : "0",
+            }}
+          >
+            {/* Fixed header section with background */}
+            <div
+              style={{
+                background: isWeekend
+                  ? "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)"
+                  : "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                borderRadius: "12px 12px 0 0",
+                padding: "12px 16px",
+                marginBottom: "0",
+                borderBottom: isWeekend
+                  ? "2px solid #e9d5ff"
+                  : "2px solid #e2e8f0",
+              }}
+            >
+              <h4
+                style={{
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: isWeekend ? "#7c3aed" : "#1e293b",
+                  textAlign: "center",
+                  letterSpacing: "-0.01em",
+                  margin: 0,
+                }}
+              >
+                {dayData.day_of_week}
+              </h4>
+            </div>
+
+            {/* Chart section */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: "8px",
+                height: "220px",
+                borderBottom: "2px solid #e5e7eb",
+                paddingBottom: "10px",
+                background: isWeekend
+                  ? "linear-gradient(to bottom, #faf5ff, #f3e8ff)"
+                  : "#ffffff",
+                borderRadius: "0 0 12px 12px",
+                padding: "20px 8px 10px 8px",
+              }}
+            >
+              {dayData.hourly_data.map((item: any, index: number) => {
+                const minBarHeight = 8;
+                const maxBarHeight = 180;
+                const barHeight =
+                  minBarHeight +
+                  (item.sales / maxSales) * (maxBarHeight - minBarHeight);
+                const isPeak = item.sales === peakHour.sales;
+                const intensity = item.sales / maxSales;
+
+                let barColor;
+                if (intensity > 0.8) barColor = "#1E40AF";
+                else if (intensity > 0.6) barColor = "#2563EB";
+                else if (intensity > 0.4) barColor = "#3B82F6";
+                else if (intensity > 0.2) barColor = "#60A5FA";
+                else barColor = "#BFDBFE";
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "4px",
+                      borderRadius: "6px",
+                      padding: "4px 2px",
+                      transition: "all 0.3s ease",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {isPeak && (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        🔥
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#475569",
+                        fontWeight: "600",
+                        marginBottom: "2px",
+                      }}
+                    >
+                      ${item.sales.toFixed(0)}
+                    </div>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: `${barHeight}px`,
+                        background: `linear-gradient(to top, ${barColor} 0%, ${barColor}dd 100%)`,
+                        borderRadius: "6px 6px 0 0",
+                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
+                        transition: "all 0.3s ease",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                      title={`${item.hour}: $${item.sales.toFixed(2)}`}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: "40%",
+                          background:
+                            "linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)",
+                          borderRadius: "6px 6px 0 0",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "9px",
+                        color: "#94a3b8",
+                        marginTop: "2px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {item.hour.split(":")[0]}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function SalesPerHour() {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("average");
 
   // Get dates from global context
   const { startDate, endDate } = useDateRange();
@@ -235,7 +414,7 @@ export default function SalesPerHour() {
   // Format date for display
   const formatDate = (dateStr: string) => {
     // Parse date string as local date to avoid timezone shift
-    const [year, month, day] = dateStr.split('-').map(Number);
+    const [year, month, day] = dateStr.split("-").map(Number);
     const date = new Date(year, month - 1, day);
 
     const options: Intl.DateTimeFormatOptions = {
@@ -250,7 +429,7 @@ export default function SalesPerHour() {
     setLoading(true);
     setError(null);
     try {
-      const response = await getSalesPerHour(startDate, endDate, 'average');
+      const response = await getSalesPerHour(startDate, endDate, viewMode);
       setData(response.data);
       if (response.metadata) {
         setMetadata(response.metadata);
@@ -263,17 +442,19 @@ export default function SalesPerHour() {
     }
   };
 
-  // Load data when dates change
+  // Load data when dates or view mode change
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, viewMode]);
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>;
+    return (
+      <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>
+    );
   }
 
   if (data.length === 0) {
@@ -282,20 +463,58 @@ export default function SalesPerHour() {
 
   return (
     <div className="p-6">
+      {/* Header with title and toggle */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">
-          Average hourly pattern: {startDate === endDate
-            ? formatDate(startDate)
-            : `${formatDate(startDate)} - ${formatDate(endDate)}`}
-        </h3>
-        {metadata && metadata.missing_days > 0 && (
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-700">
+            {viewMode === "average"
+              ? "Average hourly pattern"
+              : "Day-of-week hourly pattern"}
+            :{" "}
+            {startDate === endDate
+              ? formatDate(startDate)
+              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+          </h3>
+        </div>
+
+        {/* Toggle buttons */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setViewMode("average")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              viewMode === "average"
+                ? "bg-emerald-500 text-white shadow-md"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Overall Average
+          </button>
+          <button
+            onClick={() => setViewMode("day-of-week")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              viewMode === "day-of-week"
+                ? "bg-emerald-500 text-white shadow-md"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            By Day of Week
+          </button>
+        </div>
+
+        {metadata && metadata.missing_days > 0 && viewMode === "average" && (
           <p className="text-sm text-gray-600 mb-4">
-            Note: Missing data for {metadata.missing_days} day{metadata.missing_days > 1 ? 's' : ''} in range.
+            Note: Missing data for {metadata.missing_days} day
+            {metadata.missing_days > 1 ? "s" : ""} in range.
           </p>
         )}
       </div>
 
-      <SalesChart data={data} />
+      {/* Render appropriate view */}
+      {viewMode === "average" ? (
+        <SalesChart data={data} />
+      ) : (
+        <DayOfWeekCharts data={data} />
+      )}
     </div>
   );
 }

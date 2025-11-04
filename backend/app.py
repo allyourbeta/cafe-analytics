@@ -103,7 +103,7 @@ def total_sales():
 # R1: Sales per Labor Hour
 @app.route('/api/reports/sales-per-hour', methods=['GET'])
 def sales_per_hour():
-    mode = request.args.get('mode', 'average')  # 'average' or 'single'
+    mode = request.args.get('mode', 'average')  # 'average', 'single', or 'day-of-week'
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
     single_date = request.args.get('date')  # For single mode
@@ -137,6 +137,61 @@ def sales_per_hour():
                 'mode': 'single',
                 'data': data,
                 'date': target_date
+            })
+
+        elif mode == 'day-of-week':
+            # Day-of-week mode - using same pattern as item-heatmap query
+            query = '''
+                SELECT 
+                    CASE CAST(strftime('%w', transaction_date) AS INTEGER)
+                        WHEN 0 THEN 'Sunday'
+                        WHEN 1 THEN 'Monday'
+                        WHEN 2 THEN 'Tuesday'
+                        WHEN 3 THEN 'Wednesday'
+                        WHEN 4 THEN 'Thursday'
+                        WHEN 5 THEN 'Friday'
+                        WHEN 6 THEN 'Saturday'
+                    END as day_of_week,
+                    CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
+                    strftime('%H:00', transaction_date) as hour,
+                    ROUND(SUM(total_amount), 2) as sales
+                FROM transactions
+                WHERE DATE(transaction_date) BETWEEN ? AND ?
+                GROUP BY day_of_week, day_num, hour
+                ORDER BY day_num, hour
+            '''
+
+            cursor.execute(query, (start_date, end_date))
+            rows = cursor.fetchall()
+            
+            # Group data by day of week
+            data_by_day = {}
+            for row in rows:
+                day = row['day_of_week']
+                if day not in data_by_day:
+                    data_by_day[day] = []
+                data_by_day[day].append({
+                    'hour': row['hour'],
+                    'sales': row['sales']
+                })
+            
+            # Convert to ordered list format
+            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            data = []
+            for day in day_order:
+                if day in data_by_day:
+                    data.append({
+                        'day_of_week': day,
+                        'hourly_data': data_by_day[day]
+                    })
+
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'mode': 'day-of-week',
+                'data': data,
+                'date_range': {'start': start_date, 'end': end_date}
             })
 
         else:

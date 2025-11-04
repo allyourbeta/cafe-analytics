@@ -141,7 +141,7 @@ export default function Dashboard() {
     },
     {
       id: "sales-per-hour",
-      title: "Sales per Hour",
+      title: "Revenue per Hour",
       description: "Hourly sales breakdown over the period",
       icon: <Clock className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
@@ -149,7 +149,7 @@ export default function Dashboard() {
     },
     {
       id: "item-heatmap",
-      title: "Sales Heatmap",
+      title: "Item Sales Heatmap",
       description: "Hourly sales breakdown, by day of week, for top-25 items",
       icon: <Grid3x3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
