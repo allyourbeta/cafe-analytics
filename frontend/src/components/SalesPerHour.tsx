@@ -92,7 +92,7 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
               )}
               <div
                 style={{
-                  fontSize: "11px",
+                  fontSize: "13px",
                   fontWeight: "600",
                   color: colors.bg,
                   marginBottom: "4px",
@@ -336,7 +336,7 @@ const DayOfWeekCharts = ({ data }: { data: Record<string, any>[] }) => {
                     )}
                     <div
                       style={{
-                        fontSize: "11px",
+                        fontSize: "13px",
                         color: "#475569",
                         fontWeight: "600",
                         marginBottom: "2px",
