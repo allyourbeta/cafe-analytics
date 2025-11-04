@@ -285,6 +285,102 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
     );
   };
 
+  // Reusable navigation bar component
+  const NavigationBar = () => (
+    <div
+      style={{
+        position: "sticky",
+        top: "0",
+        zIndex: 20,
+        background: "linear-gradient(135deg, #ffffff 0%, #fafafa 100%)",
+        borderRadius: "12px",
+        padding: "12px 24px",
+        boxShadow:
+          "0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
+        border: "2px solid #f1f5f9",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        {days.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToDay(index)}
+            disabled={isAnimating}
+            style={{
+              padding: "8px 28px",
+              borderRadius: "10px",
+              background:
+                index === currentDay
+                  ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                  : "#f1f5f9",
+              border:
+                index === currentDay
+                  ? "2px solid #fb923c"
+                  : "2px solid #e2e8f0",
+              color: index === currentDay ? "#ffffff" : "#64748b",
+              fontSize: "16px",
+              fontWeight: "700",
+              cursor: "pointer",
+              transition: "all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)",
+              boxShadow:
+                index === currentDay
+                  ? "0 4px 16px rgba(249, 115, 22, 0.4), 0 2px 8px rgba(249, 115, 22, 0.2)"
+                  : "0 2px 6px rgba(0, 0, 0, 0.05)",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              minWidth: "120px",
+            }}
+            onMouseEnter={(e) => {
+              if (index !== currentDay) {
+                e.currentTarget.style.background = "#e2e8f0";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(0, 0, 0, 0.1)";
+                e.currentTarget.style.borderColor = "#cbd5e1";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (index !== currentDay) {
+                e.currentTarget.style.background = "#f1f5f9";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 6px rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+              }
+            }}
+            aria-label={`Go to week ${index + 1}`}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                justifyContent: "center",
+              }}
+            >
+              {index > 0 && index === currentDay && (
+                <ChevronLeft size={18} strokeWidth={3} />
+              )}
+              <span>Week {index + 1}</span>
+              {index < days.length - 1 && index === currentDay && (
+                <ChevronRight size={18} strokeWidth={3} />
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ padding: "20px", backgroundColor: "transparent" }}>
       <h3
@@ -299,6 +395,11 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
       >
         3-Week Hourly Sales Forecast
       </h3>
+
+      {/* Top Navigation Bar */}
+      <div style={{ marginBottom: "24px" }}>
+        <NavigationBar />
+      </div>
 
       {/* Carousel Container */}
       <div
@@ -426,65 +527,9 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
         )}
       </div>
 
-      {/* Dot Indicators */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "12px",
-          marginTop: "24px",
-        }}
-      >
-        {days.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToDay(index)}
-            disabled={isAnimating}
-            style={{
-              width: index === currentDay ? "32px" : "10px",
-              height: "10px",
-              borderRadius: "5px",
-              background:
-                index === currentDay
-                  ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
-                  : "#cbd5e1",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)",
-              boxShadow:
-                index === currentDay
-                  ? "0 2px 8px rgba(59, 130, 246, 0.4)"
-                  : "none",
-            }}
-            onMouseEnter={(e) => {
-              if (index !== currentDay) {
-                e.currentTarget.style.background = "#94a3b8";
-                e.currentTarget.style.transform = "scale(1.2)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (index !== currentDay) {
-                e.currentTarget.style.background = "#cbd5e1";
-                e.currentTarget.style.transform = "scale(1)";
-              }
-            }}
-            aria-label={`Go to week ${index + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Progress Indicator */}
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "16px",
-          fontSize: "14px",
-          color: "#64748b",
-          fontWeight: "500",
-        }}
-      >
-        Week {currentDay + 1} of {days.length}
+      {/* Bottom Navigation Bar */}
+      <div style={{ marginTop: "24px" }}>
+        <NavigationBar />
       </div>
 
       {/* CSS Animation */}
