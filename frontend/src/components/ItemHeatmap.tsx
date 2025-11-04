@@ -4,7 +4,7 @@ import { getCategoryColor } from "../utils/categoryColors";
 import { formatCurrency } from "../utils/formatters";
 import axios from "axios";
 
-const API_BASE = 'http://127.0.0.1:5500/api';
+const API_BASE = "http://127.0.0.1:5500/api";
 
 // Local type definitions (avoiding import issues)
 interface TopItem {
@@ -23,7 +23,15 @@ interface HeatmapCell {
 }
 
 // Display order: Monday through Sunday (weekends on right)
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 const HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]; // 7am-9pm
 
 export default function ItemHeatmap() {
@@ -43,7 +51,7 @@ export default function ItemHeatmap() {
       setError(null);
       try {
         const response = await axios.get(`${API_BASE}/reports/top-items`, {
-          params: { start: startDate, end: endDate, limit: 25 }
+          params: { start: startDate, end: endDate, limit: 25 },
         });
 
         const items = response.data.data;
@@ -74,8 +82,8 @@ export default function ItemHeatmap() {
           params: {
             item_id: selectedItem.item_id,
             start: startDate,
-            end: endDate
-          }
+            end: endDate,
+          },
         });
         setHeatmapData(response.data.data || []);
       } catch (err) {
@@ -88,13 +96,13 @@ export default function ItemHeatmap() {
 
   // Create a map for quick lookups
   const dataMap = new Map<string, number>();
-  heatmapData.forEach(cell => {
+  heatmapData.forEach((cell) => {
     const key = `${cell.day_num}-${cell.hour}`;
     dataMap.set(key, cell.revenue);
   });
 
   // Calculate max revenue for color scaling
-  const maxRevenue = Math.max(...heatmapData.map(cell => cell.revenue), 1);
+  const maxRevenue = Math.max(...heatmapData.map((cell) => cell.revenue), 1);
 
   // Get revenue for a specific cell
   // Maps display index to database day_num (DB uses Sun=0, Mon=1, ..., Sat=6)
@@ -115,10 +123,14 @@ export default function ItemHeatmap() {
 
   // Convert intensity to blue color
   const getBlueColor = (intensity: number): string => {
-    if (intensity === 0) return '#ffffff';
+    if (intensity === 0) return "#ffffff";
 
-    const lightR = 219, lightG = 234, lightB = 254;
-    const darkR = 29, darkG = 78, darkB = 216;
+    const lightR = 219,
+      lightG = 234,
+      lightB = 254;
+    const darkR = 29,
+      darkG = 78,
+      darkB = 216;
 
     const r = Math.round(lightR + (darkR - lightR) * intensity);
     const g = Math.round(lightG + (darkG - lightG) * intensity);
@@ -152,8 +164,18 @@ export default function ItemHeatmap() {
                 className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded transition-colors"
                 title="Collapse sidebar"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
             </div>
@@ -164,14 +186,16 @@ export default function ItemHeatmap() {
                   onClick={() => setSelectedItem(item)}
                   className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
                     selectedItem?.item_id === item.item_id
-                      ? 'bg-blue-50 border-2 border-blue-500'
-                      : 'hover:bg-gray-50 border-2 border-transparent'
+                      ? "bg-blue-50 border-2 border-blue-500"
+                      : "hover:bg-gray-50 border-2 border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: getCategoryColor(item.category) }}
+                      style={{
+                        backgroundColor: getCategoryColor(item.category),
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm text-gray-900 truncate">
@@ -197,8 +221,18 @@ export default function ItemHeatmap() {
             className="bg-white rounded-lg shadow p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             title="Expand sidebar"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
@@ -225,8 +259,8 @@ export default function ItemHeatmap() {
                 {DAYS.map((day) => (
                   <div
                     key={day}
-                    className="flex-1 text-center text-xs font-semibold text-gray-700 px-1"
-                    style={{ minWidth: '70px' }}
+                    className="flex-1 text-center font-semibold text-gray-700 px-1"
+                    style={{ minWidth: "70px", fontSize: "13px" }}
                   >
                     {day.substring(0, 3)}
                   </div>
@@ -237,8 +271,15 @@ export default function ItemHeatmap() {
               {HOURS.map((hour) => (
                 <div key={hour} className="flex mb-1">
                   {/* Hour label */}
-                  <div className="w-16 flex-shrink-0 text-xs font-medium text-gray-600 pr-2 text-right flex items-center justify-end">
-                    {hour === 12 ? '12pm' : hour > 12 ? `${hour - 12}pm` : `${hour}am`}
+                  <div
+                    className="w-16 flex-shrink-0 font-medium text-gray-600 pr-2 text-right flex items-center justify-end"
+                    style={{ fontSize: "13px" }}
+                  >
+                    {hour === 12
+                      ? "12pm"
+                      : hour > 12
+                      ? `${hour - 12}pm`
+                      : `${hour}am`}
                   </div>
 
                   {/* Cells */}
@@ -251,7 +292,7 @@ export default function ItemHeatmap() {
                       <div
                         key={`${day}-${hour}`}
                         className="flex-1 px-1"
-                        style={{ minWidth: '70px' }}
+                        style={{ minWidth: "70px" }}
                       >
                         <div
                           className="h-8 rounded border border-gray-200 flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
@@ -259,7 +300,7 @@ export default function ItemHeatmap() {
                           // title={revenue > 0 ? `${formatCurrency(revenue, 0)}` : 'No sales'}
                         >
                           {revenue > 0 && intensity > 0.5 && (
-                            <span className="text-white text-[10px]">
+                            <span className="text-white text-[11px]">
                               {formatCurrency(revenue, 0)}
                             </span>
                           )}
@@ -275,19 +316,34 @@ export default function ItemHeatmap() {
           {/* Legend */}
           <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}></div>
+              <div
+                className="w-4 h-4 rounded"
+                style={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                }}
+              ></div>
               <span>No sales</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#DBEAFE' }}></div>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: "#DBEAFE" }}
+              ></div>
               <span>Low</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#60A5FA' }}></div>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: "#60A5FA" }}
+              ></div>
               <span>Medium</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: '#1D4ED8' }}></div>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: "#1D4ED8" }}
+              ></div>
               <span>High ({formatCurrency(maxRevenue, 0)})</span>
             </div>
           </div>
