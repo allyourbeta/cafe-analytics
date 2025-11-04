@@ -615,10 +615,10 @@ export default function Dashboard() {
           <div className="hidden lg:block flex-shrink-0">
             <button
               onClick={() => setSidebarCollapsed(false)}
-              className="bg-white rounded-lg shadow p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border border-gray-200"
+              className="bg-orange-50 rounded-lg shadow-md p-4 text-orange-500 hover:text-orange-600 hover:bg-orange-100 transition-all border-2 border-orange-200 hover:border-orange-300"
               title="Expand sidebar"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-6 h-6" />
             </button>
           </div>
         )}
