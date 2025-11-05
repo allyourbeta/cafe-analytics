@@ -3,7 +3,6 @@ import { useDateRange } from "../context/DateContext";
 import { getItemsByRevenue, getTimePeriodComparison } from "../utils/api";
 import type { TimePeriodComparisonData } from "../utils/api";
 import { formatCurrency } from "../utils/formatters";
-import { getCategoryColor } from "../utils/categoryColors";
 
 // Reorder to show Mon-Sun (but keep values 0-6)
 const DAYS_OF_WEEK = [
@@ -50,41 +49,8 @@ const ColumnChart = ({
 
   // Calculate max for scaling
   const maxValue = Math.max(valueA, valueB);
-  const heightA = maxValue > 0 ? (valueA / maxValue) * 300 : 0;
-  const heightB = maxValue > 0 ? (valueB / maxValue) * 300 : 0;
-
-  // Get color for the item's category
-  const color = getCategoryColor(data.category);
-
-  // Helper to format day list
-  const formatDays = (days: number[]) => {
-    if (days.length === 7) return "Every day";
-    if (days.length === 5 && !days.includes(0) && !days.includes(6)) return "Weekdays";
-    if (days.length === 2 && days.includes(0) && days.includes(6)) return "Weekends";
-    return days
-      .sort((a, b) => {
-        // Sort for display: Mon-Sun
-        const order = [1, 2, 3, 4, 5, 6, 0];
-        return order.indexOf(a) - order.indexOf(b);
-      })
-      .map((d) => DAYS_OF_WEEK.find((day) => day.value === d)?.label)
-      .join(", ");
-  };
-
-  // Helper to format hour range
-  const formatHourRange = (start: number, end: number) => {
-    const startLabel = HOURS[start].label;
-    const endLabel = HOURS[end].label;
-    return `${startLabel} - ${endLabel}`;
-  };
-
-  // Calculate percentage difference (based on current view mode)
-  const percentDiff =
-    valueA > 0
-      ? ((valueB - valueA) / valueA) * 100
-      : valueB > 0
-      ? 100
-      : 0;
+  const heightA = maxValue > 0 ? (valueA / maxValue) * 200 : 0;
+  const heightB = maxValue > 0 ? (valueB / maxValue) * 200 : 0;
 
   return (
     <div style={{ padding: "24px", backgroundColor: "white", borderRadius: "8px" }}>
@@ -98,7 +64,7 @@ const ColumnChart = ({
         alignItems: "flex-end",
         justifyContent: "center",
         gap: "80px",
-        height: "350px",
+        height: "250px",
         marginBottom: "24px"
       }}>
         {/* Period A Column */}
@@ -117,9 +83,9 @@ const ColumnChart = ({
             Period A
           </div>
           <div style={{
-            width: "120px",
+            width: "210px",
             height: `${heightA}px`,
-            backgroundColor: color,
+            backgroundColor: "#3B82F6",
             borderRadius: "8px 8px 0 0",
             display: "flex",
             flexDirection: "column",
@@ -163,10 +129,9 @@ const ColumnChart = ({
             Period B
           </div>
           <div style={{
-            width: "120px",
+            width: "210px",
             height: `${heightB}px`,
-            backgroundColor: color,
-            opacity: 0.7,
+            backgroundColor: "#F97316",
             borderRadius: "8px 8px 0 0",
             display: "flex",
             flexDirection: "column",
@@ -195,107 +160,6 @@ const ColumnChart = ({
         </div>
       </div>
 
-      {/* Percentage difference */}
-      {valueA !== valueB && (
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <span style={{
-            fontSize: "18px",
-            fontWeight: "600",
-            color: percentDiff > 0 ? "#10B981" : "#EF4444"
-          }}>
-            {percentDiff > 0 ? "+" : ""}
-            {percentDiff.toFixed(1)}%
-            {valueB > valueA ? " higher" : " lower"} in Period B
-          </span>
-        </div>
-      )}
-
-      {/* Period Details */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        {/* Period A Details */}
-        <div
-          style={{
-            padding: "20px",
-            backgroundColor: "#F9FAFB",
-            borderRadius: "8px",
-            border: "2px solid #3B82F6",
-          }}
-        >
-          <div style={{ fontSize: "17px", fontWeight: "600", color: "#3B82F6", marginBottom: "16px" }}>
-            Period A Details
-          </div>
-          <div style={{ fontSize: "15px", color: "#374151", lineHeight: "2" }}>
-            <div>
-              <strong>Days:</strong> {formatDays(period_a.days)}
-            </div>
-            <div>
-              <strong>Hours:</strong> {formatHourRange(period_a.start_hour, period_a.end_hour)}
-            </div>
-            <div>
-              <strong>Days counted:</strong> {period_a.days_counted}
-            </div>
-            <div>
-              <strong>Hours in window:</strong> {hoursInWindowA}
-            </div>
-            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #E5E7EB" }}>
-              <strong>Total revenue:</strong> {formatCurrency(period_a.revenue, 2)}
-            </div>
-            <div>
-              <strong>Avg per day:</strong> {formatCurrency(period_a.avg_per_day, 2)}
-            </div>
-            <div style={{
-              fontSize: "16px",
-              fontWeight: "700",
-              color: "#3B82F6",
-              marginTop: "8px"
-            }}>
-              <strong>Avg per hour:</strong> {formatCurrency(avgPerHourA, 2)}
-            </div>
-          </div>
-        </div>
-
-        {/* Period B Details */}
-        <div
-          style={{
-            padding: "20px",
-            backgroundColor: "#F9FAFB",
-            borderRadius: "8px",
-            border: "2px solid #10B981",
-          }}
-        >
-          <div style={{ fontSize: "17px", fontWeight: "600", color: "#10B981", marginBottom: "16px" }}>
-            Period B Details
-          </div>
-          <div style={{ fontSize: "15px", color: "#374151", lineHeight: "2" }}>
-            <div>
-              <strong>Days:</strong> {formatDays(period_b.days)}
-            </div>
-            <div>
-              <strong>Hours:</strong> {formatHourRange(period_b.start_hour, period_b.end_hour)}
-            </div>
-            <div>
-              <strong>Days counted:</strong> {period_b.days_counted}
-            </div>
-            <div>
-              <strong>Hours in window:</strong> {hoursInWindowB}
-            </div>
-            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #E5E7EB" }}>
-              <strong>Total revenue:</strong> {formatCurrency(period_b.revenue, 2)}
-            </div>
-            <div>
-              <strong>Avg per day:</strong> {formatCurrency(period_b.avg_per_day, 2)}
-            </div>
-            <div style={{
-              fontSize: "16px",
-              fontWeight: "700",
-              color: "#10B981",
-              marginTop: "8px"
-            }}>
-              <strong>Avg per hour:</strong> {formatCurrency(avgPerHourB, 2)}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -309,15 +173,15 @@ export default function TimePeriodComparison() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'hourly' | 'total'>('hourly');
 
-  // Period A settings - START WITH EMPTY DAYS
+  // Period A settings - START WITH EMPTY DAYS AND 07:00-07:00
   const [periodADays, setPeriodADays] = useState<number[]>([]);
-  const [periodAStartHour, setPeriodAStartHour] = useState(9);
-  const [periodAEndHour, setPeriodAEndHour] = useState(12);
+  const [periodAStartHour, setPeriodAStartHour] = useState(7);
+  const [periodAEndHour, setPeriodAEndHour] = useState(7);
 
-  // Period B settings - START WITH EMPTY DAYS
+  // Period B settings - START WITH EMPTY DAYS AND 07:00-07:00
   const [periodBDays, setPeriodBDays] = useState<number[]>([]);
-  const [periodBStartHour, setPeriodBStartHour] = useState(14);
-  const [periodBEndHour, setPeriodBEndHour] = useState(17);
+  const [periodBStartHour, setPeriodBStartHour] = useState(7);
+  const [periodBEndHour, setPeriodBEndHour] = useState(7);
 
   // Load items on mount and when date range changes
   useEffect(() => {
@@ -326,10 +190,7 @@ export default function TimePeriodComparison() {
         const response = await getItemsByRevenue(startDate, endDate);
         // Items are already sorted by revenue descending from the backend
         setItems(response.data);
-        // Select first item by default
-        if (response.data.length > 0) {
-          setSelectedItemId(response.data[0].item_id);
-        }
+        // Don't auto-select - let user choose from the ranked list
       } catch (err) {
         console.error("Error loading items:", err);
         setError("Failed to load items");
@@ -486,9 +347,12 @@ export default function TimePeriodComparison() {
               backgroundColor: "white",
             }}
           >
+            <option value="" disabled>
+              ITEMS RANKED BY REVENUE - Select an item
+            </option>
             {items.map((item) => (
               <option key={item.item_id} value={item.item_id}>
-                {item.item_name} ({item.category})
+                {item.item_id} - {item.item_name} ({item.category})
               </option>
             ))}
           </select>
@@ -618,14 +482,14 @@ export default function TimePeriodComparison() {
               padding: "20px",
               backgroundColor: "#F9FAFB",
               borderRadius: "8px",
-              border: "2px solid #10B981",
+              border: "2px solid #F97316",
             }}
           >
             <h4
               style={{
                 fontSize: "17px",
                 fontWeight: "600",
-                color: "#10B981",
+                color: "#F97316",
                 marginBottom: "16px",
               }}
             >
@@ -659,7 +523,7 @@ export default function TimePeriodComparison() {
                       cursor: "pointer",
                       transition: "all 0.2s",
                       backgroundColor: periodBDays.includes(day.value)
-                        ? "#10B981"
+                        ? "#F97316"
                         : "white",
                       color: periodBDays.includes(day.value) ? "white" : "#6B7280",
                     }}
