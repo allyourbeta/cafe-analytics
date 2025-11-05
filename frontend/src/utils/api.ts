@@ -237,3 +237,59 @@ export const getCategoryDemandForecast = async () => {
   const response = await axios.get(`${API_BASE}/forecasts/categories`);
   return response.data;
 };
+
+// R10: Time Period Comparison
+export interface TimePeriodData {
+  days: number[];
+  start_hour: number;
+  end_hour: number;
+  revenue: number;
+  days_counted: number;
+  units_sold: number;
+  avg_per_day: number;
+}
+
+export interface TimePeriodComparisonData {
+  item_id: number;
+  item_name: string;
+  category: string;
+  date_range: {
+    start: string;
+    end: string;
+  };
+  period_a: TimePeriodData;
+  period_b: TimePeriodData;
+}
+
+export const getTimePeriodComparison = async (
+  itemId: number,
+  startDate: string,
+  endDate: string,
+  periodADays: string,
+  periodAStartHour: number,
+  periodAEndHour: number,
+  periodBDays: string,
+  periodBStartHour: number,
+  periodBEndHour: number
+) => {
+  const response = await axios.get(`${API_BASE}/reports/time-period-comparison`, {
+    params: {
+      item_id: itemId,
+      start: startDate,
+      end: endDate,
+      period_a_days: periodADays,
+      period_a_start_hour: periodAStartHour,
+      period_a_end_hour: periodAEndHour,
+      period_b_days: periodBDays,
+      period_b_start_hour: periodBStartHour,
+      period_b_end_hour: periodBEndHour,
+    },
+  });
+  return response.data;
+};
+
+// Get all items for dropdown
+export const getAllItems = async () => {
+  const response = await axios.get(`${API_BASE}/items`);
+  return response.data;
+};

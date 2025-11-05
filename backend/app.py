@@ -82,7 +82,7 @@ def total_sales():
 
         cursor.execute(query, (start_date, end_date))
         row = cursor.fetchone()
-        
+
         total = row['total_sales'] if row['total_sales'] is not None else 0
 
         conn.close()
@@ -174,7 +174,7 @@ def sales_per_hour():
 
             cursor.execute(query, (start_date, end_date))
             rows = cursor.fetchall()
-            
+
             # Group data by day of week
             data_by_day = {}
             for row in rows:
@@ -185,7 +185,7 @@ def sales_per_hour():
                     'hour': row['hour'],
                     'sales': row['sales']
                 })
-            
+
             # Convert to ordered list format
             day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
             data = []
@@ -612,7 +612,7 @@ def daily_forecast():
                 forecast_date - timedelta(days=21),
                 forecast_date - timedelta(days=28),
             ]
-            
+
             sales_points = []
 
             # Fetch sales data, but only for historical dates that are actually in the past
@@ -626,7 +626,7 @@ def daily_forecast():
                     cursor.execute(query, (historical_date.isoformat(),))
                     result = cursor.fetchone()
                     sales = result['daily_sales'] if result and result['daily_sales'] else 0
-                    
+
                     # Only include non-zero sales in the average
                     if sales > 0:
                         sales_points.append(sales)
@@ -677,7 +677,7 @@ def hourly_forecast():
                 forecast_date - timedelta(days=21),
                 forecast_date - timedelta(days=28),
             ]
-            
+
             # Fetch hourly sales data for each historical date
             hourly_sales_data = {}
             for date in historical_dates:
@@ -692,7 +692,7 @@ def hourly_forecast():
                     '''
                     cursor.execute(query, (date.isoformat(),))
                     rows = cursor.fetchall()
-                    
+
                     sales_by_hour = {row['hour_num']: row['sales'] for row in rows}
                     hourly_sales_data[date.isoformat()] = sales_by_hour
 
@@ -701,7 +701,7 @@ def hourly_forecast():
             for hour in range(7, 22):
                 hour_str = f"{hour:02d}"
                 sales_points = []
-                
+
                 # Collect sales from all historical dates for this hour
                 for date_key in hourly_sales_data:
                     sale = hourly_sales_data[date_key].get(hour_str, 0)
@@ -784,7 +784,7 @@ def item_demand_forecast():
                         '''
                         cursor.execute(query, (item_id, date.isoformat()))
                         result = cursor.fetchone()
-                        
+
                         if result['total_qty'] is not None:
                             quantities.append(result['total_qty'])
                             is_new_item = False  # Found historical data
@@ -901,7 +901,7 @@ def category_demand_forecast():
                         '''
                         cursor.execute(query, (*item_ids, date.isoformat()))
                         result = cursor.fetchone()
-                        
+
                         if result['total_qty'] is not None:
                             quantities.append(result['total_qty'])
                             is_new_category = False
@@ -964,6 +964,154 @@ def category_demand_forecast():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# Get all items (for dropdowns)
+@app.route('/api/items', methods=['GET'])
+def get_all_items():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT item_id, item_name, category
+            FROM items
+            ORDER BY item_name
+        '''
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        items = [dict(row) for row in rows]
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': items
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# R10: Time Period Comparison
+@app.route('/api/reports/time-period-comparison', methods=['GET'])
+def time_period_comparison():
+    """
+    Compare revenue for a specific item between two time periods.
+
+    Params:
+    - item_id: The item to analyze
+    - start: Overall date range start
+    - end: Overall date range end
+    - period_a_days: Comma-separated day numbers (0=Sunday, 6=Saturday)
+    - period_a_start_hour: Start hour (0-23)
+    - period_a_end_hour: End hour (0-23)
+    - period_b_days: Comma-separated day numbers
+    - period_b_start_hour: Start hour (0-23)
+    - period_b_end_hour: End hour (0-23)
+    """
+    try:
+        item_id = request.args.get('item_id', type=int)
+        start_date = request.args.get('start', '2024-08-01')
+        end_date = request.args.get('end', '2024-10-23')
+
+        # Period A parameters
+        period_a_days = request.args.get('period_a_days', '1,2,3,4,5')  # Default: Weekdays
+        period_a_start_hour = request.args.get('period_a_start_hour', type=int, default=9)
+        period_a_end_hour = request.args.get('period_a_end_hour', type=int, default=12)
+
+        # Period B parameters
+        period_b_days = request.args.get('period_b_days', '1,2,3,4,5')  # Default: Weekdays
+        period_b_start_hour = request.args.get('period_b_start_hour', type=int, default=14)
+        period_b_end_hour = request.args.get('period_b_end_hour', type=int, default=17)
+
+        if not item_id:
+            return jsonify({'success': False, 'error': 'item_id is required'}), 400
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Convert day strings to lists
+        period_a_day_list = [int(d.strip()) for d in period_a_days.split(',')]
+        period_b_day_list = [int(d.strip()) for d in period_b_days.split(',')]
+
+        # Helper function to calculate revenue for a period
+        def get_period_revenue(day_list, start_hour, end_hour):
+            # Create placeholders for days
+            day_placeholders = ','.join('?' * len(day_list))
+
+            query = f'''
+                SELECT 
+                    ROUND(SUM(t.total_amount), 2) as revenue,
+                    COUNT(DISTINCT DATE(t.transaction_date)) as days_counted,
+                    SUM(t.quantity) as units_sold
+                FROM transactions t
+                WHERE t.item_id = ?
+                AND DATE(t.transaction_date) BETWEEN ? AND ?
+                AND CAST(strftime('%w', t.transaction_date) AS INTEGER) IN ({day_placeholders})
+                AND CAST(strftime('%H', t.transaction_date) AS INTEGER) >= ?
+                AND CAST(strftime('%H', t.transaction_date) AS INTEGER) < ?
+            '''
+
+            # Execute query with parameters: item_id, start_date, end_date, days, start_hour, end_hour
+            params = [item_id, start_date, end_date] + day_list + [start_hour, end_hour]
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+
+            revenue = result['revenue'] if result['revenue'] is not None else 0
+            days_counted = result['days_counted'] if result['days_counted'] is not None else 0
+            units_sold = result['units_sold'] if result['units_sold'] is not None else 0
+
+            return {
+                'revenue': revenue,
+                'days_counted': days_counted,
+                'units_sold': units_sold,
+                'avg_per_day': round(revenue / days_counted, 2) if days_counted > 0 else 0
+            }
+
+        # Get item name
+        cursor.execute('SELECT item_name, category FROM items WHERE item_id = ?', (item_id,))
+        item_row = cursor.fetchone()
+        if not item_row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Item not found'}), 404
+
+        item_name = item_row['item_name']
+        category = item_row['category']
+
+        # Calculate revenues for both periods
+        period_a_data = get_period_revenue(period_a_day_list, period_a_start_hour, period_a_end_hour)
+        period_b_data = get_period_revenue(period_b_day_list, period_b_start_hour, period_b_end_hour)
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'item_id': item_id,
+                'item_name': item_name,
+                'category': category,
+                'date_range': {
+                    'start': start_date,
+                    'end': end_date
+                },
+                'period_a': {
+                    'days': period_a_day_list,
+                    'start_hour': period_a_start_hour,
+                    'end_hour': period_a_end_hour,
+                    **period_a_data
+                },
+                'period_b': {
+                    'days': period_b_day_list,
+                    'start_hour': period_b_start_hour,
+                    'end_hour': period_b_end_hour,
+                    **period_b_data
+                }
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print("🚀 Backend starting...")
     print("📊 Running at: http://localhost:5500")
@@ -974,8 +1122,10 @@ if __name__ == '__main__':
     print("  /api/reports/labor-percent")
     print("  /api/reports/items-by-profit")
     print("  /api/reports/items-by-margin")
+    print("  /api/reports/time-period-comparison")
     print("  /api/forecasts/daily")
     print("  /api/forecasts/hourly")
     print("  /api/forecasts/items")
     print("  /api/forecasts/categories")
+    print("  /api/items")
     app.run(debug=True, port=5500, host='0.0.0.0')

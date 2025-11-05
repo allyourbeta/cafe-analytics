@@ -33,6 +33,7 @@ import DailyForecast from "./DailyForecast";
 import HourlyForecast from "./HourlyForecast";
 import ItemHeatmap from "./ItemHeatmap";
 import ItemDemandForecast from "./ItemDemandForecast";
+import TimePeriodComparison from "./TimePeriodComparison";
 
 interface KPICardProps {
   icon: React.ReactNode;
@@ -170,7 +171,7 @@ export default function Dashboard() {
     {
       id: "items-by-margin",
       title: "Items by Profit Margin %",
-      description: "Items ranked by profit margin %",
+      description: "",
       icon: <TrendingUp className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <ItemsByMargin />,
@@ -182,6 +183,14 @@ export default function Dashboard() {
       icon: <Percent className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-green-400 to-green-600",
       component: <LaborPercent />,
+    },
+    {
+      id: "time-period-comparison",
+      title: "Ernie's Comparison Report",
+      description: "Compare item revenue across custom time periods",
+      icon: <BarChart3 className="w-5 h-5 text-white" />,
+      iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
+      component: <TimePeriodComparison />,
     },
     {
       id: "daily-forecast",
@@ -207,6 +216,7 @@ export default function Dashboard() {
       iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
       component: <ItemDemandForecast />,
     },
+
   ];
 
   // Date formatting helper
