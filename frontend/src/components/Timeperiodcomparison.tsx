@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { getAllItems, getTimePeriodComparison } from "../utils/api";
+import { getItemsByRevenue, getTimePeriodComparison } from "../utils/api";
 import type { TimePeriodComparisonData } from "../utils/api";
 import { formatCurrency } from "../utils/formatters";
 import { getCategoryColor } from "../utils/categoryColors";
@@ -319,13 +319,12 @@ export default function TimePeriodComparison() {
   const [periodBStartHour, setPeriodBStartHour] = useState(14);
   const [periodBEndHour, setPeriodBEndHour] = useState(17);
 
-  // Load items on mount
+  // Load items on mount and when date range changes
   useEffect(() => {
     const loadItems = async () => {
       try {
-        const response = await getAllItems();
-        // Sort by revenue descending (we'll need to get revenue data)
-        // For now, just use the items as-is, we'll enhance backend later
+        const response = await getItemsByRevenue(startDate, endDate);
+        // Items are already sorted by revenue descending from the backend
         setItems(response.data);
         // Select first item by default
         if (response.data.length > 0) {
@@ -337,7 +336,7 @@ export default function TimePeriodComparison() {
       }
     };
     loadItems();
-  }, []);
+  }, [startDate, endDate]);
 
   // Load comparison data when parameters change
   useEffect(() => {

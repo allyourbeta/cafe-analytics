@@ -37,6 +37,7 @@ def items_by_revenue():
 
         query = '''
             SELECT 
+                i.item_id,
                 i.item_name,
                 i.category,
                 SUM(t.quantity) as units_sold,
