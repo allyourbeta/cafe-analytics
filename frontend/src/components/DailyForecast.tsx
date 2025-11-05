@@ -479,7 +479,7 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
 export default function DailyForecast() {
   return (
     <ReportLayout
-      title="15-21 Day Sales Forecast"
+      title="Next 15-21 Days"
       fetchData={getDailyForecast}
       columns={[]}
       needsDateRange={false}
