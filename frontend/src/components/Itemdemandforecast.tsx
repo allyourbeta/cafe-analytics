@@ -287,16 +287,6 @@ const ItemDemandForecast = () => {
 
   return (
     <div className="p-6 bg-white rounded-xl shadow-sm">
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Item Demand Forecast
-        </h2>
-        <p className="text-sm text-gray-600">
-          3-week quantity forecast for inventory planning
-        </p>
-      </div>
-
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         {/* View Mode Toggle */}
