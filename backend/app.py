@@ -357,6 +357,7 @@ def items_by_profit():
 
         query = '''
             SELECT 
+                i.item_id,
                 i.item_name,
                 i.category,
                 SUM(t.quantity) as units_sold,
@@ -395,6 +396,7 @@ def items_by_margin():
 
         query = '''
             SELECT 
+                item_id,
                 item_name,
                 category,
                 current_price,

@@ -155,7 +155,7 @@ export default function ReportLayout({
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format ? col.format(row[col.key]) : row[col.key]}
+                      {col.format ? col.format(row[col.key], row) : row[col.key]}
                     </td>
                   ))}
                 </tr>

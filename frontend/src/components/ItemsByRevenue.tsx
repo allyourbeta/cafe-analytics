@@ -6,7 +6,12 @@ import { formatCurrency, formatNumber } from "../utils/formatters";
 import CategoryDropdown from "./CategoryDropdown";
 
 const columns = [
-  { key: "item_name", label: "Item", align: "left" as const },
+  {
+    key: "item_name",
+    label: "Item",
+    align: "left" as const,
+    format: (val: string, row: any) => row.item_id ? `${row.item_id} - ${val}` : val
+  },
   { key: "category", label: "Category", align: "left" as const },
   {
     key: "units_sold",
@@ -344,7 +349,7 @@ export default function ItemsByRevenue() {
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format ? col.format(row[col.key]) : row[col.key]}
+                      {col.format ? col.format(row[col.key], row) : row[col.key]}
                     </td>
                   ))
                 )}

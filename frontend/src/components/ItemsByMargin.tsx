@@ -3,7 +3,12 @@ import { getItemsByMargin } from "../utils/api";
 import { getCategoryColor } from "../utils/categoryColors";
 
 const columns: Column[] = [
-  { key: "item_name", label: "Item", align: "left" },
+  {
+    key: "item_name",
+    label: "Item",
+    align: "left",
+    format: (val, row) => row.item_id ? `${row.item_id} - ${val}` : val
+  },
   { key: "category", label: "Category", align: "left" },
   {
     key: "current_price",

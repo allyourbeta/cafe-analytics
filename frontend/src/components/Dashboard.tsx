@@ -186,7 +186,7 @@ export default function Dashboard() {
     },
     {
       id: "time-period-comparison",
-      title: "Ernie's Comparison Report",
+      title: "Ernie's Comparison",
       description: "Compare item revenue across custom time periods",
       icon: <BarChart3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
