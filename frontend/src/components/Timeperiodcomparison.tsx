@@ -20,6 +20,134 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
   label: `${i.toString().padStart(2, "0")}:00`,
 }));
 
+// Available hours for cafe (7am to 10pm)
+const CAFE_HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // [7, 8, 9, ..., 22]
+
+// Preset time ranges
+const PRESETS = [
+  { label: "7-10", start: 7, end: 10 },
+  { label: "10-12", start: 10, end: 12 },
+  { label: "11-2", start: 11, end: 14 },
+  { label: "2-5", start: 14, end: 17 },
+  { label: "4-6", start: 16, end: 18 },
+  { label: "6-9", start: 18, end: 21 },
+];
+
+// Drag-to-select time range component
+const TimeSelector = ({
+  startHour,
+  endHour,
+  onRangeChange,
+  color,
+  label
+}: {
+  startHour: number;
+  endHour: number;
+  onRangeChange: (start: number, end: number) => void;
+  color: string;
+  label: string;
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+
+  const handleMouseDown = (hour: number) => {
+    setIsDragging(true);
+    setDragStart(hour);
+    onRangeChange(hour, hour + 1);
+  };
+
+  const handleMouseEnter = (hour: number) => {
+    if (isDragging && dragStart !== null) {
+      const start = Math.min(dragStart, hour);
+      const end = Math.max(dragStart, hour) + 1;
+      onRangeChange(start, end);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart(null);
+  };
+
+  const formatHourLabel = (hour: number) => {
+    if (hour === 12) return "12";
+    if (hour < 12) return hour.toString();
+    return (hour - 12).toString();
+  };
+
+  const isSelected = (hour: number) => {
+    return hour >= startHour && hour < endHour;
+  };
+
+  return (
+    <div onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+      {/* Preset buttons */}
+      <div style={{ marginBottom: "12px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        {PRESETS.map((preset) => (
+          <button
+            key={preset.label}
+            onClick={() => onRangeChange(preset.start, preset.end)}
+            style={{
+              padding: "4px 10px",
+              fontSize: "13px",
+              fontWeight: "500",
+              border: "1px solid #D1D5DB",
+              borderRadius: "4px",
+              cursor: "pointer",
+              backgroundColor: "white",
+              color: "#374151",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#F3F4F6";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "white";
+            }}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Timeline */}
+      <div style={{ userSelect: "none" }}>
+        <div style={{ display: "flex", gap: "2px", marginBottom: "4px" }}>
+          {CAFE_HOURS.map((hour) => (
+            <div
+              key={hour}
+              onMouseDown={() => handleMouseDown(hour)}
+              onMouseEnter={() => handleMouseEnter(hour)}
+              style={{
+                flex: 1,
+                height: "50px",
+                backgroundColor: isSelected(hour) ? color : "#F3F4F6",
+                border: `1px solid ${isSelected(hour) ? color : "#D1D5DB"}`,
+                borderRadius: "4px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "13px",
+                fontWeight: "600",
+                color: isSelected(hour) ? "white" : "#6B7280",
+                transition: "all 0.15s",
+              }}
+            >
+              {formatHourLabel(hour)}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "12px", color: "#6B7280", textAlign: "center", marginTop: "4px" }}>
+          {startHour === endHour
+            ? "Click and drag to select hours"
+            : `Selected: ${startHour}:00 - ${endHour}:00`}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Column Chart Visualization Component
 const ColumnChart = ({
   data,
@@ -423,7 +551,7 @@ export default function TimePeriodComparison() {
               )}
             </div>
 
-            {/* Hour Range */}
+            {/* Time Range */}
             <div>
               <label
                 style={{
@@ -436,43 +564,16 @@ export default function TimePeriodComparison() {
               >
                 Time Range
               </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <select
-                  value={periodAStartHour}
-                  onChange={(e) => setPeriodAStartHour(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    fontSize: "15px",
-                    border: "1px solid #D1D5DB",
-                    borderRadius: "6px",
-                  }}
-                >
-                  {HOURS.map((hour) => (
-                    <option key={hour.value} value={hour.value}>
-                      {hour.label}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: "16px", color: "#6B7280", fontWeight: "600" }}>to</span>
-                <select
-                  value={periodAEndHour}
-                  onChange={(e) => setPeriodAEndHour(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    fontSize: "15px",
-                    border: "1px solid #D1D5DB",
-                    borderRadius: "6px",
-                  }}
-                >
-                  {HOURS.map((hour) => (
-                    <option key={hour.value} value={hour.value}>
-                      {hour.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <TimeSelector
+                startHour={periodAStartHour}
+                endHour={periodAEndHour}
+                onRangeChange={(start, end) => {
+                  setPeriodAStartHour(start);
+                  setPeriodAEndHour(end);
+                }}
+                color="#3B82F6"
+                label="Period A"
+              />
             </div>
           </div>
 
@@ -539,7 +640,7 @@ export default function TimePeriodComparison() {
               )}
             </div>
 
-            {/* Hour Range */}
+            {/* Time Range */}
             <div>
               <label
                 style={{
@@ -552,43 +653,16 @@ export default function TimePeriodComparison() {
               >
                 Time Range
               </label>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <select
-                  value={periodBStartHour}
-                  onChange={(e) => setPeriodBStartHour(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    fontSize: "15px",
-                    border: "1px solid #D1D5DB",
-                    borderRadius: "6px",
-                  }}
-                >
-                  {HOURS.map((hour) => (
-                    <option key={hour.value} value={hour.value}>
-                      {hour.label}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: "16px", color: "#6B7280", fontWeight: "600" }}>to</span>
-                <select
-                  value={periodBEndHour}
-                  onChange={(e) => setPeriodBEndHour(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    fontSize: "15px",
-                    border: "1px solid #D1D5DB",
-                    borderRadius: "6px",
-                  }}
-                >
-                  {HOURS.map((hour) => (
-                    <option key={hour.value} value={hour.value}>
-                      {hour.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <TimeSelector
+                startHour={periodBStartHour}
+                endHour={periodBEndHour}
+                onRangeChange={(start, end) => {
+                  setPeriodBStartHour(start);
+                  setPeriodBEndHour(end);
+                }}
+                color="#F97316"
+                label="Period B"
+              />
             </div>
           </div>
         </div>
