@@ -595,7 +595,35 @@ export default function TimePeriodComparison() {
       </div>
 
       {/* Visualization */}
-      {!comparisonData && !loading && (
+      {!selectedItemId ? (
+        <div style={{
+          padding: "60px 40px",
+          backgroundColor: "white",
+          borderRadius: "8px",
+          textAlign: "center",
+        }}>
+          <div style={{
+            fontSize: "48px",
+            marginBottom: "16px"
+          }}>
+            📊
+          </div>
+          <div style={{
+            fontSize: "18px",
+            fontWeight: "600",
+            color: "#374151",
+            marginBottom: "8px"
+          }}>
+            Select an Item to Begin
+          </div>
+          <div style={{
+            fontSize: "15px",
+            color: "#6B7280"
+          }}>
+            Choose an item from the dropdown above to compare revenue across time periods
+          </div>
+        </div>
+      ) : !comparisonData && !loading ? (
         <div style={{
           padding: "40px",
           backgroundColor: "white",
@@ -609,11 +637,11 @@ export default function TimePeriodComparison() {
             : "Loading..."
           }
         </div>
-      )}
-      {loading && (
+      ) : loading ? (
         <div className="p-6 text-gray-600">Loading comparison data...</div>
-      )}
-      {!loading && comparisonData && <ColumnChart data={comparisonData} viewMode={viewMode} />}
+      ) : comparisonData ? (
+        <ColumnChart data={comparisonData} viewMode={viewMode} />
+      ) : null}
     </div>
   );
 }
