@@ -276,19 +276,6 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
 
   return (
     <div style={{ padding: "20px", backgroundColor: "transparent" }}>
-      <h3
-        style={{
-          marginBottom: "32px",
-          fontSize: "20px",
-          fontWeight: "700",
-          color: "#0f172a",
-          textAlign: "center",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        21-Day Sales Forecast
-      </h3>
-
       {/* Carousel Container */}
       <div
         ref={containerRef}
@@ -492,7 +479,7 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
 export default function DailyForecast() {
   return (
     <ReportLayout
-      title="21-Day Sales Forecast"
+      title="15-21 Day Sales Forecast"
       fetchData={getDailyForecast}
       columns={[]}
       needsDateRange={false}
