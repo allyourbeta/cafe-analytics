@@ -138,7 +138,7 @@ export default function Dashboard() {
     {
       id: "items-by-revenue",
       title: "Items by Revenue",
-      description: "Items and categories ranked by revenue",
+      description: "Items and categories ranked",
       icon: <BarChart3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-orange-400 to-orange-600",
       component: <ItemsByRevenue />,
@@ -146,7 +146,7 @@ export default function Dashboard() {
     {
       id: "sales-per-hour",
       title: "Revenue per Hour",
-      description: "Hourly sales breakdown over the period",
+      description: "Total revenue, per hour",
       icon: <Clock className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
       component: <SalesPerHour />,
@@ -154,7 +154,7 @@ export default function Dashboard() {
     {
       id: "item-heatmap",
       title: "Item Sales Heatmap",
-      description: "Hourly sales breakdown, by day of week, for top-25 items",
+      description: "Top-25 items, hourly sales",
       icon: <Grid3x3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       component: <ItemHeatmap />,
@@ -163,7 +163,7 @@ export default function Dashboard() {
     {
       id: "items-by-profit",
       title: "Items by Profit $$",
-      description: "Items and categories ranked by profit $$",
+      description: "Items and categories ranked",
       icon: <DollarSign className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
       component: <ItemsByProfit />,
@@ -179,15 +179,15 @@ export default function Dashboard() {
     {
       id: "labor-percent",
       title: "Labor % per Hour",
-      description: "Labor cost, as % of revenue, per hour",
+      description: "Labor cost as % of revenue",
       icon: <Percent className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-green-400 to-green-600",
       component: <LaborPercent />,
     },
     {
       id: "time-period-comparison",
-      title: "Ernie's Comparison",
-      description: "Compare item revenue across custom time periods",
+      title: "Ernie's Comparison Report",
+      description: "",
       icon: <BarChart3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <TimePeriodComparison />,
@@ -263,19 +263,12 @@ export default function Dashboard() {
         start = yesterday;
         end = yesterday;
         break;
-      case "Last 7 Days":
+      case "This Week":
+        // Get Monday of current week
         start = new Date(today);
-        start.setDate(start.getDate() - 7);
-        end = today;
-        break;
-      case "Last 30 Days":
-        start = new Date(today);
-        start.setDate(start.getDate() - 30);
-        end = today;
-        break;
-      case "Last 90 Days":
-        start = new Date(today);
-        start.setDate(start.getDate() - 90);
+        const dayOfWeek = start.getDay(); // 0=Sunday, 1=Monday, etc.
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        start.setDate(start.getDate() - daysToMonday);
         end = today;
         break;
       case "This Month":
@@ -285,6 +278,36 @@ export default function Dashboard() {
       case "Last Month":
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case "This Quarter":
+        // Quarters: Q1=July-Sept, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-June
+        const year = today.getFullYear();
+        const month = today.getMonth(); // 0=Jan, 6=July, etc.
+
+        if (month >= 6 && month <= 8) {
+          // Q1: July-September
+          start = new Date(year, 6, 1);
+        } else if (month >= 9 && month <= 11) {
+          // Q2: October-December
+          start = new Date(year, 9, 1);
+        } else if (month >= 0 && month <= 2) {
+          // Q3: January-March
+          start = new Date(year, 0, 1);
+        } else {
+          // Q4: April-June
+          start = new Date(year, 3, 1);
+        }
+        end = today;
+        break;
+      case "This FY":
+        // FY starts July 1
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0=Jan, 6=July
+        // If we're in July or later, FY started July 1 this year
+        // If we're before July, FY started July 1 last year
+        const fyStartYear = currentMonth >= 6 ? currentYear : currentYear - 1;
+        start = new Date(fyStartYear, 6, 1); // July 1
+        end = today;
         break;
       default:
         return { start: "", end: "" };
@@ -482,11 +505,11 @@ export default function Dashboard() {
                 {[
                   "Today",
                   "Yesterday",
-                  "Last 7 Days",
-                  "Last 30 Days",
-                  "Last 90 Days",
+                  "This Week",
                   "This Month",
                   "Last Month",
+                  "This Quarter",
+                  "This FY",
                   "Custom Range",
                 ].map((preset) => (
                   <button

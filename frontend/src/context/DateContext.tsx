@@ -17,9 +17,34 @@ const getTodayLocal = (): string => {
   return localDate.toISOString().split("T")[0];
 };
 
+// Helper to get start of current quarter
+const getQuarterStartDate = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0=Jan, 6=July, etc.
+
+  let quarterStart: Date;
+
+  if (month >= 6 && month <= 8) {
+    // Q1: July-September
+    quarterStart = new Date(year, 6, 1);
+  } else if (month >= 9 && month <= 11) {
+    // Q2: October-December
+    quarterStart = new Date(year, 9, 1);
+  } else if (month >= 0 && month <= 2) {
+    // Q3: January-March
+    quarterStart = new Date(year, 0, 1);
+  } else {
+    // Q4: April-June
+    quarterStart = new Date(year, 3, 1);
+  }
+
+  return quarterStart.toISOString().split("T")[0];
+};
+
 export const DateProvider = ({ children }: { children: ReactNode }) => {
   // Initialize with saved date range from sessionStorage (persists across refreshes, clears when browser closes)
-  // Falls back to Aug 1, 2024 to today if nothing saved
+  // Falls back to This Quarter if nothing saved
   const [startDate, setStartDate] = useState<string>(() => {
     const saved = sessionStorage.getItem('cafeDateRange');
     if (saved) {
@@ -30,7 +55,7 @@ export const DateProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error parsing saved date range:', e);
       }
     }
-    return "2024-08-01";
+    return getQuarterStartDate();
   });
 
   const [endDate, setEndDate] = useState<string>(() => {
@@ -56,7 +81,7 @@ export const DateProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error parsing saved date range:', e);
       }
     }
-    return "";
+    return "This Quarter";
   });
 
   const setDateRange = (start: string, end: string, preset: string) => {
