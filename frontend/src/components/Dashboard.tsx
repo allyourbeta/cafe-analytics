@@ -100,12 +100,20 @@ export default function Dashboard() {
   const [avgLaborPct, setAvgLaborPct] = useState<number>(0);
   const [avgStudentLaborPct, setAvgStudentLaborPct] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [selectedReport, setSelectedReport] = useState<string | null>(
-    "items-by-revenue"
-  );
+  const [selectedReport, setSelectedReport] = useState<string | null>(() => {
+    // Restore from sessionStorage if available
+    const saved = sessionStorage.getItem("cafeSelectedReport");
+    return saved || "items-by-revenue";
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [topSellerRevenue, setTopSellerRevenue] = useState<number>(0);
+
+  // Helper to change report and save to sessionStorage
+  const handleReportChange = (reportId: string) => {
+    setSelectedReport(reportId);
+    sessionStorage.setItem("cafeSelectedReport", reportId);
+  };
 
   // Date range picker state (local UI state only)
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -627,7 +635,7 @@ export default function Dashboard() {
                       </div>
                     )}
                     <button
-                      onClick={() => setSelectedReport(report.id)}
+                      onClick={() => handleReportChange(report.id)}
                       className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
                         selectedReport === report.id
                           ? "bg-white shadow-md border border-orange-200"
@@ -706,7 +714,7 @@ export default function Dashboard() {
                     )}
                     <button
                       onClick={() => {
-                        setSelectedReport(report.id);
+                        handleReportChange(report.id);
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-150 text-left ${
