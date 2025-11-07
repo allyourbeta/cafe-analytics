@@ -454,9 +454,16 @@ const ItemDemandForecast = () => {
                             NEW
                           </span>
                         )}
-                        <span className="text-sm font-medium text-gray-900">
-                          {name}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">
+                            {name}
+                          </span>
+                          {isItem && (
+                            <span className="text-xs text-gray-500">
+                              ID: {(item as ItemForecast).item_id}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     {isItem && (
