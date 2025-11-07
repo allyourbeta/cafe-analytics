@@ -216,7 +216,6 @@ export default function Dashboard() {
       iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
       component: <ItemDemandForecast />,
     },
-
   ];
 
   // Date formatting helper
@@ -243,6 +242,14 @@ export default function Dashboard() {
     }
 
     return `${startFormatted} - ${endFormatted}`;
+  };
+
+  // Helper to format date as YYYY-MM-DD in local timezone (no UTC conversion)
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   // Calculate date range for presets
@@ -313,9 +320,14 @@ export default function Dashboard() {
         return { start: "", end: "" };
     }
 
+    // Set to 12:01 PM (noon) to avoid timezone boundary issues
+    // This ensures dates don't shift when converted between timezones
+    start.setHours(12, 1, 0, 0);
+    end.setHours(12, 1, 0, 0);
+
     return {
-      start: start.toISOString().split("T")[0],
-      end: end.toISOString().split("T")[0],
+      start: formatLocalDate(start),
+      end: formatLocalDate(end),
     };
   };
 

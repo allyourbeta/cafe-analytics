@@ -29,16 +29,19 @@ const columns: Column[] = [
 const LaborChart = ({
   data,
   includeSalaried,
-  setIncludeSalaried
+  setIncludeSalaried,
 }: {
-  data: Record<string, any>[],
-  includeSalaried: boolean,
-  setIncludeSalaried: (value: boolean) => void
+  data: Record<string, any>[];
+  includeSalaried: boolean;
+  setIncludeSalaried: (value: boolean) => void;
 }) => {
   const [target, setTarget] = React.useState(30);
   const [isEditing, setIsEditing] = React.useState(false);
   const [tempTarget, setTempTarget] = React.useState("30");
-  const [hoveredItem, setHoveredItem] = React.useState<Record<string, any> | null>(null);
+  const [hoveredItem, setHoveredItem] = React.useState<Record<
+    string,
+    any
+  > | null>(null);
 
   // Get stoplight color based on performance vs target
   const getStoplightStatus = (laborPct: number) => {
@@ -174,15 +177,17 @@ const LaborChart = ({
         </div>
 
         {/* Toggle for Salaried+Students vs Students-only */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginLeft: "auto",
-          backgroundColor: "#F3F4F6",
-          padding: "4px",
-          borderRadius: "8px",
-        }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginLeft: "auto",
+            backgroundColor: "#F3F4F6",
+            padding: "4px",
+            borderRadius: "8px",
+          }}
+        >
           <button
             onClick={() => setIncludeSalaried(true)}
             style={{
@@ -218,126 +223,208 @@ const LaborChart = ({
         </div>
       </div>
 
-      {/* Stoplight gauge blocks */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))",
-          gap: "8px",
-          marginBottom: "24px",
-          position: "relative", // For tooltip positioning
-        }}
-      >
-        {data.map((item, index) => {
-          const status = getStoplightStatus(item.labor_pct);
-          const isHovered = hoveredItem?.hour === item.hour;
+      {/* Stoplight gauge blocks - grouped by day */}
+      <div style={{ marginBottom: "24px" }}>
+        {(() => {
+          // Group data by date
+          const groupedByDate: Record<string, typeof data> = {};
+          data.forEach((item) => {
+            const date = item.hour.split(" ")[0]; // Extract date (YYYY-MM-DD)
+            if (!groupedByDate[date]) {
+              groupedByDate[date] = [];
+            }
+            groupedByDate[date].push(item);
+          });
 
-          return (
-            <div
-              key={index}
-              style={{
-                backgroundColor: status.bg,
-                color: status.text,
-                padding: "16px 8px",
-                borderRadius: "8px",
-                textAlign: "center",
-                boxShadow: isHovered ? "0 4px 12px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.1)",
-                transition: "all 0.2s",
-                cursor: "pointer",
-                position: "relative",
-                transform: isHovered ? "scale(1.05)" : "scale(1)",
-              }}
-              onMouseEnter={() => setHoveredItem(item)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
+          return Object.entries(groupedByDate).map(([date, dayData]) => (
+            <div key={date} style={{ marginBottom: "20px" }}>
+              {/* Date header */}
               <div
                 style={{
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  marginBottom: "8px",
-                }}
-              >
-                {item.hour}
-              </div>
-              <div
-                style={{
-                  fontSize: "22px",
+                  fontSize: "14px",
                   fontWeight: "700",
-                  marginBottom: "4px",
+                  color: "#374151",
+                  marginBottom: "8px",
+                  paddingBottom: "4px",
+                  borderBottom: "2px solid #E5E7EB",
                 }}
               >
-                {item.labor_pct.toFixed(1)}%
+                {(() => {
+                  // Parse date string as local date to avoid timezone shift
+                  const [year, month, day] = date.split("-").map(Number);
+                  const localDate = new Date(year, month - 1, day);
+                  return localDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                })()}
               </div>
-              <div style={{ fontSize: "18px" }}>{status.icon}</div>
 
-              {/* Tooltip */}
-              {isHovered && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "100%",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    marginBottom: "8px",
-                    backgroundColor: "#1F2937",
-                    color: "#FFFFFF",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                    whiteSpace: "nowrap",
-                    fontSize: "13px",
-                    lineHeight: "1.6",
-                    zIndex: 1000,
-                    pointerEvents: "none",
-                  }}
-                >
-                  {/* Arrow pointing down */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "6px solid transparent",
-                      borderRight: "6px solid transparent",
-                      borderTop: "6px solid #1F2937",
-                    }}
-                  />
+              {/* Hours for this day */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                  gap: "8px",
+                  position: "relative",
+                }}
+              >
+                {dayData.map((item, index) => {
+                  const status = getStoplightStatus(item.labor_pct);
+                  const isHovered = hoveredItem?.hour === item.hour;
+                  const hourTime = new Date(item.hour).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "numeric",
+                      hour12: true,
+                    }
+                  );
 
-                  {/* Time slot header - show as range (e.g., 0700-0800) */}
-                  <div style={{ fontWeight: "700", marginBottom: "8px", fontSize: "13px" }}>
-                    {(() => {
-                      const hourDate = new Date(item.hour);
-                      const startHour = hourDate.getHours().toString().padStart(2, '0') + '00';
-                      const endHour = ((hourDate.getHours() + 1) % 24).toString().padStart(2, '0') + '00';
-                      return `${startHour}-${endHour}`;
-                    })()}
-                  </div>
+                  return (
+                    <div
+                      key={index}
+                      style={{
+                        backgroundColor: status.bg,
+                        color: status.text,
+                        padding: "16px 8px",
+                        borderRadius: "8px",
+                        textAlign: "center",
+                        boxShadow: isHovered
+                          ? "0 4px 12px rgba(0,0,0,0.2)"
+                          : "0 2px 4px rgba(0,0,0,0.1)",
+                        transition: "all 0.2s",
+                        cursor: "pointer",
+                        position: "relative",
+                        transform: isHovered ? "scale(1.05)" : "scale(1)",
+                      }}
+                      onMouseEnter={() => setHoveredItem(item)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                    >
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {hourTime}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "22px",
+                          fontWeight: "700",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {item.labor_pct.toFixed(1)}%
+                      </div>
+                      <div style={{ fontSize: "18px" }}>{status.icon}</div>
 
-                  <div style={{ marginBottom: "4px", fontSize: "13px" }}>
-                    <strong>Revenue:</strong> ${item.sales.toFixed(2)}
-                  </div>
-                  <div style={{ marginBottom: "8px", color: "#FCA5A5", fontSize: "13px" }}>
-                    <strong>Labor Cost:</strong> ${item.labor_cost.toFixed(2)} ({item.labor_pct.toFixed(1)}%)
-                  </div>
+                      {/* Tooltip */}
+                      {isHovered && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "100%",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            marginBottom: "8px",
+                            backgroundColor: "#1F2937",
+                            color: "#FFFFFF",
+                            padding: "12px 16px",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                            whiteSpace: "nowrap",
+                            fontSize: "13px",
+                            lineHeight: "1.6",
+                            zIndex: 1000,
+                            pointerEvents: "none",
+                          }}
+                        >
+                          {/* Arrow pointing down */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "100%",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              width: 0,
+                              height: 0,
+                              borderLeft: "6px solid transparent",
+                              borderRight: "6px solid transparent",
+                              borderTop: "6px solid #1F2937",
+                            }}
+                          />
 
-                  {/* Always show salaried when in "Salaried+Students" mode, even if 0 */}
-                  {includeSalaried && (
-                    <div style={{ marginBottom: "4px", fontSize: "13px", color: "#D1D5DB" }}>
-                      Salaried: {item.salaried_hours.toFixed(1)} hrs = ${item.salaried_cost.toFixed(2)}
+                          {/* Time slot header - show as range (e.g., 0700-0800) */}
+                          <div
+                            style={{
+                              fontWeight: "700",
+                              marginBottom: "8px",
+                              fontSize: "13px",
+                            }}
+                          >
+                            {(() => {
+                              const hourDate = new Date(item.hour);
+                              const startHour =
+                                hourDate
+                                  .getHours()
+                                  .toString()
+                                  .padStart(2, "0") + "00";
+                              const endHour =
+                                ((hourDate.getHours() + 1) % 24)
+                                  .toString()
+                                  .padStart(2, "0") + "00";
+                              return `${startHour}-${endHour}`;
+                            })()}
+                          </div>
+
+                          <div
+                            style={{ marginBottom: "4px", fontSize: "13px" }}
+                          >
+                            <strong>Revenue:</strong> ${item.sales.toFixed(2)}
+                          </div>
+                          <div
+                            style={{
+                              marginBottom: "8px",
+                              color: "#FCA5A5",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <strong>Labor Cost:</strong> $
+                            {item.labor_cost.toFixed(2)} (
+                            {item.labor_pct.toFixed(1)}%)
+                          </div>
+
+                          {/* Always show salaried when in "Salaried+Students" mode, even if 0 */}
+                          {includeSalaried && (
+                            <div
+                              style={{
+                                marginBottom: "4px",
+                                fontSize: "13px",
+                                color: "#D1D5DB",
+                              }}
+                            >
+                              Salaried: {item.salaried_hours.toFixed(1)} hrs = $
+                              {item.salaried_cost.toFixed(2)}
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: "13px", color: "#D1D5DB" }}>
+                            Students: {item.student_hours.toFixed(1)} hrs = $
+                            {item.student_cost.toFixed(2)}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  <div style={{ fontSize: "13px", color: "#D1D5DB" }}>
-                    Students: {item.student_hours.toFixed(1)} hrs = ${item.student_cost.toFixed(2)}
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
-          );
-        })}
+          ));
+        })()}
       </div>
 
       {/* Summary cards */}
@@ -447,14 +534,18 @@ export default function LaborPercent() {
     try {
       setLoading(true);
       setError(null);
-      const response = await getLaborPercent(startDate, endDate, includeSalaried);
+      const response = await getLaborPercent(
+        startDate,
+        endDate,
+        includeSalaried
+      );
       if (response.success) {
         setData(response.data || []);
       } else {
-        setError(response.error || 'Failed to fetch data');
+        setError(response.error || "Failed to fetch data");
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -466,15 +557,19 @@ export default function LaborPercent() {
 
   return (
     <div style={{ padding: "24px" }}>
-      {loading && <div style={{ textAlign: "center", padding: "48px" }}>Loading...</div>}
+      {loading && (
+        <div style={{ textAlign: "center", padding: "48px" }}>Loading...</div>
+      )}
       {error && (
-        <div style={{
-          padding: "16px",
-          backgroundColor: "#FEE2E2",
-          border: "1px solid #FECACA",
-          borderRadius: "8px",
-          color: "#991B1B",
-        }}>
+        <div
+          style={{
+            padding: "16px",
+            backgroundColor: "#FEE2E2",
+            border: "1px solid #FECACA",
+            borderRadius: "8px",
+            color: "#991B1B",
+          }}
+        >
           Error: {error}
         </div>
       )}

@@ -299,8 +299,11 @@ export default function ItemHeatmap() {
                           style={{ backgroundColor: bgColor }}
                           // title={revenue > 0 ? `${formatCurrency(revenue, 0)}` : 'No sales'}
                         >
-                          {revenue > 0 && intensity > 0.5 && (
-                            <span className="text-white text-[11px]">
+                          {revenue > 0 && (
+                            <span
+                              className="text-[11px] font-semibold"
+                              style={{ color: intensity > 0.5 ? 'white' : '#374151' }}
+                            >
                               {formatCurrency(revenue, 0)}
                             </span>
                           )}

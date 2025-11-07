@@ -311,12 +311,13 @@ def labor_percent():
 
             labor_cost = breakdown['total_cost']
 
+            # Skip hours with no activity (no sales and no labor)
+            if sales == 0 and labor_cost == 0:
+                continue
+
             # Calculate labor percentage with zero sales edge case handling
             if sales == 0:
-                if labor_cost == 0:
-                    labor_pct = 0  # No sales, no labor = 0%
-                else:
-                    labor_pct = 100  # Labor but no sales = 100% (capped, not infinity)
+                labor_pct = 100  # Labor but no sales = 100% (capped, not infinity)
             else:
                 labor_pct = round(labor_cost / sales * 100, 2)
 
@@ -556,8 +557,20 @@ def item_heatmap():
         cursor = conn.cursor()
 
         query = '''
+            WITH daily_hourly_totals AS (
+                SELECT 
+                    DATE(transaction_date) as sale_date,
+                    CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
+                    CAST(strftime('%H', transaction_date) AS INTEGER) as hour,
+                    SUM(total_amount) as daily_revenue,
+                    SUM(quantity) as daily_units
+                FROM transactions
+                WHERE item_id = ?
+                  AND DATE(transaction_date) BETWEEN ? AND ?
+                GROUP BY sale_date, day_num, hour
+            )
             SELECT 
-                CASE CAST(strftime('%w', transaction_date) AS INTEGER)
+                CASE day_num
                     WHEN 0 THEN 'Sunday'
                     WHEN 1 THEN 'Monday'
                     WHEN 2 THEN 'Tuesday'
@@ -566,14 +579,12 @@ def item_heatmap():
                     WHEN 5 THEN 'Friday'
                     WHEN 6 THEN 'Saturday'
                 END as day_of_week,
-                CAST(strftime('%w', transaction_date) AS INTEGER) as day_num,
-                CAST(strftime('%H', transaction_date) AS INTEGER) as hour,
-                ROUND(SUM(total_amount), 2) as revenue,
-                SUM(quantity) as units
-            FROM transactions
-            WHERE item_id = ?
-              AND DATE(transaction_date) BETWEEN ? AND ?
-            GROUP BY day_of_week, day_num, hour
+                day_num,
+                hour,
+                ROUND(AVG(daily_revenue), 2) as revenue,
+                ROUND(AVG(daily_units), 1) as units
+            FROM daily_hourly_totals
+            GROUP BY day_num, hour
             ORDER BY day_num, hour
         '''
 
