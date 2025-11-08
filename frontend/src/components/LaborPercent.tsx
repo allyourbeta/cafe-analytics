@@ -318,7 +318,10 @@ const LaborChart = ({
                           marginBottom: "4px",
                         }}
                       >
-                        {item.labor_pct.toFixed(1)}%
+                        {item.labor_pct >= 100
+                          ? item.labor_pct.toFixed(0)
+                          : item.labor_pct.toFixed(1)}
+                        %
                       </div>
                       <div style={{ fontSize: "18px" }}>{status.icon}</div>
 
@@ -395,7 +398,10 @@ const LaborChart = ({
                           >
                             <strong>Labor Cost:</strong> $
                             {item.labor_cost.toFixed(2)} (
-                            {item.labor_pct.toFixed(1)}%)
+                            {item.labor_pct >= 100
+                              ? item.labor_pct.toFixed(0)
+                              : item.labor_pct.toFixed(1)}
+                            %)
                           </div>
 
                           {/* Always show salaried when in "Salaried+Students" mode, even if 0 */}
