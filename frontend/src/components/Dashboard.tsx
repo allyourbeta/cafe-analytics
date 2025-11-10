@@ -19,8 +19,6 @@ import {
 } from "lucide-react";
 import {
   getItemsByRevenue,
-  getItemsByProfit,
-  getSalesPerHour,
   getLaborPercent,
   getTotalSales,
 } from "../utils/api";
@@ -32,8 +30,8 @@ import ItemsByMargin from "./ItemsByMargin";
 import DailyForecast from "./DailyForecast";
 import HourlyForecast from "./HourlyForecast";
 import ItemHeatmap from "./ItemHeatmap";
-import ItemDemandForecast from "./ItemDemandForecast";
-import TimePeriodComparison from "./TimePeriodComparison";
+import ItemDemandForecast from "./Itemdemandforecast";
+import TimePeriodComparison from "./Timeperiodcomparison";
 
 interface KPICardProps {
   icon: React.ReactNode;
@@ -126,21 +124,6 @@ export default function Dashboard() {
   const [tempStartDate, setTempStartDate] = useState(startDate);
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [tempPreset, setTempPreset] = useState(selectedPreset);
-
-  // Format the last day in the range for display
-  const formatLastDay = (dateStr: string) => {
-    if (!dateStr) return "";
-    // Parse date string as local date to avoid timezone shift
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-
-    const options: Intl.DateTimeFormatOptions = {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    };
-    return date.toLocaleDateString("en-US", options);
-  };
 
   const reports: ReportItem[] = [
     {

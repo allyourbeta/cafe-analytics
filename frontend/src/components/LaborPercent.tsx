@@ -1,29 +1,6 @@
-import ReportLayout, { type Column } from "./ReportLayout";
 import { getLaborPercent } from "../utils/api";
 import { useDateRange } from "../context/DateContext";
 import React from "react";
-
-const columns: Column[] = [
-  { key: "hour", label: "Hour", align: "left" },
-  {
-    key: "sales",
-    label: "Sales",
-    align: "right",
-    format: (val) => `${Number(val).toFixed(1)}%`,
-  },
-  {
-    key: "labor_cost",
-    label: "Labor Cost",
-    align: "right",
-    format: (val) => `$${Number(val).toFixed(2)}`,
-  },
-  {
-    key: "labor_pct",
-    label: "Labor %",
-    align: "right",
-    format: (val) => `${Number(val).toFixed(1)}%`,
-  },
-];
 
 // Stoplight gauge system - instant visual labor cost control
 const LaborChart = ({

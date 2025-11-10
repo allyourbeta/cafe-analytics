@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface DateContextType {
   startDate: string;
@@ -46,39 +46,39 @@ export const DateProvider = ({ children }: { children: ReactNode }) => {
   // Initialize with saved date range from sessionStorage (persists across refreshes, clears when browser closes)
   // Falls back to This Quarter if nothing saved
   const [startDate, setStartDate] = useState<string>(() => {
-    const saved = sessionStorage.getItem('cafeDateRange');
+    const saved = sessionStorage.getItem("cafeDateRange");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return parsed.startDate;
       } catch (e) {
-        console.error('Error parsing saved date range:', e);
+        console.error("Error parsing saved date range:", e);
       }
     }
     return getQuarterStartDate();
   });
 
   const [endDate, setEndDate] = useState<string>(() => {
-    const saved = sessionStorage.getItem('cafeDateRange');
+    const saved = sessionStorage.getItem("cafeDateRange");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return parsed.endDate;
       } catch (e) {
-        console.error('Error parsing saved date range:', e);
+        console.error("Error parsing saved date range:", e);
       }
     }
     return getTodayLocal();
   });
 
   const [selectedPreset, setSelectedPreset] = useState<string>(() => {
-    const saved = sessionStorage.getItem('cafeDateRange');
+    const saved = sessionStorage.getItem("cafeDateRange");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return parsed.preset || "";
       } catch (e) {
-        console.error('Error parsing saved date range:', e);
+        console.error("Error parsing saved date range:", e);
       }
     }
     return "This Quarter";
@@ -92,13 +92,16 @@ export const DateProvider = ({ children }: { children: ReactNode }) => {
     // Save to sessionStorage so it persists across page refreshes
     // (but clears when browser is closed - fresh start each day)
     try {
-      sessionStorage.setItem('cafeDateRange', JSON.stringify({
-        startDate: start,
-        endDate: end,
-        preset: preset
-      }));
+      sessionStorage.setItem(
+        "cafeDateRange",
+        JSON.stringify({
+          startDate: start,
+          endDate: end,
+          preset: preset,
+        })
+      );
     } catch (e) {
-      console.error('Error saving date range to sessionStorage:', e);
+      console.error("Error saving date range to sessionStorage:", e);
     }
   };
 

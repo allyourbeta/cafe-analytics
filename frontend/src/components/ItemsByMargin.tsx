@@ -7,7 +7,8 @@ const columns: Column[] = [
     key: "item_name",
     label: "Item",
     align: "left",
-    format: (val, row) => row.item_id ? `${row.item_id} - ${val}` : val
+    format: (val: string | number, row?: Record<string, any>) =>
+      row?.item_id ? `${row.item_id} - ${val}` : val,
   },
   { key: "category", label: "Category", align: "left" },
   {

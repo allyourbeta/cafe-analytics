@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getItemsByProfit, getCategoriesByProfit } from "../utils/api";
-import { getCategoryColor, getCategoryDisplayName } from "../utils/categoryColors";
+import {
+  getCategoryColor,
+  getCategoryDisplayName,
+} from "../utils/categoryColors";
 import { formatCurrency, formatNumber } from "../utils/formatters";
 import CategoryDropdown from "./CategoryDropdown";
 
@@ -10,26 +13,29 @@ const columns = [
     key: "item_name",
     label: "Item",
     align: "left" as const,
-    format: (val: string, row: any) => row.item_id ? `${row.item_id} - ${val}` : val
+    format: (val: string | number, row?: any) =>
+      row?.item_id ? `${row.item_id} - ${val}` : val,
   },
   { key: "category", label: "Category", align: "left" as const },
   {
     key: "units_sold",
     label: "Units",
     align: "right" as const,
-    format: (val: number) => formatNumber(val, 0),
+    format: (val: number | string, _row?: any) =>
+      formatNumber(val as number, 0),
   },
   {
     key: "total_profit",
     label: "Total Profit",
     align: "right" as const,
-    format: (val: number) => formatCurrency(val, 0),
+    format: (val: number | string, _row?: any) =>
+      formatCurrency(val as number, 0),
   },
   {
     key: "margin_pct",
     label: "Margin %",
     align: "right" as const,
-    format: (val: number) => `${Number(val).toFixed(1)}%`,
+    format: (val: number | string, _row?: any) => `${Number(val).toFixed(1)}%`,
   },
 ];
 
@@ -41,23 +47,24 @@ const ProfitChart = ({
   selectedCategory,
   setSelectedCategory,
   viewMode,
-  setViewMode
+  setViewMode,
 }: {
-  data: Record<string, any>[],
-  sortOrder: 'top' | 'bottom',
-  setSortOrder: (order: 'top' | 'bottom') => void,
-  selectedCategory: string,
-  setSelectedCategory: (category: string) => void,
-  viewMode: 'item' | 'category',
-  setViewMode: (mode: 'item' | 'category') => void
+  data: Record<string, any>[];
+  sortOrder: "top" | "bottom";
+  setSortOrder: (order: "top" | "bottom") => void;
+  selectedCategory: string;
+  setSelectedCategory: (category: string) => void;
+  viewMode: "item" | "category";
+  setViewMode: (mode: "item" | "category") => void;
 }) => {
   // In category mode, show all categories (no top/bottom split)
   // In item mode, show top 10 or bottom 10
-  const displayData = viewMode === 'category'
-    ? data  // Show all categories
-    : sortOrder === 'top'
-    ? data.slice(0, 10)
-    : data.slice(-10).reverse();
+  const displayData =
+    viewMode === "category"
+      ? data // Show all categories
+      : sortOrder === "top"
+      ? data.slice(0, 10)
+      : data.slice(-10).reverse();
 
   const maxProfit = Math.max(...displayData.map((item) => item.total_profit));
 
@@ -66,23 +73,33 @@ const ProfitChart = ({
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
       {/* Header with title, view mode toggle, top/bottom toggle, and category dropdown */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: "20px",
-        gap: "16px",
-        flexWrap: "wrap"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "20px",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
             Items by Profit $$
           </h3>
 
           {/* View Mode Toggle (By Item / By Category) */}
-          <div style={{ display: "flex", gap: "4px", backgroundColor: "#F3F4F6", padding: "4px", borderRadius: "6px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              backgroundColor: "#F3F4F6",
+              padding: "4px",
+              borderRadius: "6px",
+            }}
+          >
             <button
-              onClick={() => setViewMode('item')}
+              onClick={() => setViewMode("item")}
               style={{
                 padding: "6px 12px",
                 fontSize: "13px",
@@ -91,14 +108,15 @@ const ProfitChart = ({
                 borderRadius: "4px",
                 cursor: "pointer",
                 transition: "all 0.2s",
-                backgroundColor: viewMode === 'item' ? "#10B981" : "transparent",
-                color: viewMode === 'item' ? "#FFFFFF" : "#6B7280",
+                backgroundColor:
+                  viewMode === "item" ? "#10B981" : "transparent",
+                color: viewMode === "item" ? "#FFFFFF" : "#6B7280",
               }}
             >
               By Item
             </button>
             <button
-              onClick={() => setViewMode('category')}
+              onClick={() => setViewMode("category")}
               style={{
                 padding: "6px 12px",
                 fontSize: "13px",
@@ -107,8 +125,9 @@ const ProfitChart = ({
                 borderRadius: "4px",
                 cursor: "pointer",
                 transition: "all 0.2s",
-                backgroundColor: viewMode === 'category' ? "#10B981" : "transparent",
-                color: viewMode === 'category' ? "#FFFFFF" : "#6B7280",
+                backgroundColor:
+                  viewMode === "category" ? "#10B981" : "transparent",
+                color: viewMode === "category" ? "#FFFFFF" : "#6B7280",
               }}
             >
               By Category
@@ -116,10 +135,18 @@ const ProfitChart = ({
           </div>
 
           {/* Top/Bottom toggle - only show in item mode */}
-          {viewMode === 'item' && (
-            <div style={{ display: "flex", gap: "4px", backgroundColor: "#F3F4F6", padding: "4px", borderRadius: "6px" }}>
+          {viewMode === "item" && (
+            <div
+              style={{
+                display: "flex",
+                gap: "4px",
+                backgroundColor: "#F3F4F6",
+                padding: "4px",
+                borderRadius: "6px",
+              }}
+            >
               <button
-                onClick={() => setSortOrder('top')}
+                onClick={() => setSortOrder("top")}
                 style={{
                   padding: "6px 12px",
                   fontSize: "13px",
@@ -128,14 +155,15 @@ const ProfitChart = ({
                   borderRadius: "4px",
                   cursor: "pointer",
                   transition: "all 0.2s",
-                  backgroundColor: sortOrder === 'top' ? "#3B82F6" : "transparent",
-                  color: sortOrder === 'top' ? "#FFFFFF" : "#6B7280",
+                  backgroundColor:
+                    sortOrder === "top" ? "#3B82F6" : "transparent",
+                  color: sortOrder === "top" ? "#FFFFFF" : "#6B7280",
                 }}
               >
                 Top 10
               </button>
               <button
-                onClick={() => setSortOrder('bottom')}
+                onClick={() => setSortOrder("bottom")}
                 style={{
                   padding: "6px 12px",
                   fontSize: "13px",
@@ -144,8 +172,9 @@ const ProfitChart = ({
                   borderRadius: "4px",
                   cursor: "pointer",
                   transition: "all 0.2s",
-                  backgroundColor: sortOrder === 'bottom' ? "#3B82F6" : "transparent",
-                  color: sortOrder === 'bottom' ? "#FFFFFF" : "#6B7280",
+                  backgroundColor:
+                    sortOrder === "bottom" ? "#3B82F6" : "transparent",
+                  color: sortOrder === "bottom" ? "#FFFFFF" : "#6B7280",
                 }}
               >
                 Bottom 10
@@ -155,11 +184,11 @@ const ProfitChart = ({
         </div>
 
         {/* Category dropdown - only enabled in item mode */}
-        <div style={{ opacity: viewMode === 'category' ? 0.5 : 1 }}>
+        <div style={{ opacity: viewMode === "category" ? 0.5 : 1 }}>
           <CategoryDropdown
             value={selectedCategory}
             onChange={setSelectedCategory}
-            disabled={viewMode === 'category'}
+            disabled={viewMode === "category"}
           />
         </div>
       </div>
@@ -168,12 +197,14 @@ const ProfitChart = ({
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {displayData.map((item, index) => {
           const widthPercent = (item.total_profit / maxProfit) * 100;
-          const displayName = viewMode === 'category'
-            ? getCategoryDisplayName(item.category)
-            : item.item_name;
-          const barColor = viewMode === 'category'
-            ? getCategoryColor(item.category)
-            : getCategoryColor(item.category);
+          const displayName =
+            viewMode === "category"
+              ? getCategoryDisplayName(item.category)
+              : item.item_name;
+          const barColor =
+            viewMode === "category"
+              ? getCategoryColor(item.category)
+              : getCategoryColor(item.category);
 
           return (
             <div
@@ -239,8 +270,8 @@ export default function ItemsByProfit() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<'top' | 'bottom'>('top');
-  const [viewMode, setViewMode] = useState<'item' | 'category'>('item');
+  const [sortOrder, setSortOrder] = useState<"top" | "bottom">("top");
+  const [viewMode, setViewMode] = useState<"item" | "category">("item");
 
   const { startDate, endDate } = useDateRange();
 
@@ -251,7 +282,7 @@ export default function ItemsByProfit() {
       // Fetch both item and category data
       const [itemResponse, categoryResponse] = await Promise.all([
         getItemsByProfit(startDate, endDate),
-        getCategoriesByProfit(startDate, endDate)
+        getCategoriesByProfit(startDate, endDate),
       ]);
       setData(itemResponse.data);
       setCategoryData(categoryResponse.data);
@@ -267,27 +298,26 @@ export default function ItemsByProfit() {
     loadData();
   }, [startDate, endDate]);
 
-  // Select the appropriate data based on view mode
-  const currentData = viewMode === 'category' ? categoryData : data;
-
   // Filter data by selected category (only in item mode)
-  const filteredData = viewMode === 'category'
-    ? categoryData  // Show all categories
-    : selectedCategory === "all"
-    ? data
-    : data.filter(item => item.category === selectedCategory);
+  const filteredData =
+    viewMode === "category"
+      ? categoryData // Show all categories
+      : selectedCategory === "all"
+      ? data
+      : data.filter((item) => item.category === selectedCategory);
 
   // Sort data based on sortOrder (reverse for bottom 10 in table)
-  const sortedData = sortOrder === 'top'
-    ? filteredData
-    : [...filteredData].reverse();
+  const sortedData =
+    sortOrder === "top" ? filteredData : [...filteredData].reverse();
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>;
+    return (
+      <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>
+    );
   }
 
   if (data.length === 0) {
@@ -312,12 +342,20 @@ export default function ItemsByProfit() {
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              {viewMode === 'category' ? (
+              {viewMode === "category" ? (
                 <>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Category</th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">Units</th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">Total Profit</th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">Margin %</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">
+                    Category
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">
+                    Units
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">
+                    Total Profit
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-right">
+                    Margin %
+                  </th>
                 </>
               ) : (
                 columns.map((col) => (
@@ -336,7 +374,7 @@ export default function ItemsByProfit() {
           <tbody>
             {sortedData.map((row, i) => (
               <tr key={i} className="hover:bg-gray-50">
-                {viewMode === 'category' ? (
+                {viewMode === "category" ? (
                   <>
                     <td className="border border-gray-300 px-4 py-2 text-left">
                       {getCategoryDisplayName(row.category)}
@@ -359,7 +397,9 @@ export default function ItemsByProfit() {
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format ? col.format(row[col.key], row) : row[col.key]}
+                      {col.format
+                        ? col.format(row[col.key], row)
+                        : row[col.key]}
                     </td>
                   ))
                 )}

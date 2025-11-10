@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ReportLayout, { type Column } from "./ReportLayout";
+import ReportLayout from "./ReportLayout";
 import { getDailyForecast } from "../utils/api";
 import { Calendar } from "lucide-react";
 

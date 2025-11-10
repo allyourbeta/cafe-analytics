@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { getAllItems, getTimePeriodComparison, TimePeriodComparisonData } from "../utils/api";
+import {
+  getAllItems,
+  getTimePeriodComparison,
+  type TimePeriodComparisonData,
+} from "../utils/api";
 import { formatCurrency } from "../utils/formatters";
 import { getCategoryColor } from "../utils/categoryColors";
 
@@ -29,8 +33,10 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
   // Scale circle radius based on revenue (area proportional to revenue)
   // Max circle radius is 100px
   const maxRadius = 100;
-  const radiusA = maxRevenue > 0 ? Math.sqrt(period_a.revenue / maxRevenue) * maxRadius : 0;
-  const radiusB = maxRevenue > 0 ? Math.sqrt(period_b.revenue / maxRevenue) * maxRadius : 0;
+  const radiusA =
+    maxRevenue > 0 ? Math.sqrt(period_a.revenue / maxRevenue) * maxRadius : 0;
+  const radiusB =
+    maxRevenue > 0 ? Math.sqrt(period_b.revenue / maxRevenue) * maxRadius : 0;
 
   // Get color for the item's category
   const color = getCategoryColor(data.category);
@@ -38,8 +44,10 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
   // Helper to format day list
   const formatDays = (days: number[]) => {
     if (days.length === 7) return "Every day";
-    if (days.length === 5 && !days.includes(0) && !days.includes(6)) return "Weekdays";
-    if (days.length === 2 && days.includes(0) && days.includes(6)) return "Weekends";
+    if (days.length === 5 && !days.includes(0) && !days.includes(6))
+      return "Weekdays";
+    if (days.length === 2 && days.includes(0) && days.includes(6))
+      return "Weekends";
     return days
       .map((d) => DAYS_OF_WEEK.find((day) => day.value === d)?.label)
       .join(", ");
@@ -61,7 +69,9 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
       : 0;
 
   return (
-    <div style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}>
+    <div
+      style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
+    >
       <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "20px" }}>
         Revenue Comparison: {data.item_name}
       </h3>
@@ -100,12 +110,7 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
           >
             {formatCurrency(period_a.revenue, 0)}
           </text>
-          <text
-            y="30"
-            textAnchor="middle"
-            fontSize="12"
-            fill="#6B7280"
-          >
+          <text y="30" textAnchor="middle" fontSize="12" fill="#6B7280">
             {period_a.units_sold} units
           </text>
         </g>
@@ -137,12 +142,7 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
           >
             {formatCurrency(period_b.revenue, 0)}
           </text>
-          <text
-            y="30"
-            textAnchor="middle"
-            fontSize="12"
-            fill="#6B7280"
-          >
+          <text y="30" textAnchor="middle" fontSize="12" fill="#6B7280">
             {period_b.units_sold} units
           </text>
         </g>
@@ -187,7 +187,9 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
       </svg>
 
       {/* Period Details */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
+      >
         {/* Period A Details */}
         <div
           style={{
@@ -197,21 +199,32 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
             border: "1px solid #E5E7EB",
           }}
         >
-          <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "12px" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#374151",
+              marginBottom: "12px",
+            }}
+          >
             Period A Details
           </div>
-          <div style={{ fontSize: "13px", color: "#6B7280", lineHeight: "1.8" }}>
+          <div
+            style={{ fontSize: "13px", color: "#6B7280", lineHeight: "1.8" }}
+          >
             <div>
               <strong>Days:</strong> {formatDays(period_a.days)}
             </div>
             <div>
-              <strong>Hours:</strong> {formatHourRange(period_a.start_hour, period_a.end_hour)}
+              <strong>Hours:</strong>{" "}
+              {formatHourRange(period_a.start_hour, period_a.end_hour)}
             </div>
             <div>
               <strong>Days counted:</strong> {period_a.days_counted}
             </div>
             <div>
-              <strong>Avg per day:</strong> {formatCurrency(period_a.avg_per_day, 2)}
+              <strong>Avg per day:</strong>{" "}
+              {formatCurrency(period_a.avg_per_day, 2)}
             </div>
           </div>
         </div>
@@ -225,21 +238,32 @@ const ProportionalCircles = ({ data }: { data: TimePeriodComparisonData }) => {
             border: "1px solid #E5E7EB",
           }}
         >
-          <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "12px" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#374151",
+              marginBottom: "12px",
+            }}
+          >
             Period B Details
           </div>
-          <div style={{ fontSize: "13px", color: "#6B7280", lineHeight: "1.8" }}>
+          <div
+            style={{ fontSize: "13px", color: "#6B7280", lineHeight: "1.8" }}
+          >
             <div>
               <strong>Days:</strong> {formatDays(period_b.days)}
             </div>
             <div>
-              <strong>Hours:</strong> {formatHourRange(period_b.start_hour, period_b.end_hour)}
+              <strong>Hours:</strong>{" "}
+              {formatHourRange(period_b.start_hour, period_b.end_hour)}
             </div>
             <div>
               <strong>Days counted:</strong> {period_b.days_counted}
             </div>
             <div>
-              <strong>Avg per day:</strong> {formatCurrency(period_b.avg_per_day, 2)}
+              <strong>Avg per day:</strong>{" "}
+              {formatCurrency(period_b.avg_per_day, 2)}
             </div>
           </div>
         </div>
@@ -252,7 +276,8 @@ export default function TimePeriodComparison() {
   const { startDate, endDate } = useDateRange();
   const [items, setItems] = useState<any[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [comparisonData, setComparisonData] = useState<TimePeriodComparisonData | null>(null);
+  const [comparisonData, setComparisonData] =
+    useState<TimePeriodComparisonData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -361,7 +386,9 @@ export default function TimePeriodComparison() {
           marginBottom: "20px",
         }}
       >
-        <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "20px" }}>
+        <h3
+          style={{ fontSize: "16px", fontWeight: "600", marginBottom: "20px" }}
+        >
           Configure Time Period Comparison
         </h3>
 
@@ -399,7 +426,13 @@ export default function TimePeriodComparison() {
         </div>
 
         {/* Period Configuration Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "24px",
+          }}
+        >
           {/* Period A */}
           <div
             style={{
@@ -449,7 +482,9 @@ export default function TimePeriodComparison() {
                       backgroundColor: periodADays.includes(day.value)
                         ? "#3B82F6"
                         : "white",
-                      color: periodADays.includes(day.value) ? "white" : "#6B7280",
+                      color: periodADays.includes(day.value)
+                        ? "white"
+                        : "#6B7280",
                     }}
                   >
                     {day.label}
@@ -471,7 +506,9 @@ export default function TimePeriodComparison() {
               >
                 Time Range
               </label>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
                 <select
                   value={periodAStartHour}
                   onChange={(e) => setPeriodAStartHour(Number(e.target.value))}
@@ -560,7 +597,9 @@ export default function TimePeriodComparison() {
                       backgroundColor: periodBDays.includes(day.value)
                         ? "#10B981"
                         : "white",
-                      color: periodBDays.includes(day.value) ? "white" : "#6B7280",
+                      color: periodBDays.includes(day.value)
+                        ? "white"
+                        : "#6B7280",
                     }}
                   >
                     {day.label}
@@ -582,7 +621,9 @@ export default function TimePeriodComparison() {
               >
                 Time Range
               </label>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
                 <select
                   value={periodBStartHour}
                   onChange={(e) => setPeriodBStartHour(Number(e.target.value))}
@@ -628,7 +669,9 @@ export default function TimePeriodComparison() {
       {loading && (
         <div className="p-6 text-gray-600">Loading comparison data...</div>
       )}
-      {!loading && comparisonData && <ProportionalCircles data={comparisonData} />}
+      {!loading && comparisonData && (
+        <ProportionalCircles data={comparisonData} />
+      )}
     </div>
   );
 }

@@ -40,3 +40,7 @@ npm-debug.log*
 
 database/cafe_reports.db
 *.zip
+build-errors.txt
+PYTHONANYWHERE_DEPLOYMENT_COMPLETE.md
+Complete PythonAnywhere Deployment Guide.md
+DEPLOYMENT_GUIDE.md

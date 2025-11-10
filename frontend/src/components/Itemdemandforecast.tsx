@@ -247,38 +247,6 @@ const ItemDemandForecast = () => {
 
   const weekRanges = getWeekRanges();
 
-  // Format date range for display (Pacific timezone)
-  const formatDateRange = (startDate: string, endDate: string) => {
-    // Handle undefined/null dates
-    if (!startDate || !endDate) return "Loading...";
-
-    try {
-      // Parse ISO date strings (YYYY-MM-DD) manually to avoid timezone issues
-      const [startYear, startMonth, startDay] = startDate
-        .split("-")
-        .map(Number);
-      const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
-
-      // Create dates in local timezone (Pacific)
-      const start = new Date(startYear, startMonth - 1, startDay);
-      const end = new Date(endYear, endMonth - 1, endDay);
-
-      const startMonthName = start.toLocaleDateString("en-US", {
-        month: "short",
-      });
-      const endMonthName = end.toLocaleDateString("en-US", { month: "short" });
-
-      // If same month, show "Nov 4-10"
-      if (startMonthName === endMonthName) {
-        return `${startMonthName} ${startDay}-${endDay}`;
-      }
-      // If different months, show "Nov 28-Dec 4"
-      return `${startMonthName} ${startDay}-${endMonthName} ${endDay}`;
-    } catch (e) {
-      return "Invalid Date";
-    }
-  };
-
   // Render sort indicator
   const renderSortIndicator = (column: SortColumn) => {
     if (sortColumn !== column) return null;

@@ -1125,6 +1125,15 @@ def time_period_comparison():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+from flask import send_from_directory
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    frontend_dir = os.path.join(BASE_DIR, '../frontend/dist')
+    if path and os.path.exists(os.path.join(frontend_dir, path)):
+        return send_from_directory(frontend_dir, path)
+    return send_from_directory(frontend_dir, 'index.html')
 
 if __name__ == '__main__':
     print("🚀 Backend starting...")

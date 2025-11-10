@@ -5,7 +5,10 @@ export interface Column {
   key: string;
   label: string;
   align?: "left" | "right";
-  format?: (value: number | string) => string;
+  format?: (
+    value: number | string,
+    row?: Record<string, any>
+  ) => string | number;
 }
 
 interface ReportLayoutProps {
@@ -155,7 +158,9 @@ export default function ReportLayout({
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format ? col.format(row[col.key], row) : row[col.key]}
+                      {col.format
+                        ? col.format(row[col.key], row)
+                        : row[col.key]}
                     </td>
                   ))}
                 </tr>
