@@ -7,7 +7,7 @@ export interface Column {
   align?: "left" | "right";
   format?: (
     value: number | string,
-    row?: Record<string, any>
+    row: Record<string, any>
   ) => string | number;
 }
 

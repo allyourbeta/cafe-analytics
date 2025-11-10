@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_caching import Cache
 import sqlite3
 from datetime import datetime, timedelta
 import os
@@ -7,6 +8,12 @@ from labor_utils import calculate_hourly_labor_costs
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Initialize cache - 12 hour default timeout since data updates once daily
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 43200  # 12 hours
+})
 
 # Get absolute path relative to this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,8 +32,25 @@ def health_check():
     return jsonify({'status': 'ok', 'message': 'Backend running!'})
 
 
+@app.route('/api/admin/clear-cache', methods=['POST'])
+def clear_cache():
+    """Clear all cached data - useful after database updates"""
+    try:
+        cache.clear()
+        return jsonify({
+            'success': True,
+            'message': 'Cache cleared successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # R3: Items by Revenue
 @app.route('/api/reports/items-by-revenue', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def items_by_revenue():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -67,6 +91,7 @@ def items_by_revenue():
 
 # Total Sales for date range
 @app.route('/api/total-sales', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def total_sales():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -103,6 +128,7 @@ def total_sales():
 
 # R1: Sales per Labor Hour
 @app.route('/api/reports/sales-per-hour', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)  # 12 hours
 def sales_per_hour():
     mode = request.args.get('mode', 'average')  # 'average', 'single', or 'day-of-week'
     start_date = request.args.get('start', '2024-08-01')
@@ -267,6 +293,7 @@ def sales_per_hour():
 
 # R2: Labor % per Labor Hour (with accurate proration)
 @app.route('/api/reports/labor-percent', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)  # 12 hours
 def labor_percent():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -348,6 +375,7 @@ def labor_percent():
 
 # R4: Items by Total Profit
 @app.route('/api/reports/items-by-profit', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def items_by_profit():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -390,6 +418,7 @@ def items_by_profit():
 
 # R5: Items by Profitability %
 @app.route('/api/reports/items-by-margin', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def items_by_margin():
     try:
         conn = get_db()
@@ -426,6 +455,7 @@ def items_by_margin():
 
 # R6: Categories by Revenue (aggregated by category)
 @app.route('/api/reports/categories-by-revenue', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def categories_by_revenue():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -464,6 +494,7 @@ def categories_by_revenue():
 
 # R7: Categories by Profit (aggregated by category)
 @app.route('/api/reports/categories-by-profit', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def categories_by_profit():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -503,6 +534,7 @@ def categories_by_profit():
 
 # R8: Get top items for heatmap selector
 @app.route('/api/reports/top-items', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def top_items():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -544,6 +576,7 @@ def top_items():
 
 # R9: Item heatmap data (hourly × daily patterns)
 @app.route('/api/reports/item-heatmap', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def item_heatmap():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
@@ -1007,6 +1040,7 @@ def get_all_items():
 
 # R10: Time Period Comparison
 @app.route('/api/reports/time-period-comparison', methods=['GET'])
+@cache.cached(timeout=43200, query_string=True)
 def time_period_comparison():
     """
     Compare revenue for a specific item between two time periods.
