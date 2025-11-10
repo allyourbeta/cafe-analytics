@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:5500/api";
+const API_BASE = import.meta.env.DEV
+  ? "http://localhost:5500/api"  // ← What your screenshot shows
+  : "https://edmondscafe.pythonanywhere.com/api";
 
 // Interfaces
 export interface RevenueItem {
