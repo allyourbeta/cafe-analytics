@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { getItemsByProfit, getCategoriesByProfit } from "../utils/api";
+import { getItemsByProfit } from "../utils/api";
 import {
   getCategoryColor,
   getCategoryDisplayName,
 } from "../utils/categoryColors";
-import { formatCurrency, formatNumber } from "../utils/formatters";
+import {
+  formatCurrency,
+  formatNumber,
+  aggregateByCategory,
+} from "../utils/formatters";
 import CategoryDropdown from "./CategoryDropdown";
+import FilterBar, { type FilterValues } from "./FilterBar";
 
 const columns = [
   {
@@ -42,31 +47,19 @@ const columns = [
 // Horizontal bar chart by category
 const ProfitChart = ({
   data,
-  sortOrder,
-  setSortOrder,
-  selectedCategory,
-  setSelectedCategory,
-  viewMode,
-  setViewMode,
-  itemTypeFilter,
-  setItemTypeFilter,
+  filters,
+  onFilterChange,
 }: {
   data: Record<string, any>[];
-  sortOrder: "top" | "bottom";
-  setSortOrder: (order: "top" | "bottom") => void;
-  selectedCategory: string;
-  setSelectedCategory: (category: string) => void;
-  viewMode: "item" | "category";
-  setViewMode: (mode: "item" | "category") => void;
-  itemTypeFilter: "all" | "purchased" | "house-made";
-  setItemTypeFilter: (filter: "all" | "purchased" | "house-made") => void;
+  filters: FilterValues;
+  onFilterChange: (filters: FilterValues) => void;
 }) => {
   // In category mode, show all categories (no top/bottom split)
   // In item mode, show top 10 or bottom 10
   const displayData =
-    viewMode === "category"
+    filters.viewMode === "category"
       ? data // Show all categories
-      : sortOrder === "top"
+      : filters.sortOrder === "top"
       ? data.slice(0, 10)
       : data.slice(-10).reverse();
 
@@ -87,178 +80,29 @@ const ProfitChart = ({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
             Items by Profit $$
           </h3>
-
-          {/* View Mode Toggle (By Item / By Category) */}
-          <div
-            style={{
-              display: "flex",
-              gap: "4px",
-              backgroundColor: "#E5E7EB",
-              padding: "4px",
-              borderRadius: "6px",
-            }}
-          >
-            <button
-              onClick={() => setViewMode("item")}
-              style={{
-                padding: "6px 12px",
-                fontSize: "13px",
-                fontWeight: "600",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                backgroundColor:
-                  viewMode === "item" ? "#10B981" : "transparent",
-                color: viewMode === "item" ? "#FFFFFF" : "#6B7280",
-              }}
-            >
-              By Item
-            </button>
-            <button
-              onClick={() => setViewMode("category")}
-              style={{
-                padding: "6px 12px",
-                fontSize: "13px",
-                fontWeight: "600",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                backgroundColor:
-                  viewMode === "category" ? "#10B981" : "transparent",
-                color: viewMode === "category" ? "#FFFFFF" : "#6B7280",
-              }}
-            >
-              By Category
-            </button>
-          </div>
-
-          {/* Item Type Filter (All / Purchased / House-Made) - only show in item mode */}
-          {viewMode === "item" && (
-            <div
-              style={{
-                display: "flex",
-                gap: "4px",
-                backgroundColor: "#E5E7EB",
-                padding: "4px",
-                borderRadius: "6px",
-              }}
-            >
-              <button
-                onClick={() => setItemTypeFilter("all")}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  backgroundColor:
-                    itemTypeFilter === "all" ? "#8B5CF6" : "transparent",
-                  color: itemTypeFilter === "all" ? "#FFFFFF" : "#6B7280",
-                }}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setItemTypeFilter("purchased")}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  backgroundColor:
-                    itemTypeFilter === "purchased" ? "#8B5CF6" : "transparent",
-                  color: itemTypeFilter === "purchased" ? "#FFFFFF" : "#6B7280",
-                }}
-              >
-                Resold
-              </button>
-              <button
-                onClick={() => setItemTypeFilter("house-made")}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  backgroundColor:
-                    itemTypeFilter === "house-made" ? "#8B5CF6" : "transparent",
-                  color:
-                    itemTypeFilter === "house-made" ? "#FFFFFF" : "#6B7280",
-                }}
-              >
-                Made
-              </button>
-            </div>
-          )}
-
-          {/* Top/Bottom toggle - only show in item mode */}
-          {viewMode === "item" && (
-            <div
-              style={{
-                display: "flex",
-                gap: "4px",
-                backgroundColor: "#E5E7EB",
-                padding: "4px",
-                borderRadius: "6px",
-              }}
-            >
-              <button
-                onClick={() => setSortOrder("top")}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  backgroundColor:
-                    sortOrder === "top" ? "#3B82F6" : "transparent",
-                  color: sortOrder === "top" ? "#FFFFFF" : "#6B7280",
-                }}
-              >
-                Top 10
-              </button>
-              <button
-                onClick={() => setSortOrder("bottom")}
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  backgroundColor:
-                    sortOrder === "bottom" ? "#3B82F6" : "transparent",
-                  color: sortOrder === "bottom" ? "#FFFFFF" : "#6B7280",
-                }}
-              >
-                Bottom 10
-              </button>
-            </div>
-          )}
+          <FilterBar
+            filters={filters}
+            onFilterChange={onFilterChange}
+            enabledFilters={
+              filters.viewMode === "item"
+                ? ["viewMode", "itemType", "sortOrder"]
+                : ["viewMode"]
+            }
+          />
         </div>
 
         {/* Category dropdown - only enabled in item mode */}
-        <div style={{ opacity: viewMode === "category" ? 0.5 : 1 }}>
+        <div style={{ opacity: filters.viewMode === "category" ? 0.5 : 1 }}>
           <CategoryDropdown
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-            disabled={viewMode === "category"}
+            value={filters.selectedCategory || "all"}
+            onChange={(cat) =>
+              onFilterChange({ ...filters, selectedCategory: cat })
+            }
+            disabled={filters.viewMode === "category"}
           />
         </div>
       </div>
@@ -268,11 +112,11 @@ const ProfitChart = ({
         {displayData.map((item, index) => {
           const widthPercent = (item.total_profit / maxProfit) * 100;
           const displayName =
-            viewMode === "category"
+            filters.viewMode === "category"
               ? getCategoryDisplayName(item.category)
               : item.item_name;
           const barColor =
-            viewMode === "category"
+            filters.viewMode === "category"
               ? getCategoryColor(item.category)
               : getCategoryColor(item.category);
 
@@ -336,15 +180,14 @@ const ProfitChart = ({
 
 export default function ItemsByProfit() {
   const [data, setData] = useState<Record<string, any>[]>([]);
-  const [categoryData, setCategoryData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"top" | "bottom">("top");
-  const [viewMode, setViewMode] = useState<"item" | "category">("item");
-  const [itemTypeFilter, setItemTypeFilter] = useState<
-    "all" | "purchased" | "house-made"
-  >("all");
+  const [filters, setFilters] = useState({
+    itemType: "all",
+    sortOrder: "top",
+    viewMode: "item",
+    selectedCategory: "all",
+  });
 
   const { startDate, endDate } = useDateRange();
 
@@ -352,13 +195,13 @@ export default function ItemsByProfit() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch both item and category data
-      const [itemResponse, categoryResponse] = await Promise.all([
-        getItemsByProfit(startDate, endDate, itemTypeFilter),
-        getCategoriesByProfit(startDate, endDate),
-      ]);
+      // Fetch item data only
+      const itemResponse = await getItemsByProfit(
+        startDate,
+        endDate,
+        filters.itemType || "all"
+      );
       setData(itemResponse.data);
-      setCategoryData(categoryResponse.data);
     } catch (err) {
       setError("Failed to load data");
       console.error(err);
@@ -369,19 +212,19 @@ export default function ItemsByProfit() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate, itemTypeFilter]);
+  }, [startDate, endDate, filters.itemType]);
 
-  // Filter data by selected category (only in item mode)
+  // Aggregate by category if in category mode, otherwise filter by selected category
   const filteredData =
-    viewMode === "category"
-      ? categoryData // Show all categories
-      : selectedCategory === "all"
+    filters.viewMode === "category"
+      ? aggregateByCategory(data) // Client-side aggregation
+      : filters.selectedCategory === "all"
       ? data
-      : data.filter((item) => item.category === selectedCategory);
+      : data.filter((item) => item.category === filters.selectedCategory);
 
   // Sort data based on sortOrder (reverse for bottom 10 in table)
   const sortedData =
-    sortOrder === "top" ? filteredData : [...filteredData].reverse();
+    filters.sortOrder === "top" ? filteredData : [...filteredData].reverse();
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
@@ -402,14 +245,8 @@ export default function ItemsByProfit() {
       {/* Chart with inline controls */}
       <ProfitChart
         data={filteredData}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        itemTypeFilter={itemTypeFilter}
-        setItemTypeFilter={setItemTypeFilter}
+        filters={filters}
+        onFilterChange={setFilters}
       />
 
       {/* Data table */}
@@ -417,7 +254,7 @@ export default function ItemsByProfit() {
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              {viewMode === "category" ? (
+              {filters.viewMode === "category" ? (
                 <>
                   <th className="border border-gray-300 px-4 py-2 text-left">
                     Category
@@ -449,7 +286,7 @@ export default function ItemsByProfit() {
           <tbody>
             {sortedData.map((row, i) => (
               <tr key={i} className="hover:bg-gray-50">
-                {viewMode === "category" ? (
+                {filters.viewMode === "category" ? (
                   <>
                     <td className="border border-gray-300 px-4 py-2 text-left">
                       {getCategoryDisplayName(row.category)}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
+import FilterBar, { type FilterValues } from "./FilterBar";
 
 export interface Column {
   key: string;
@@ -15,13 +16,21 @@ interface ReportLayoutProps {
   title: string;
   fetchData: (
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    filters?: FilterValues
   ) => Promise<{ data: Record<string, any>[] }>;
   columns: Column[];
   needsDateRange?: boolean;
-  ChartComponent?: React.ComponentType<{ data: Record<string, any>[] }>;
-  enableCache?: boolean; // New prop to enable caching
-  cacheKey?: string; // Unique key for this report's cache
+  ChartComponent?: React.ComponentType<{
+    data: Record<string, any>[];
+    filters?: FilterValues;
+  }>;
+  enableCache?: boolean;
+  cacheKey?: string;
+  // Filter configuration
+  enabledFilters?: Array<"itemType" | "sortOrder" | "viewMode" | "category">;
+  showCategoryDropdown?: boolean;
+  defaultFilters?: FilterValues;
 }
 
 export default function ReportLayout({
@@ -32,10 +41,20 @@ export default function ReportLayout({
   ChartComponent,
   enableCache = false,
   cacheKey = "report_cache",
+  enabledFilters = [],
+  showCategoryDropdown = false,
+  defaultFilters = {},
 }: ReportLayoutProps) {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterValues>({
+    itemType: "all",
+    sortOrder: "top",
+    viewMode: "item",
+    selectedCategory: "all",
+    ...defaultFilters,
+  });
 
   // Get dates from global context
   const { startDate, endDate } = useDateRange();
@@ -87,8 +106,8 @@ export default function ReportLayout({
     setError(null);
     try {
       const response = needsDateRange
-        ? await fetchData(startDate, endDate)
-        : await fetchData();
+        ? await fetchData(startDate, endDate, filters)
+        : await fetchData(undefined, undefined, filters);
       setData(response.data);
       saveToCache(response.data);
     } catch (err) {
@@ -99,10 +118,34 @@ export default function ReportLayout({
     }
   };
 
-  // Reload data when dates change
+  // Reload data when dates or filters change
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]); // Refresh when global dates change
+  }, [
+    startDate,
+    endDate,
+    filters.itemType,
+    filters.sortOrder,
+    filters.viewMode,
+    filters.selectedCategory,
+  ]);
+
+  // Apply filters to data for display
+  const filteredData = data.filter((row) => {
+    // Filter by category if in item mode
+    if (
+      filters.viewMode === "item" &&
+      filters.selectedCategory &&
+      filters.selectedCategory !== "all"
+    ) {
+      if (row.category !== filters.selectedCategory) return false;
+    }
+    return true;
+  });
+
+  // Sort data based on sortOrder
+  const sortedData =
+    filters.sortOrder === "top" ? filteredData : [...filteredData].reverse();
 
   return (
     <div className="p-6">
@@ -124,10 +167,21 @@ export default function ReportLayout({
 
       {error && <p className="text-red-600 bg-red-50 p-3 rounded">{error}</p>}
 
-      {/* Chart - appears before table */}
+      {/* Chart with filters - appears before table */}
       {!loading && !error && data.length > 0 && ChartComponent && (
         <div className="mb-6">
-          <ChartComponent data={data} />
+          {/* Render FilterBar if filters are enabled */}
+          {enabledFilters.length > 0 && (
+            <div className="mb-4 p-4 bg-white rounded-lg">
+              <FilterBar
+                filters={filters}
+                onFilterChange={setFilters}
+                enabledFilters={enabledFilters}
+                showCategoryDropdown={showCategoryDropdown}
+              />
+            </div>
+          )}
+          <ChartComponent data={filteredData} filters={filters} />
         </div>
       )}
 
@@ -149,7 +203,7 @@ export default function ReportLayout({
               </tr>
             </thead>
             <tbody>
-              {data.map((row, i) => (
+              {sortedData.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50">
                   {columns.map((col) => (
                     <td
@@ -168,7 +222,7 @@ export default function ReportLayout({
             </tbody>
           </table>
           <div className="mt-2 text-sm text-gray-600">
-            Total rows: {data.length}
+            Total rows: {filteredData.length}
           </div>
         </div>
       )}
