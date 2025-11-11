@@ -379,16 +379,19 @@ def labor_percent():
 def items_by_profit():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
+    item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
 
     try:
         conn = get_db()
         cursor = conn.cursor()
 
+        # Base query with sold_unaltered field
         query = '''
             SELECT 
                 i.item_id,
                 i.item_name,
                 i.category,
+                i.sold_unaltered,
                 SUM(t.quantity) as units_sold,
 
                 ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
@@ -396,11 +399,21 @@ def items_by_profit():
             FROM transactions t
             JOIN items i ON t.item_id = i.item_id
             WHERE DATE(t.transaction_date) BETWEEN ? AND ?
-            GROUP BY t.item_id, i.item_name, i.category
+        '''
+        
+        # Add item_type filter if specified
+        params = [start_date, end_date]
+        if item_type == 'purchased':
+            query += ' AND i.sold_unaltered = 1'
+        elif item_type == 'house-made':
+            query += ' AND i.sold_unaltered = 0'
+        
+        query += '''
+            GROUP BY t.item_id, i.item_name, i.category, i.sold_unaltered
             ORDER BY total_profit DESC
         '''
 
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
@@ -409,7 +422,8 @@ def items_by_profit():
         return jsonify({
             'success': True,
             'data': data,
-            'date_range': {'start': start_date, 'end': end_date}
+            'date_range': {'start': start_date, 'end': end_date},
+            'item_type': item_type
         })
 
     except Exception as e:
@@ -420,6 +434,8 @@ def items_by_profit():
 @app.route('/api/reports/items-by-margin', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def items_by_margin():
+    item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
+    
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -429,16 +445,25 @@ def items_by_margin():
                 item_id,
                 item_name,
                 category,
+                sold_unaltered,
                 current_price,
                 current_cost,
                 ROUND(current_price - current_cost, 2) as profit_per_unit,
                 ROUND((current_price - current_cost) / current_price * 100, 2) as margin_pct
             FROM items
             WHERE current_price > 0
-            ORDER BY margin_pct DESC
         '''
+        
+        # Add item_type filter if specified
+        params = []
+        if item_type == 'purchased':
+            query += ' AND sold_unaltered = 1'
+        elif item_type == 'house-made':
+            query += ' AND sold_unaltered = 0'
+        
+        query += ' ORDER BY margin_pct DESC'
 
-        cursor.execute(query)
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
@@ -446,7 +471,8 @@ def items_by_margin():
 
         return jsonify({
             'success': True,
-            'data': data
+            'data': data,
+            'item_type': item_type
         })
 
     except Exception as e:

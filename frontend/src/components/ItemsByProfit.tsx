@@ -48,6 +48,8 @@ const ProfitChart = ({
   setSelectedCategory,
   viewMode,
   setViewMode,
+  itemTypeFilter,
+  setItemTypeFilter,
 }: {
   data: Record<string, any>[];
   sortOrder: "top" | "bottom";
@@ -56,6 +58,8 @@ const ProfitChart = ({
   setSelectedCategory: (category: string) => void;
   viewMode: "item" | "category";
   setViewMode: (mode: "item" | "category") => void;
+  itemTypeFilter: "all" | "purchased" | "house-made";
+  setItemTypeFilter: (filter: "all" | "purchased" | "house-made") => void;
 }) => {
   // In category mode, show all categories (no top/bottom split)
   // In item mode, show top 10 or bottom 10
@@ -93,7 +97,7 @@ const ProfitChart = ({
             style={{
               display: "flex",
               gap: "4px",
-              backgroundColor: "#F3F4F6",
+              backgroundColor: "#E5E7EB",
               padding: "4px",
               borderRadius: "6px",
             }}
@@ -134,13 +138,79 @@ const ProfitChart = ({
             </button>
           </div>
 
+          {/* Item Type Filter (All / Purchased / House-Made) - only show in item mode */}
+          {viewMode === "item" && (
+            <div
+              style={{
+                display: "flex",
+                gap: "4px",
+                backgroundColor: "#E5E7EB",
+                padding: "4px",
+                borderRadius: "6px",
+              }}
+            >
+              <button
+                onClick={() => setItemTypeFilter("all")}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  backgroundColor:
+                    itemTypeFilter === "all" ? "#8B5CF6" : "transparent",
+                  color: itemTypeFilter === "all" ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setItemTypeFilter("purchased")}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  backgroundColor:
+                    itemTypeFilter === "purchased" ? "#8B5CF6" : "transparent",
+                  color: itemTypeFilter === "purchased" ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                Resold
+              </button>
+              <button
+                onClick={() => setItemTypeFilter("house-made")}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  backgroundColor:
+                    itemTypeFilter === "house-made" ? "#8B5CF6" : "transparent",
+                  color:
+                    itemTypeFilter === "house-made" ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                Made
+              </button>
+            </div>
+          )}
+
           {/* Top/Bottom toggle - only show in item mode */}
           {viewMode === "item" && (
             <div
               style={{
                 display: "flex",
                 gap: "4px",
-                backgroundColor: "#F3F4F6",
+                backgroundColor: "#E5E7EB",
                 padding: "4px",
                 borderRadius: "6px",
               }}
@@ -272,6 +342,9 @@ export default function ItemsByProfit() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"top" | "bottom">("top");
   const [viewMode, setViewMode] = useState<"item" | "category">("item");
+  const [itemTypeFilter, setItemTypeFilter] = useState<
+    "all" | "purchased" | "house-made"
+  >("all");
 
   const { startDate, endDate } = useDateRange();
 
@@ -281,7 +354,7 @@ export default function ItemsByProfit() {
     try {
       // Fetch both item and category data
       const [itemResponse, categoryResponse] = await Promise.all([
-        getItemsByProfit(startDate, endDate),
+        getItemsByProfit(startDate, endDate, itemTypeFilter),
         getCategoriesByProfit(startDate, endDate),
       ]);
       setData(itemResponse.data);
@@ -296,7 +369,7 @@ export default function ItemsByProfit() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, itemTypeFilter]);
 
   // Filter data by selected category (only in item mode)
   const filteredData =
@@ -335,6 +408,8 @@ export default function ItemsByProfit() {
         setSelectedCategory={setSelectedCategory}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        itemTypeFilter={itemTypeFilter}
+        setItemTypeFilter={setItemTypeFilter}
       />
 
       {/* Data table */}

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE = import.meta.env.DEV
-  ? "http://localhost:5500/api"  // ← What your screenshot shows
+  ? "http://localhost:5500/api" // ← What your screenshot shows
   : "https://edmondscafe.pythonanywhere.com/api";
 
 // Interfaces
@@ -27,6 +27,7 @@ export interface LaborHour {
 export interface ProfitItem {
   item_name: string;
   category: string;
+  sold_unaltered: boolean;
   units_sold: number;
   total_profit: number;
   margin_pct: number;
@@ -35,6 +36,7 @@ export interface ProfitItem {
 export interface MarginItem {
   item_name: string;
   category: string;
+  sold_unaltered: boolean;
   current_price: number;
   current_cost: number;
   profit_per_unit: number;
@@ -154,16 +156,24 @@ export const getLaborPercent = async (
 };
 
 // R4: Items by Profit
-export const getItemsByProfit = async (startDate: string, endDate: string) => {
+export const getItemsByProfit = async (
+  startDate: string,
+  endDate: string,
+  itemType: "all" | "purchased" | "house-made" = "all"
+) => {
   const response = await axios.get(`${API_BASE}/reports/items-by-profit`, {
-    params: { start: startDate, end: endDate },
+    params: { start: startDate, end: endDate, item_type: itemType },
   });
   return response.data;
 };
 
 // R5: Items by Margin
-export const getItemsByMargin = async () => {
-  const response = await axios.get(`${API_BASE}/reports/items-by-margin`);
+export const getItemsByMargin = async (
+  itemType: "all" | "purchased" | "house-made" = "all"
+) => {
+  const response = await axios.get(`${API_BASE}/reports/items-by-margin`, {
+    params: { item_type: itemType },
+  });
   return response.data;
 };
 
@@ -274,19 +284,22 @@ export const getTimePeriodComparison = async (
   periodBStartHour: number,
   periodBEndHour: number
 ) => {
-  const response = await axios.get(`${API_BASE}/reports/time-period-comparison`, {
-    params: {
-      item_id: itemId,
-      start: startDate,
-      end: endDate,
-      period_a_days: periodADays,
-      period_a_start_hour: periodAStartHour,
-      period_a_end_hour: periodAEndHour,
-      period_b_days: periodBDays,
-      period_b_start_hour: periodBStartHour,
-      period_b_end_hour: periodBEndHour,
-    },
-  });
+  const response = await axios.get(
+    `${API_BASE}/reports/time-period-comparison`,
+    {
+      params: {
+        item_id: itemId,
+        start: startDate,
+        end: endDate,
+        period_a_days: periodADays,
+        period_a_start_hour: periodAStartHour,
+        period_a_end_hour: periodAEndHour,
+        period_b_days: periodBDays,
+        period_b_start_hour: periodBStartHour,
+        period_b_end_hour: periodBEndHour,
+      },
+    }
+  );
   return response.data;
 };
 

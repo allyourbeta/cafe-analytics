@@ -22,6 +22,7 @@ CREATE TABLE items (
     )),
     current_price DECIMAL(10,2) NOT NULL CHECK(current_price >= 0),
     current_cost DECIMAL(10,2) NOT NULL CHECK(current_cost >= 0),
+    sold_unaltered BOOLEAN DEFAULT 0,  -- 0=house-made (requires prep), 1=purchased (ready-to-sell)
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
