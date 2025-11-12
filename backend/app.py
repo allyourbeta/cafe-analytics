@@ -54,7 +54,8 @@ def clear_cache():
 def items_by_revenue():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -95,7 +96,8 @@ def items_by_revenue():
 def total_sales():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -111,8 +113,6 @@ def total_sales():
 
         total = row['total_sales'] if row['total_sales'] is not None else 0
 
-        conn.close()
-
         return jsonify({
             'success': True,
             'data': {
@@ -124,6 +124,9 @@ def total_sales():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R1: Sales per Labor Hour
@@ -134,7 +137,8 @@ def sales_per_hour():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
     single_date = request.args.get('date')  # For single mode
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -156,8 +160,6 @@ def sales_per_hour():
             cursor.execute(query, (target_date,))
             rows = cursor.fetchall()
             data = [dict(row) for row in rows]
-
-            conn.close()
 
             return jsonify({
                 'success': True,
@@ -223,8 +225,6 @@ def sales_per_hour():
                         'hourly_data': data_by_day[day]
                     })
 
-            conn.close()
-
             return jsonify({
                 'success': True,
                 'mode': 'day-of-week',
@@ -273,8 +273,6 @@ def sales_per_hour():
             rows = cursor.fetchall()
             data = [dict(row) for row in rows]
 
-            conn.close()
-
             return jsonify({
                 'success': True,
                 'mode': 'average',
@@ -289,6 +287,9 @@ def sales_per_hour():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R2: Labor % per Labor Hour (with accurate proration)
@@ -298,7 +299,8 @@ def labor_percent():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
     include_salaried = request.args.get('include_salaried', 'true').lower() == 'true'
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -360,8 +362,6 @@ def labor_percent():
                 'student_cost': round(breakdown['student_cost'], 2)
             })
 
-        conn.close()
-
         return jsonify({
             'success': True,
             'data': data,
@@ -371,6 +371,9 @@ def labor_percent():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R4: Items by Total Profit
@@ -380,7 +383,8 @@ def items_by_profit():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
     item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -417,7 +421,6 @@ def items_by_profit():
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -428,6 +431,9 @@ def items_by_profit():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R5: Items by Profitability %
@@ -436,6 +442,7 @@ def items_by_profit():
 def items_by_margin():
     item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
     
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -467,7 +474,6 @@ def items_by_margin():
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -477,6 +483,9 @@ def items_by_margin():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R6: Categories by Revenue (aggregated by category)
@@ -485,7 +494,8 @@ def items_by_margin():
 def categories_by_revenue():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -506,7 +516,6 @@ def categories_by_revenue():
         rows = cursor.fetchall()
 
         categories = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -516,6 +525,9 @@ def categories_by_revenue():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R7: Categories by Profit (aggregated by category)
@@ -524,7 +536,8 @@ def categories_by_revenue():
 def categories_by_profit():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -546,7 +559,6 @@ def categories_by_profit():
         rows = cursor.fetchall()
 
         categories = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -556,6 +568,9 @@ def categories_by_profit():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R8: Get top items for heatmap selector
@@ -565,7 +580,8 @@ def top_items():
     start_date = request.args.get('start', '2024-08-01')
     end_date = request.args.get('end', '2024-10-23')
     limit = int(request.args.get('limit', 25))
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -588,7 +604,6 @@ def top_items():
         rows = cursor.fetchall()
 
         items = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -598,6 +613,9 @@ def top_items():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R9: Item heatmap data (hourly × daily patterns)
@@ -610,7 +628,8 @@ def item_heatmap():
 
     if not item_id:
         return jsonify({'success': False, 'error': 'item_id required'}), 400
-
+    
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -651,7 +670,6 @@ def item_heatmap():
         rows = cursor.fetchall()
 
         data = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -661,6 +679,9 @@ def item_heatmap():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # P1: Daily Sales Forecast (next 21 days)
@@ -717,8 +738,6 @@ def daily_forecast():
                 'basis': f'Avg of last {len(sales_points)} valid weeks'
             })
 
-        conn.close()
-
         return jsonify({
             'success': True,
             'data': forecasts
@@ -726,6 +745,9 @@ def daily_forecast():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # P2: Hourly Sales Forecast (next 21 days)
@@ -799,8 +821,6 @@ def hourly_forecast():
                 'basis': f'Avg of last {len(hourly_sales_data)} valid weeks'
             })
 
-        conn.close()
-
         return jsonify({
             'success': True,
             'data': all_forecasts
@@ -808,6 +828,9 @@ def hourly_forecast():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # P3: Item Demand Forecast (next 21 days, grouped by week)
@@ -909,8 +932,6 @@ def item_demand_forecast():
                 'total_forecast': total_forecast
             })
 
-        conn.close()
-
         # Sort by total forecast descending
         all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
 
@@ -921,6 +942,9 @@ def item_demand_forecast():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # P4: Category Demand Forecast (next 21 days, grouped by week)
@@ -1023,8 +1047,6 @@ def category_demand_forecast():
                 'total_forecast': total_forecast
             })
 
-        conn.close()
-
         # Sort by total forecast descending
         all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
 
@@ -1035,6 +1057,9 @@ def category_demand_forecast():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # Get all items (for dropdowns)
@@ -1053,7 +1078,6 @@ def get_all_items():
         cursor.execute(query)
         rows = cursor.fetchall()
         items = [dict(row) for row in rows]
-        conn.close()
 
         return jsonify({
             'success': True,
@@ -1062,6 +1086,9 @@ def get_all_items():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # R10: Time Period Comparison
@@ -1099,7 +1126,8 @@ def time_period_comparison():
 
         if not item_id:
             return jsonify({'success': False, 'error': 'item_id is required'}), 400
-
+        
+        conn = None
         conn = get_db()
         cursor = conn.cursor()
 
@@ -1155,8 +1183,6 @@ def time_period_comparison():
         period_a_data = get_period_revenue(period_a_day_list, period_a_start_hour, period_a_end_hour)
         period_b_data = get_period_revenue(period_b_day_list, period_b_start_hour, period_b_end_hour)
 
-        conn.close()
-
         return jsonify({
             'success': True,
             'data': {
@@ -1184,6 +1210,9 @@ def time_period_comparison():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 from flask import send_from_directory
 

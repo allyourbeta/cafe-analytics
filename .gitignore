@@ -9,6 +9,7 @@ __pycache__/
 *.xls
 *.xlsx
 *.db
+*.gz
 
 
 # Backup files, e.g. database backup
