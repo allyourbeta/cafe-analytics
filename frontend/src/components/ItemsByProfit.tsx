@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
+import { useReportFilters } from "../context/ReportFiltersContext";
 import { getItemsByProfit } from "../utils/api";
 import {
   getCategoryColor,
@@ -10,8 +11,7 @@ import {
   formatNumber,
   aggregateByCategory,
 } from "../utils/formatters";
-import CategoryDropdown from "./CategoryDropdown";
-import FilterBar, { type FilterValues } from "./FilterBar";
+import FilterBar from "./FilterBar";
 
 const columns = [
   {
@@ -47,13 +47,12 @@ const columns = [
 // Horizontal bar chart by category
 const ProfitChart = ({
   data,
-  filters,
-  onFilterChange,
 }: {
   data: Record<string, any>[];
-  filters: FilterValues;
-  onFilterChange: (filters: FilterValues) => void;
 }) => {
+  // Use centralized filters
+  const { filters, updateFilters } = useReportFilters();
+
   // In category mode, show all categories (no top/bottom split)
   // In item mode, show top 10 or bottom 10
   const displayData =
@@ -69,7 +68,7 @@ const ProfitChart = ({
     <div
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
-      {/* Header with title, view mode toggle, top/bottom toggle, and category dropdown */}
+      {/* Header with title and FilterBar */}
       <div
         style={{
           display: "flex",
@@ -84,25 +83,17 @@ const ProfitChart = ({
           <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
             Items by Profit $$
           </h3>
+
+          {/* Use FilterBar component with centralized state */}
           <FilterBar
             filters={filters}
-            onFilterChange={onFilterChange}
+            onFilterChange={updateFilters}
             enabledFilters={
               filters.viewMode === "item"
-                ? ["viewMode", "itemType", "sortOrder"]
+                ? ["viewMode", "itemType", "sortOrder", "category"]
                 : ["viewMode"]
             }
-          />
-        </div>
-
-        {/* Category dropdown - only enabled in item mode */}
-        <div style={{ opacity: filters.viewMode === "category" ? 0.5 : 1 }}>
-          <CategoryDropdown
-            value={filters.selectedCategory || "all"}
-            onChange={(cat) =>
-              onFilterChange({ ...filters, selectedCategory: cat })
-            }
-            disabled={filters.viewMode === "category"}
+            showCategoryDropdown={filters.viewMode === "item"}
           />
         </div>
       </div>
@@ -182,14 +173,9 @@ export default function ItemsByProfit() {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    itemType: "all",
-    sortOrder: "top",
-    viewMode: "item",
-    selectedCategory: "all",
-  });
 
   const { startDate, endDate } = useDateRange();
+  const { filters } = useReportFilters();
 
   const loadData = async () => {
     setLoading(true);
@@ -242,12 +228,8 @@ export default function ItemsByProfit() {
 
   return (
     <div>
-      {/* Chart with inline controls */}
-      <ProfitChart
-        data={filteredData}
-        filters={filters}
-        onFilterChange={setFilters}
-      />
+      {/* Chart with centralized filter controls */}
+      <ProfitChart data={filteredData} />
 
       {/* Data table */}
       <div className="mt-6 overflow-x-auto">
