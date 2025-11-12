@@ -1178,7 +1178,6 @@ def time_period_comparison():
         cursor.execute('SELECT item_name, category FROM items WHERE item_id = ?', (item_id,))
         item_row = cursor.fetchone()
         if not item_row:
-            conn.close()
             return jsonify({'success': False, 'error': 'Item not found'}), 404
 
         item_name = item_row['item_name']
