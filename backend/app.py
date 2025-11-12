@@ -349,6 +349,23 @@ def labor_percent(cursor):
     end_date = request.args.get('end', default_end)
     include_salaried = request.args.get('include_salaried', 'true').lower() == 'true'
 
+    # First, check if there's any revenue data in this date range
+    revenue_check_query = '''
+        SELECT COUNT(*) as transaction_count
+        FROM transactions
+        WHERE DATE(transaction_date) BETWEEN ? AND ?
+    '''
+    cursor.execute(revenue_check_query, (start_date, end_date))
+    has_revenue_data = cursor.fetchone()['transaction_count'] > 0
+
+    # If no revenue data, return empty result (like items_by_revenue does)
+    if not has_revenue_data:
+        return success_response(
+            [],
+            date_range={'start': start_date, 'end': end_date},
+            include_salaried=include_salaried
+        )
+
     # Get hourly sales from transactions
     sales_query = '''
         SELECT 
