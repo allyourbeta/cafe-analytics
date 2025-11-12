@@ -339,6 +339,7 @@ export default function TimePeriodComparison() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"hourly" | "total">("hourly");
+  const [hasSelectedItem, setHasSelectedItem] = useState(false);
 
   // Period A settings - START WITH EMPTY DAYS AND 07:00-07:00
   const [periodADays, setPeriodADays] = useState<number[]>([]);
@@ -525,14 +526,18 @@ export default function TimePeriodComparison() {
           </label>
           <select
             value={selectedItemId || ""}
-            onChange={(e) => setSelectedItemId(Number(e.target.value))}
+            onChange={(e) => {
+              setSelectedItemId(Number(e.target.value));
+              setHasSelectedItem(true); // Stop animation after first selection
+            }}
             style={{
               width: "100%",
               padding: "12px",
               fontSize: "16px",
-              border: "1px solid #D1D5DB",
+              border: "2px solid #F97316",
               borderRadius: "8px",
               backgroundColor: "white",
+              animation: hasSelectedItem ? 'none' : 'glowPulse 2s ease-in-out infinite',
             }}
           >
             <option value="" disabled>
@@ -544,6 +549,17 @@ export default function TimePeriodComparison() {
               </option>
             ))}
           </select>
+
+          <style>{`
+            @keyframes glowPulse {
+              0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+              }
+              50% { 
+                box-shadow: 0 0 20px 4px rgba(249, 115, 22, 0.4);
+              }
+            }
+          `}</style>
         </div>
 
         {/* Period Configuration Grid */}
@@ -749,44 +765,7 @@ export default function TimePeriodComparison() {
       </div>
 
       {/* Visualization */}
-      {!selectedItemId ? (
-        <div
-          style={{
-            padding: "60px 40px",
-            backgroundColor: "white",
-            borderRadius: "8px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "48px",
-              marginBottom: "16px",
-            }}
-          >
-            📊
-          </div>
-          <div
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              color: "#374151",
-              marginBottom: "8px",
-            }}
-          >
-            Select an Item to Begin
-          </div>
-          <div
-            style={{
-              fontSize: "15px",
-              color: "#6B7280",
-            }}
-          >
-            Choose an item from the dropdown above to compare revenue across
-            time periods
-          </div>
-        </div>
-      ) : !comparisonData && !loading ? (
+      {!selectedItemId ? null : !comparisonData && !loading ? (
         <div
           style={{
             padding: "40px",
