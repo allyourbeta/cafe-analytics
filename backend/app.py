@@ -32,6 +32,19 @@ def get_db():
         raise  # Re-raise so endpoints can handle it gracefully
 
 
+def get_default_date_range():
+    """
+    Calculate sensible default date range for API endpoints.
+    Returns (start_date, end_date) as strings in 'YYYY-MM-DD' format.
+    
+    Default: Last 90 days of data from today.
+    """
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    
+    return start_date, end_date
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'message': 'Backend running!'})
@@ -57,8 +70,9 @@ def clear_cache():
 @app.route('/api/reports/items-by-revenue', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def items_by_revenue():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     
     conn = None
     try:
@@ -99,8 +113,9 @@ def items_by_revenue():
 @app.route('/api/total-sales', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def total_sales():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     
     conn = None
     try:
@@ -139,8 +154,9 @@ def total_sales():
 @cache.cached(timeout=43200, query_string=True)  # 12 hours
 def sales_per_hour():
     mode = request.args.get('mode', 'average')  # 'average', 'single', or 'day-of-week'
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     single_date = request.args.get('date')  # For single mode
     
     conn = None
@@ -301,8 +317,9 @@ def sales_per_hour():
 @app.route('/api/reports/labor-percent', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)  # 12 hours
 def labor_percent():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     include_salaried = request.args.get('include_salaried', 'true').lower() == 'true'
     
     conn = None
@@ -385,8 +402,9 @@ def labor_percent():
 @app.route('/api/reports/items-by-profit', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def items_by_profit():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
     
     conn = None
@@ -497,8 +515,9 @@ def items_by_margin():
 @app.route('/api/reports/categories-by-revenue', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def categories_by_revenue():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     
     conn = None
     try:
@@ -539,8 +558,9 @@ def categories_by_revenue():
 @app.route('/api/reports/categories-by-profit', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def categories_by_profit():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     
     conn = None
     try:
@@ -582,8 +602,9 @@ def categories_by_profit():
 @app.route('/api/reports/top-items', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def top_items():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     limit = int(request.args.get('limit', 25))
     
     conn = None
@@ -627,8 +648,9 @@ def top_items():
 @app.route('/api/reports/item-heatmap', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
 def item_heatmap():
-    start_date = request.args.get('start', '2024-08-01')
-    end_date = request.args.get('end', '2024-10-23')
+    default_start, default_end = get_default_date_range()
+    start_date = request.args.get('start', default_start)
+    end_date = request.args.get('end', default_end)
     item_id = request.args.get('item_id')
 
     if not item_id:
@@ -1116,8 +1138,9 @@ def time_period_comparison():
     """
     try:
         item_id = request.args.get('item_id', type=int)
-        start_date = request.args.get('start', '2024-08-01')
-        end_date = request.args.get('end', '2024-10-23')
+        default_start, default_end = get_default_date_range()
+        start_date = request.args.get('start', default_start)
+        end_date = request.args.get('end', default_end)
 
         # Period A parameters
         period_a_days = request.args.get('period_a_days', '1,2,3,4,5')  # Default: Weekdays
