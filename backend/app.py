@@ -90,6 +90,42 @@ def get_default_date_range():
     return start_date, end_date
 
 
+def success_response(data, **metadata):
+    """
+    Create a standardized success response.
+    
+    Args:
+        data: The primary data to return (list, dict, or primitive)
+        **metadata: Optional additional fields (date_range, mode, etc.)
+    
+    Returns:
+        dict: {'success': True, 'data': data, **metadata}
+    
+    Example:
+        success_response(items, date_range={'start': '2024-01-01', 'end': '2024-12-31'})
+        # Returns: {'success': True, 'data': items, 'date_range': {...}}
+    """
+    return {'success': True, 'data': data, **metadata}
+
+
+def error_response(error, status=500):
+    """
+    Create a standardized error response.
+    
+    Args:
+        error: Error message or exception
+        status: HTTP status code (default: 500)
+    
+    Returns:
+        tuple: (jsonify({'success': False, 'error': str(error)}), status)
+    
+    Example:
+        error_response('Item not found', 404)
+        # Returns: (jsonify({'success': False, 'error': 'Item not found'}), 404)
+    """
+    return jsonify({'success': False, 'error': str(error)}), status
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'message': 'Backend running!'})
@@ -100,15 +136,9 @@ def clear_cache():
     """Clear all cached data - useful after database updates"""
     try:
         cache.clear()
-        return jsonify({
-            'success': True,
-            'message': 'Cache cleared successfully'
-        })
+        return jsonify(success_response(None, message='Cache cleared successfully'))
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return error_response(e)
 
 
 # R3: Items by Revenue
@@ -139,12 +169,7 @@ def items_by_revenue(cursor):
 
     items = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': items,
-        'date_range': {'start': start_date, 'end': end_date}
-    }
-
+    return jsonify(success_response(items, date_range={'start': start_date, 'end': end_date}))
 
 # Total Sales for date range
 @app.route('/api/total-sales', methods=['GET'])
@@ -166,15 +191,11 @@ def total_sales(cursor):
 
     total = row['total_sales'] if row['total_sales'] is not None else 0
 
-    return {
-        'success': True,
-        'data': {
-            'total_sales': total,
-            'start_date': start_date,
-            'end_date': end_date
-        }
-    }
-
+    return jsonify(success_response({
+        'total_sales': total,
+        'start_date': start_date,
+        'end_date': end_date
+    }))
 
 # R1: Sales per Labor Hour
 @app.route('/api/reports/sales-per-hour', methods=['GET'])
@@ -205,12 +226,7 @@ def sales_per_hour(cursor):
         rows = cursor.fetchall()
         data = [dict(row) for row in rows]
 
-        return {
-            'success': True,
-            'mode': 'single',
-            'data': data,
-            'date': target_date
-        }
+        return success_response(data, mode='single', date=target_date)
 
     elif mode == 'day-of-week':
         # Day-of-week mode - calculate average sales per hour for each day of week
@@ -269,12 +285,7 @@ def sales_per_hour(cursor):
                     'hourly_data': data_by_day[day]
                 })
 
-        return {
-            'success': True,
-            'mode': 'day-of-week',
-            'data': data,
-            'date_range': {'start': start_date, 'end': end_date}
-        }
+        return success_response(data, mode='day-of-week', date_range={'start': start_date, 'end': end_date})
 
     else:
         # Average mode - calculate average sales per hour across date range
@@ -317,18 +328,16 @@ def sales_per_hour(cursor):
         rows = cursor.fetchall()
         data = [dict(row) for row in rows]
 
-        return {
-            'success': True,
-            'mode': 'average',
-            'data': data,
-            'date_range': {'start': start_date, 'end': end_date},
-            'metadata': {
+        return success_response(
+            data,
+            mode='average',
+            date_range={'start': start_date, 'end': end_date},
+            metadata={
                 'total_days_in_range': total_days_in_range,
                 'days_with_data': days_with_data_count,
                 'missing_days': missing_days_count
             }
-        }
-
+        )
 
 # R2: Labor % per Labor Hour (with accurate proration)
 @app.route('/api/reports/labor-percent', methods=['GET'])
@@ -399,13 +408,11 @@ def labor_percent(cursor):
             'student_cost': round(breakdown['student_cost'], 2)
         })
 
-    return {
-        'success': True,
-        'data': data,
-        'date_range': {'start': start_date, 'end': end_date},
-        'include_salaried': include_salaried
-    }
-
+    return success_response(
+        data,
+        date_range={'start': start_date, 'end': end_date},
+        include_salaried=include_salaried
+    )
 
 # R4: Items by Total Profit
 @app.route('/api/reports/items-by-profit', methods=['GET'])
@@ -450,13 +457,11 @@ def items_by_profit(cursor):
 
     data = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': data,
-        'date_range': {'start': start_date, 'end': end_date},
-        'item_type': item_type
-    }
-
+    return success_response(
+        data,
+        date_range={'start': start_date, 'end': end_date},
+        item_type=item_type
+    )
 
 # R5: Items by Profitability %
 @app.route('/api/reports/items-by-margin', methods=['GET'])
@@ -493,11 +498,7 @@ def items_by_margin(cursor):
 
     data = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': data,
-        'item_type': item_type
-    }
+    return success_response(data, item_type=item_type)
 
 
 # R6: Categories by Revenue (aggregated by category)
@@ -560,11 +561,7 @@ def categories_by_profit(cursor):
 
     categories = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': categories,
-        'date_range': {'start': start_date, 'end': end_date}
-    }
+    return success_response(categories, date_range={'start': start_date, 'end': end_date})
 
 
 # R8: Get top items for heatmap selector
@@ -596,11 +593,7 @@ def top_items(cursor):
 
     items = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': items,
-        'date_range': {'start': start_date, 'end': end_date}
-    }
+    return success_response(items, date_range={'start': start_date, 'end': end_date})
 
 
 # R9: Item heatmap data (hourly × daily patterns)
@@ -614,7 +607,7 @@ def item_heatmap(cursor):
     item_id = request.args.get('item_id')
 
     if not item_id:
-        return jsonify({'success': False, 'error': 'item_id required'}), 400
+        return error_response('item_id required', 400)
 
     query = '''
         WITH daily_hourly_totals AS (
@@ -653,11 +646,7 @@ def item_heatmap(cursor):
 
     data = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': data,
-        'date_range': {'start': start_date, 'end': end_date}
-    }
+    return success_response(data, date_range={'start': start_date, 'end': end_date})
 
 
 # P1: Daily Sales Forecast (next 21 days)
@@ -711,10 +700,7 @@ def daily_forecast(cursor):
             'basis': f'Avg of last {len(sales_points)} valid weeks'
         })
 
-    return {
-        'success': True,
-        'data': forecasts
-    }
+    return success_response(forecasts)
 
 
 # P2: Hourly Sales Forecast (next 21 days)
@@ -786,10 +772,7 @@ def hourly_forecast(cursor):
             'basis': f'Avg of last {len(hourly_sales_data)} valid weeks'
         })
 
-    return {
-        'success': True,
-        'data': all_forecasts
-    }
+    return success_response(all_forecasts)
 
 
 # P3: Item Demand Forecast (next 21 days, grouped by week)
@@ -999,10 +982,7 @@ def category_demand_forecast(cursor):
     # Sort by total forecast descending
     all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
 
-    return {
-        'success': True,
-        'data': all_forecasts
-    }
+    return success_response(all_forecasts)
 
 
 # Get all items (for dropdowns)
@@ -1019,10 +999,7 @@ def get_all_items(cursor):
     rows = cursor.fetchall()
     items = [dict(row) for row in rows]
 
-    return {
-        'success': True,
-        'data': items
-    }
+    return success_response(items)
 
 
 # R10: Time Period Comparison
@@ -1060,7 +1037,7 @@ def time_period_comparison(cursor):
     period_b_end_hour = request.args.get('period_b_end_hour', type=int, default=17)
 
     if not item_id:
-        return jsonify({'success': False, 'error': 'item_id is required'}), 400
+        return error_response('item_id is required', 400)
 
     # Convert day strings to lists
     period_a_day_list = [int(d.strip()) for d in period_a_days.split(',')]
@@ -1104,7 +1081,7 @@ def time_period_comparison(cursor):
     cursor.execute('SELECT item_name, category FROM items WHERE item_id = ?', (item_id,))
     item_row = cursor.fetchone()
     if not item_row:
-        return jsonify({'success': False, 'error': 'Item not found'}), 404
+        return error_response('Item not found', 404)
 
     item_name = item_row['item_name']
     category = item_row['category']
@@ -1113,30 +1090,27 @@ def time_period_comparison(cursor):
     period_a_data = get_period_revenue(period_a_day_list, period_a_start_hour, period_a_end_hour)
     period_b_data = get_period_revenue(period_b_day_list, period_b_start_hour, period_b_end_hour)
 
-    return {
-        'success': True,
-        'data': {
-            'item_id': item_id,
-            'item_name': item_name,
-            'category': category,
-            'date_range': {
-                'start': start_date,
-                'end': end_date
-            },
-            'period_a': {
-                'days': period_a_day_list,
-                'start_hour': period_a_start_hour,
-                'end_hour': period_a_end_hour,
-                **period_a_data
-            },
-            'period_b': {
-                'days': period_b_day_list,
-                'start_hour': period_b_start_hour,
-                'end_hour': period_b_end_hour,
-                **period_b_data
-            }
+    return success_response({
+        'item_id': item_id,
+        'item_name': item_name,
+        'category': category,
+        'date_range': {
+            'start': start_date,
+            'end': end_date
+        },
+        'period_a': {
+            'days': period_a_day_list,
+            'start_hour': period_a_start_hour,
+            'end_hour': period_a_end_hour,
+            **period_a_data
+        },
+        'period_b': {
+            'days': period_b_day_list,
+            'start_hour': period_b_start_hour,
+            'end_hour': period_b_end_hour,
+            **period_b_data
         }
-    }
+    })
 
 
 from flask import send_from_directory
