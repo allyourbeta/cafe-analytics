@@ -21,10 +21,15 @@ DB_PATH = os.path.join(BASE_DIR, '../database/cafe_reports.db')
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA foreign_keys = ON")  # Enforce FK constraints
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA foreign_keys = ON")  # Enforce FK constraints
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        print(f"❌ Database connection failed: {e}")
+        print(f"   DB_PATH: {DB_PATH}")
+        raise  # Re-raise so endpoints can handle it gracefully
 
 
 @app.route('/api/health', methods=['GET'])
