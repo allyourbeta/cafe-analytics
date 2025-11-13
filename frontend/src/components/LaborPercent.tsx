@@ -265,7 +265,7 @@ const LaborChart = ({
                       style={{
                         backgroundColor: status.bg,
                         color: status.text,
-                        padding: "16px 8px",
+                        padding: "14px 8px",
                         borderRadius: "8px",
                         textAlign: "center",
                         boxShadow: isHovered
@@ -275,24 +275,33 @@ const LaborChart = ({
                         cursor: "pointer",
                         position: "relative",
                         transform: isHovered ? "scale(1.05)" : "scale(1)",
+                        minHeight: "95px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
                       }}
                       onMouseEnter={() => setHoveredItem(item)}
                       onMouseLeave={() => setHoveredItem(null)}
                     >
+                      {/* Hour - top */}
                       <div
                         style={{
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          marginBottom: "8px",
+                          fontSize: "12px",
+                          fontWeight: "500",
+                          marginBottom: "6px",
+                          opacity: 0.95,
                         }}
                       >
                         {hourTime}
                       </div>
+
+                      {/* Labor Percentage - main metric */}
                       <div
                         style={{
-                          fontSize: "22px",
+                          fontSize: "24px",
                           fontWeight: "700",
-                          marginBottom: "4px",
+                          marginBottom: "6px",
+                          lineHeight: "1",
                         }}
                       >
                         {item.labor_pct >= 100
@@ -300,7 +309,18 @@ const LaborChart = ({
                           : item.labor_pct.toFixed(1)}
                         %
                       </div>
-                      <div style={{ fontSize: "18px" }}>{status.icon}</div>
+
+                      {/* Student Hours - bottom */}
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: "400",
+                          opacity: 0.85,
+                          lineHeight: "1",
+                        }}
+                      >
+                        {item.student_hours.toFixed(1)} hrs
+                      </div>
 
                       {/* Tooltip */}
                       {isHovered && (
