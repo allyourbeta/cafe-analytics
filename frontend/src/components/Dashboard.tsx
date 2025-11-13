@@ -307,6 +307,25 @@ export default function Dashboard() {
         start = new Date(fyStartYear, 6, 1); // July 1
         end = today;
         break;
+      case "Last FY":
+        // Last FY: Complete previous fiscal year (July 1 - June 30)
+        const lyCurrentYear = today.getFullYear();
+        const lyCurrentMonth = today.getMonth(); // 0=Jan, 6=July
+
+        // If we're in July or later, last FY ended June 30 of current year
+        // If we're before July, last FY ended June 30 of last year
+        if (lyCurrentMonth >= 6) {
+          // Currently in July+ of this FY, so last FY was:
+          // July 1 (last year) to June 30 (this year)
+          start = new Date(lyCurrentYear - 1, 6, 1);  // July 1, last year
+          end = new Date(lyCurrentYear, 5, 30);       // June 30, this year
+        } else {
+          // Currently in Jan-June of this FY, so last FY was:
+          // July 1 (two years ago) to June 30 (last year)
+          start = new Date(lyCurrentYear - 2, 6, 1);  // July 1, two years ago
+          end = new Date(lyCurrentYear - 1, 5, 30);   // June 30, last year
+        }
+        break;
       default:
         return { start: "", end: "" };
     }
@@ -324,16 +343,10 @@ export default function Dashboard() {
 
   // Handle preset selection (updates temp state)
   const handlePresetClick = (preset: string) => {
-    if (preset === "Custom Range") {
-      setTempPreset("");
-      setTempStartDate("");
-      setTempEndDate("");
-    } else {
-      setTempPreset(preset);
-      const dates = calculatePresetDates(preset);
-      setTempStartDate(dates.start);
-      setTempEndDate(dates.end);
-    }
+    setTempPreset(preset);
+    const dates = calculatePresetDates(preset);
+    setTempStartDate(dates.start);
+    setTempEndDate(dates.end);
   };
 
   // Handle apply button (commits temp state to global context)
@@ -513,7 +526,7 @@ export default function Dashboard() {
                   "Last Month",
                   "This Quarter",
                   "This FY",
-                  "Custom Range",
+                  "Last FY",
                 ].map((preset) => (
                   <button
                     key={preset}
