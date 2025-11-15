@@ -16,7 +16,7 @@ DB_PATH = os.path.join(BASE_DIR, '../database/cafe_reports.db')
 
 # Initialize cache - 12 hour default timeout since data updates once daily
 cache = Cache(app, config={
-    'CACHE_TYPE': 'FileSystemCache',
+    'CACHE_TYPE': 'NullCache',
     'CACHE_DIR': os.path.join(BASE_DIR, '../cache'),
     'CACHE_DEFAULT_TIMEOUT': 43200  # 12 hours
 })
