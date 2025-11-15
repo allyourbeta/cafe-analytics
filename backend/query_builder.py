@@ -102,14 +102,14 @@ class QueryBuilder:
         Args:
             item_type (str): 'purchased', 'house-made', or 'all'
 
-        - 'purchased': sold_unaltered = 1 (items sold as-is)
-        - 'house-made': sold_unaltered = 0 (items made in-house)
+        - 'purchased': is_resold = 1 (items sold as-is)
+        - 'house-made': is_resold = 0 (items made in-house)
         - 'all': no filter applied
         """
         if item_type == 'purchased':
-            self._where_clauses.append('i.sold_unaltered = 1')
+            self._where_clauses.append('i.is_resold = 1')
         elif item_type == 'house-made':
-            self._where_clauses.append('i.sold_unaltered = 0')
+            self._where_clauses.append('i.is_resold = 0')
         # 'all' means no filter - do nothing
         return self
 
@@ -279,7 +279,7 @@ def build_items_profit_query(start_date, end_date, item_type='all'):
         i.item_id,
         i.item_name,
         i.category,
-        i.sold_unaltered,
+        i.is_resold,
         SUM(t.quantity) as units_sold,
         ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
         ROUND(SUM((t.unit_price - i.current_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
@@ -287,7 +287,7 @@ def build_items_profit_query(start_date, end_date, item_type='all'):
     qb.from_transactions_with_items()
     qb.add_date_range_filter(start_date, end_date)
     qb.add_item_type_filter(item_type)
-    qb.group_by('t.item_id, i.item_name, i.category, i.sold_unaltered')
+    qb.group_by('t.item_id, i.item_name, i.category, i.is_resold')
     qb.order_by('total_profit DESC')
 
     return qb.build()

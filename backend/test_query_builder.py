@@ -76,7 +76,7 @@ def test_item_type_filter():
     qb.from_transactions_with_items()
     qb.add_item_type_filter('purchased')
     query, params = qb.build()
-    assert 'i.sold_unaltered = 1' in query
+    assert 'i.is_resold = 1' in query
 
     # Test house-made
     qb = QueryBuilder()
@@ -84,7 +84,7 @@ def test_item_type_filter():
     qb.from_transactions_with_items()
     qb.add_item_type_filter('house-made')
     query, params = qb.build()
-    assert 'i.sold_unaltered = 0' in query
+    assert 'i.is_resold = 0' in query
 
     # Test all (no filter)
     qb = QueryBuilder()
@@ -92,7 +92,7 @@ def test_item_type_filter():
     qb.from_transactions_with_items()
     qb.add_item_type_filter('all')
     query, params = qb.build()
-    assert 'sold_unaltered' not in query
+    assert 'is_resold' not in query
 
     print("✓ Item type filter works")
 
@@ -112,7 +112,7 @@ def test_multiple_filters():
     query, params = qb.build()
 
     assert 'DATE(t.transaction_date) BETWEEN ? AND ?' in query
-    assert 'i.sold_unaltered = 1' in query
+    assert 'i.is_resold = 1' in query
     assert 'i.category = ?' in query
     assert params == ['2024-01-01', '2024-12-31', 'Coffee']
 
@@ -151,13 +151,13 @@ def test_items_profit_query():
     query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'all')
     assert 'total_profit' in query
     assert 'margin_pct' in query
-    # sold_unaltered appears in SELECT but not as a WHERE filter for 'all'
-    assert 'i.sold_unaltered = 1' not in query and 'i.sold_unaltered = 0' not in query
+    # is_resold appears in SELECT but not as a WHERE filter for 'all'
+    assert 'i.is_resold = 1' not in query and 'i.is_resold = 0' not in query
     assert params == ['2024-01-01', '2024-12-31']
 
     # Test with 'purchased' filter
     query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'purchased')
-    assert 'i.sold_unaltered = 1' in query
+    assert 'i.is_resold = 1' in query
     assert params == ['2024-01-01', '2024-12-31']
 
     print("✓ Items profit query correct")
@@ -276,7 +276,7 @@ def compare_old_vs_new_queries():
     query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'purchased')
     print(f"   Params: {params}")
     print(f"   Has date filter: {'DATE(t.transaction_date) BETWEEN' in query}")
-    print(f"   Has item type filter: {'i.sold_unaltered = 1' in query}")
+    print(f"   Has item type filter: {'i.is_resold = 1' in query}")
     print(f"   Has profit calculation: {'total_profit' in query}")
 
     # Categories by Revenue

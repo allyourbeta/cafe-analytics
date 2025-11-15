@@ -27,7 +27,7 @@ export interface LaborHour {
 export interface ProfitItem {
   item_name: string;
   category: string;
-  sold_unaltered: boolean;
+  is_resold: boolean;
   units_sold: number;
   total_profit: number;
   margin_pct: number;
@@ -36,7 +36,7 @@ export interface ProfitItem {
 export interface MarginItem {
   item_name: string;
   category: string;
-  sold_unaltered: boolean;
+  is_resold: boolean;
   current_price: number;
   current_cost: number;
   profit_per_unit: number;
