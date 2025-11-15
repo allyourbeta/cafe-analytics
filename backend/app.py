@@ -626,8 +626,25 @@ def item_heatmap(cursor):
 @cache.cached(timeout=43200, query_string=True)
 @with_database
 def daily_forecast(cursor):
-    forecasts = []
     today = datetime.now().date()
+
+    # Single query: Get ALL daily sales for the past 28 days
+    # This replaces 84 separate queries (21 days × 4 historical dates)
+    query = '''
+        SELECT 
+            DATE(transaction_date) as sale_date,
+            SUM(total_amount) as daily_sales
+        FROM transactions
+        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
+          AND DATE(transaction_date) < ?
+        GROUP BY DATE(transaction_date)
+    '''
+    cursor.execute(query, (today.isoformat(), today.isoformat()))
+
+    # Build a lookup dictionary: {date_string: sales_amount}
+    sales_by_date = {row['sale_date']: row['daily_sales'] for row in cursor.fetchall()}
+
+    forecasts = []
 
     # Generate a forecast for the next 21 days
     for i in range(1, 22):
@@ -644,17 +661,11 @@ def daily_forecast(cursor):
 
         sales_points = []
 
-        # Fetch sales data, but only for historical dates that are actually in the past
+        # Look up sales data from our pre-fetched dictionary
         for historical_date in historical_dates:
             if historical_date < today:
-                query = '''
-                    SELECT SUM(total_amount) as daily_sales
-                    FROM transactions
-                    WHERE DATE(transaction_date) = ?
-                '''
-                cursor.execute(query, (historical_date.isoformat(),))
-                result = cursor.fetchone()
-                sales = result['daily_sales'] if result and result['daily_sales'] else 0
+                date_key = historical_date.isoformat()
+                sales = sales_by_date.get(date_key, 0)
 
                 # Only include non-zero sales in the average
                 if sales > 0:
@@ -683,6 +694,31 @@ def daily_forecast(cursor):
 def hourly_forecast(cursor):
     today = datetime.now().date()
 
+    # Single query: Get ALL hourly sales for the past 28 days
+    # This replaces 84 separate queries (21 days × 4 historical dates)
+    query = '''
+        SELECT 
+            DATE(transaction_date) as sale_date,
+            strftime('%H', transaction_date) as hour_num,
+            SUM(total_amount) as sales
+        FROM transactions
+        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
+          AND DATE(transaction_date) < ?
+        GROUP BY sale_date, hour_num
+    '''
+    cursor.execute(query, (today.isoformat(), today.isoformat()))
+
+    # Build a nested lookup dictionary: {date: {hour: sales}}
+    sales_by_date_hour = {}
+    for row in cursor.fetchall():
+        date_key = row['sale_date']
+        hour_key = row['hour_num']
+        sales = row['sales']
+
+        if date_key not in sales_by_date_hour:
+            sales_by_date_hour[date_key] = {}
+        sales_by_date_hour[date_key][hour_key] = sales
+
     all_forecasts = []
 
     # Generate forecasts for the next 21 days
@@ -698,23 +734,13 @@ def hourly_forecast(cursor):
             forecast_date - timedelta(days=28),
         ]
 
-        # Fetch hourly sales data for each historical date
+        # Look up hourly sales data from our pre-fetched dictionary
         hourly_sales_data = {}
         for date in historical_dates:
-            if date < today:  # Only look at past dates
-                query = '''
-                    SELECT 
-                        strftime('%H', transaction_date) as hour_num,
-                        SUM(total_amount) as sales
-                    FROM transactions
-                    WHERE DATE(transaction_date) = ?
-                    GROUP BY hour_num
-                '''
-                cursor.execute(query, (date.isoformat(),))
-                rows = cursor.fetchall()
-
-                sales_by_hour = {row['hour_num']: row['sales'] for row in rows}
-                hourly_sales_data[date.isoformat()] = sales_by_hour
+            if date < today:
+                date_key = date.isoformat()
+                if date_key in sales_by_date_hour:
+                    hourly_sales_data[date_key] = sales_by_date_hour[date_key]
 
         # Calculate hourly forecasts for this day
         hourly_forecasts = []
@@ -760,6 +786,31 @@ def item_demand_forecast(cursor):
     cursor.execute('SELECT item_id, item_name, category FROM items ORDER BY item_name')
     items = cursor.fetchall()
 
+    # Single query: Get ALL item sales for the past 28 days
+    # This replaces 16,800 separate queries (200 items × 21 days × 4 historical dates)
+    query = '''
+        SELECT 
+            item_id,
+            DATE(transaction_date) as sale_date,
+            SUM(quantity) as total_qty
+        FROM transactions
+        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
+          AND DATE(transaction_date) < ?
+        GROUP BY item_id, DATE(transaction_date)
+    '''
+    cursor.execute(query, (today.isoformat(), today.isoformat()))
+
+    # Build a nested lookup dictionary: {item_id: {date: quantity}}
+    sales_by_item_date = {}
+    for row in cursor.fetchall():
+        item_id = row['item_id']
+        date_key = row['sale_date']
+        qty = row['total_qty']
+
+        if item_id not in sales_by_item_date:
+            sales_by_item_date[item_id] = {}
+        sales_by_item_date[item_id][date_key] = qty
+
     all_forecasts = []
 
     for item in items:
@@ -769,6 +820,9 @@ def item_demand_forecast(cursor):
 
         daily_forecasts = []
         is_new_item = True  # Assume new until we find historical data
+
+        # Get this item's historical sales (if any)
+        item_sales = sales_by_item_date.get(item_id, {})
 
         # Generate forecasts for the next 21 days
         for day_offset in range(1, 22):
@@ -783,23 +837,16 @@ def item_demand_forecast(cursor):
                 forecast_date - timedelta(days=28),
             ]
 
-            # Fetch quantities sold on historical dates
+            # Look up quantities from our pre-fetched dictionary
             quantities = []
             for date in historical_dates:
                 if date < today:
-                    query = '''
-                        SELECT SUM(quantity) as total_qty
-                        FROM transactions
-                        WHERE item_id = ?
-                        AND DATE(transaction_date) = ?
-                    '''
-                    cursor.execute(query, (item_id, date.isoformat()))
-                    result = cursor.fetchone()
+                    date_key = date.isoformat()
+                    qty = item_sales.get(date_key)
 
-                    if result['total_qty'] is not None:
-                        quantities.append(result['total_qty'])
+                    if qty is not None:
+                        quantities.append(qty)
                         is_new_item = False  # Found historical data
-                    # If NULL, don't add to list (item didn't exist or wasn't sold)
 
             # Calculate forecast
             if len(quantities) > 0:
@@ -846,6 +893,14 @@ def item_demand_forecast(cursor):
             'weekly_forecast': weekly_forecast,
             'total_forecast': total_forecast
         })
+
+    # Sort by total forecast descending
+    all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
+
+    return {
+        'success': True,
+        'data': all_forecasts
+    }
 
     # Sort by total forecast descending
     all_forecasts.sort(key=lambda x: x['total_forecast'], reverse=True)
