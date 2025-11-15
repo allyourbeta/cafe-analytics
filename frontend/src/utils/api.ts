@@ -6,8 +6,10 @@ const API_BASE = import.meta.env.DEV
 
 // Interfaces
 export interface RevenueItem {
+  item_id: number;
   item_name: string;
   category: string;
+  is_resold: boolean;
   units_sold: number;
   revenue: number;
 }
@@ -43,18 +45,6 @@ export interface MarginItem {
   margin_pct: number;
 }
 
-export interface CategoryRevenue {
-  category: string;
-  units_sold: number;
-  revenue: number;
-}
-
-export interface CategoryProfit {
-  category: string;
-  units_sold: number;
-  total_profit: number;
-  margin_pct: number;
-}
 
 export interface DailyForecast {
   date: string;
@@ -107,9 +97,13 @@ export interface CategoryDemandForecast {
 }
 
 // R3: Items by Revenue
-export const getItemsByRevenue = async (startDate: string, endDate: string) => {
+export const getItemsByRevenue = async (
+  startDate: string,
+  endDate: string,
+  itemType: "all" | "purchased" | "house-made" = "all"
+) => {
   const response = await axios.get(`${API_BASE}/reports/items-by-revenue`, {
-    params: { start: startDate, end: endDate },
+    params: { start: startDate, end: endDate, item_type: itemType },
   });
   return response.data;
 };
@@ -189,30 +183,6 @@ export const getHourlyForecast = async () => {
   return response.data;
 };
 
-// R6: Categories by Revenue
-export const getCategoriesByRevenue = async (
-  startDate: string,
-  endDate: string
-) => {
-  const response = await axios.get(
-    `${API_BASE}/reports/categories-by-revenue`,
-    {
-      params: { start: startDate, end: endDate },
-    }
-  );
-  return response.data;
-};
-
-// R7: Categories by Profit
-export const getCategoriesByProfit = async (
-  startDate: string,
-  endDate: string
-) => {
-  const response = await axios.get(`${API_BASE}/reports/categories-by-profit`, {
-    params: { start: startDate, end: endDate },
-  });
-  return response.data;
-};
 
 // R8: Get top items for heatmap
 export const getTopItems = async (

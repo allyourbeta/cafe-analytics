@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { useReportFilters } from "../context/ReportFiltersContext";
-import { getItemsByRevenue, getCategoriesByRevenue } from "../utils/api";
+import { getItemsByRevenue } from "../utils/api";
 import {
   getCategoryColor,
   getCategoryDisplayName,
 } from "../utils/categoryColors";
-import { formatCurrency, formatNumber } from "../utils/formatters";
+import { formatCurrency, formatNumber, aggregateByCategory } from "../utils/formatters";
 import FilterBar from "./FilterBar";
 
 const columns = [
@@ -58,7 +58,7 @@ const RevenueChart = ({
     <div
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
-      {/* Header with title and FilterBar */}
+      {/* Header with title and centralized filter controls */}
       <div
         style={{
           display: "flex",
@@ -74,13 +74,12 @@ const RevenueChart = ({
             Items by Revenue
           </h3>
 
-          {/* Use FilterBar component with centralized state */}
           <FilterBar
             filters={filters}
             onFilterChange={updateFilters}
             enabledFilters={
               filters.viewMode === "item"
-                ? ["viewMode", "sortOrder", "category"]
+                ? ["viewMode", "itemType", "sortOrder", "category"]
                 : ["viewMode"]
             }
             showCategoryDropdown={filters.viewMode === "item"}
@@ -161,7 +160,6 @@ const RevenueChart = ({
 
 export default function ItemsByRevenue() {
   const [data, setData] = useState<Record<string, any>[]>([]);
-  const [categoryData, setCategoryData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -172,13 +170,13 @@ export default function ItemsByRevenue() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch both item and category data
-      const [itemResponse, categoryResponse] = await Promise.all([
-        getItemsByRevenue(startDate, endDate),
-        getCategoriesByRevenue(startDate, endDate),
-      ]);
+      // Fetch item data only
+      const itemResponse = await getItemsByRevenue(
+        startDate,
+        endDate,
+        filters.itemType || "all"
+      );
       setData(itemResponse.data);
-      setCategoryData(categoryResponse.data);
     } catch (err) {
       setError("Failed to load data");
       console.error(err);
@@ -189,12 +187,12 @@ export default function ItemsByRevenue() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, filters.itemType]);
 
-  // Filter data by selected category (only in item mode)
+  // Aggregate by category if in category mode, otherwise filter by selected category
   const filteredData =
     filters.viewMode === "category"
-      ? categoryData // Show all categories
+      ? aggregateByCategory(data)
       : filters.selectedCategory === "all"
       ? data
       : data.filter((item) => item.category === filters.selectedCategory);
@@ -276,9 +274,7 @@ export default function ItemsByRevenue() {
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format
-                        ? col.format(row[col.key], row)
-                        : row[col.key]}
+                      {col.format ? col.format(row[col.key], row) : row[col.key]}
                     </td>
                   ))
                 )}

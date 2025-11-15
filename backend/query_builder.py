@@ -256,13 +256,14 @@ def build_items_revenue_query(start_date, end_date, item_type='all'):
         i.item_id,
         i.item_name,
         i.category,
+        i.is_resold,
         SUM(t.quantity) as units_sold,
         ROUND(SUM(t.total_amount), 2) as revenue
     ''')
     qb.from_transactions_with_items()
     qb.add_date_range_filter(start_date, end_date)
     qb.add_item_type_filter(item_type)
-    qb.group_by('t.item_id, i.item_name, i.category')
+    qb.group_by('t.item_id, i.item_name, i.category, i.is_resold')
     qb.order_by('revenue DESC')
 
     return qb.build()
