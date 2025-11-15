@@ -126,38 +126,84 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
 
           {/* Columns */}
           <div className="ml-16 absolute inset-0 left-16 right-0 top-0 bottom-8 flex items-end justify-between gap-4">
-            {currentWeekData.map((item, index) => {
-              const columnHeightPx =
-                (item.forecasted_sales / yAxisScale.max) * 100;
-              const dayAbbr = item.day_of_week.substring(0, 3).toUpperCase();
+            {(() => {
+              const slots = [];
 
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center h-full justify-end"
-                >
-                  {/* Value label */}
-                  <div className="text-base font-semibold text-gray-700 mb-2">
-                    $
-                    {item.forecasted_sales.toLocaleString(undefined, {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    })}
-                  </div>
+              // If partial week, add gray placeholders for past days
+              if (currentWeekData.length < 7 && currentWeekData.length > 0) {
+                const firstDay = currentWeekData[0].day_of_week;
+                const dayPosition = {
+                  'Monday': 0,
+                  'Tuesday': 1,
+                  'Wednesday': 2,
+                  'Thursday': 3,
+                  'Friday': 4,
+                  'Saturday': 5,
+                  'Sunday': 6
+                }[firstDay] || 0;
 
-                  {/* Column */}
+                // Add gray placeholders for days before the first forecast day
+                for (let i = 0; i < dayPosition; i++) {
+                  const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+                  slots.push(
+                    <div
+                      key={`past-${i}`}
+                      className="flex-1 flex flex-col items-center h-full justify-end"
+                    >
+                      {/* Empty space where value would be */}
+                      <div className="text-base font-semibold mb-2 invisible">$0</div>
+
+                      {/* Faint gray rectangle */}
+                      <div
+                        className="w-full bg-gray-200 rounded-t"
+                        style={{ height: "8px" }}
+                      />
+
+                      {/* Day label - light gray */}
+                      <div className="text-sm font-medium text-gray-400 mt-2">
+                        {dayNames[i]}
+                      </div>
+                    </div>
+                  );
+                }
+              }
+
+              // Add the actual forecast data
+              currentWeekData.forEach((item, index) => {
+                const columnHeightPx =
+                  (item.forecasted_sales / yAxisScale.max) * 100;
+                const dayAbbr = item.day_of_week.substring(0, 3).toUpperCase();
+
+                slots.push(
                   <div
-                    className="w-full bg-blue-600 rounded-t transition-all duration-300 hover:bg-blue-700"
-                    style={{ height: `${columnHeightPx}%`, minHeight: "8px" }}
-                  />
+                    key={`forecast-${index}`}
+                    className="flex-1 flex flex-col items-center h-full justify-end"
+                  >
+                    {/* Value label */}
+                    <div className="text-base font-semibold text-gray-700 mb-2">
+                      $
+                      {item.forecasted_sales.toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </div>
 
-                  {/* Day label */}
-                  <div className="text-sm font-medium text-gray-600 mt-2">
-                    {dayAbbr}
+                    {/* Column */}
+                    <div
+                      className="w-full bg-blue-600 rounded-t transition-all duration-300 hover:bg-blue-700"
+                      style={{ height: `${columnHeightPx}%`, minHeight: "8px" }}
+                    />
+
+                    {/* Day label */}
+                    <div className="text-sm font-medium text-gray-600 mt-2">
+                      {dayAbbr}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+
+              return slots;
+            })()}
           </div>
         </div>
       </div>
