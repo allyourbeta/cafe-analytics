@@ -33,7 +33,8 @@ dist/
 Thumbs.db
 
 # Frontend build
-frontend/dist/
+# frontend/dist/ - practical compromise
+
 frontend/.vite/
 
 # Logs
