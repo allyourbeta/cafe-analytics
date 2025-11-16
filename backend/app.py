@@ -1,13 +1,28 @@
+import sys
+import os
+import traceback
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_caching import Cache
 import sqlite3
 from datetime import datetime, timedelta
-import os
 from functools import wraps
-from labor_utils import calculate_hourly_labor_costs
 
+try:
+    from backend.labor_utils import calculate_hourly_labor_costs
+except ModuleNotFoundError:
+    from labor_utils import calculate_hourly_labor_costs
+
+    
 app = Flask(__name__)
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(e):
+    traceback.print_exc(file=sys.stderr)
+    return jsonify({"error": "internal server error"}), 500
+
+
+
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Get absolute path relative to this script
@@ -130,7 +145,19 @@ def error_response(error, status=500):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'ok', 'message': 'Backend running!'})
+    print("HEALTH ENDPOINT HIIT", file=sys.stderr)
+    print("=== HEALTH DEBUG ===", file=sys.stderr)
+    print("cwd:", os.getcwd(), file=sys.stderr)
+
+    # *** CRITICAL TEST ***
+    try:
+        import backend.labor_utils as blu
+        print("health: IMPORT backend.labor_utils OK", file=sys.stderr)
+    except Exception as e:
+        print("health: IMPORT backend.labor_utils FAILED:", repr(e), file=sys.stderr)
+
+    print("====================", file=sys.stderr)
+    return jsonify({"status": "ok"})
 
 
 @app.route('/api/admin/clear-cache', methods=['POST'])
