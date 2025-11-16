@@ -13,7 +13,7 @@ try:
 except ModuleNotFoundError:
     from labor_utils import calculate_hourly_labor_costs
 
-    
+
 app = Flask(__name__)
 
 @app.errorhandler(Exception)
@@ -29,12 +29,9 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, '../database/cafe_reports.db')
 
-# Initialize cache - 12 hour default timeout since data updates once daily
-# TEMPORARILY DISABLED: Using NullCache to test optimized queries without caching
 cache = Cache(app, config={
-    'CACHE_TYPE': 'NullCache',  # Disables caching - change to 'FileSystemCache' to re-enable
-    'CACHE_DIR': os.path.join(BASE_DIR, '../cache'),
-    'CACHE_DEFAULT_TIMEOUT': 43200  # 12 hours
+    'CACHE_TYPE': 'SimpleCache',  # In-memory caching
+    'CACHE_DEFAULT_TIMEOUT': 86400  # 24 hours
 })
 
 
