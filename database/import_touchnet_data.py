@@ -25,11 +25,12 @@ CATEGORY_MAPPING = {}
 
 
 def load_category_mapping(csv_path):
-    """Load item_name → category mapping from backup CSV."""
+    """Load item_id → category mapping from CSV."""
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            CATEGORY_MAPPING[row['item_name']] = {
+            item_id = int(row['item_id'])
+            CATEGORY_MAPPING[item_id] = {
                 'category': row['category'],
                 'price': float(row['current_price']),
                 'cost': float(row['current_cost'])
@@ -71,8 +72,8 @@ def parse_excel_file(excel_path):
             current_item_name = item_match.group(2).strip()
 
             # Get category info from mapping (or default to 'other drinks')
-            if current_item_name in CATEGORY_MAPPING:
-                mapping = CATEGORY_MAPPING[current_item_name]
+            if current_item_id in CATEGORY_MAPPING:
+                mapping = CATEGORY_MAPPING[current_item_id]
                 current_category = mapping['category']
                 price = mapping['price']
                 cost = mapping['cost']
@@ -373,7 +374,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     db_path = "cafe_reports.db"
-    category_csv = "item_categories_backup.csv"
+    category_csv = "complete_product_list_with_categories.csv"
     excel_files = sys.argv[1:]
 
     print("🚀 TouchNet Data Import")

@@ -23,10 +23,13 @@ CATEGORY_RULES = {
     'coffeetea': [
         'latte', 'cappuccino', 'mocha', 'macchiato', 'espresso', 'coffee',
         'americano', 'chai', 'tea', 'matcha', 'london fog', 'cafe au lait',
-        'flat white', 'brewed coffee', 'hot chocolate', 'honey latte', 'carrier'
+        'flat white', 'brewed coffee', 'hot chocolate', 'honey latte', 'carrier',
+        'javalanche', 'peppermint', 'peppermnt', 'greek', 'pumpkin'
     ],
     'cold coffeetea': [
-        'iced', 'cold brew', 'cold foam', 'arnold palmer'
+        'iced', 'cold brew', 'cold foam', 'arnold palmer', 'refresher',
+        'dragonfruit', 'acai', 'pink drink', 'vanilla sweet cream cold',
+        'frankenstein', 'dirty cherry'
     ],
     'baked goods': [
         'croissant', 'bagel', 'cookie', 'muffin', 'danish', 'bun', 'donut',
@@ -39,21 +42,27 @@ CATEGORY_RULES = {
     ],
     'beer': [
         'beer', 'ipa', 'cider', 'lager', 'kombucha', 'pitcher', 'draft',
-        'paulaner', 'raddler', 'oski'
+        'paulaner', 'raddler', 'oski', 'nelson', 'orale', 'sirena',
+        'vato loco', 'crispin', 'east bros', 'eb mex'
     ],
     'wine': [
         'wine', 'sauvignon', 'pinot', 'chardonnay'
     ],
     'other drinks': [
-        'refresher', 'lemonade', 'water', 'pellegrino', 'steamed milk',
-        'soda', 'acai', 'dragonfruit', 'yerba mate', 'fizz', 'protein shake',
-        'liquid death', 'strawberry', 'peach', 'matcha' # if not already caught by coffeetea
+        'lemonade', 'water', 'pellegrino', 'steamed milk',
+        'soda', 'yerba mate', 'fizz', 'protein shake',
+        'liquid death', 'izze', 'mocktail'
     ],
     'retail': [
-        't-shirt', 'tote', 'hat', 'mug', 'sticker', 'chips', 'bar', 'protein bar'
+        't-shirt', 'tote', 'hat', 'mug', 'sticker', 'chips', 'bar', 'protein bar',
+        'nature valley', 'buddy fruit', 'clear bag', 'bubble wand', 'voucher'
+    ],
+    'add-ons': [
+        'oat milk', 'almond milk', 'soy milk', 'flavor', 'hot water cup'
     ],
     'space rental': [
-        'reservation', 'rental', 'patio', 'cafe'
+        'reservation', 'rental', 'patio', 'cafe', 'event', 'deal', 'combo',
+        'creature', 'bulk', 'tab', '$1 off', 'herbal center'
     ]
 }
 
