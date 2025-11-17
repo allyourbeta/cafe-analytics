@@ -127,12 +127,12 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
           {/* Columns */}
           <div className="ml-16 absolute inset-0 left-16 right-0 top-0 bottom-8 flex items-end justify-between gap-4">
             {(() => {
-              const slots = [];
+              const slots: any[] = [];
 
               // If partial week, add gray placeholders for past days
               if (currentWeekData.length < 7 && currentWeekData.length > 0) {
                 const firstDay = currentWeekData[0].day_of_week;
-                const dayPosition = {
+                const dayPositionMap: Record<string, number> = {
                   'Monday': 0,
                   'Tuesday': 1,
                   'Wednesday': 2,
@@ -140,7 +140,8 @@ const ForecastChart = ({ data }: { data: Record<string, any>[] }) => {
                   'Friday': 4,
                   'Saturday': 5,
                   'Sunday': 6
-                }[firstDay] || 0;
+                };
+                const dayPosition = dayPositionMap[firstDay] || 0;
 
                 // Add gray placeholders for days before the first forecast day
                 for (let i = 0; i < dayPosition; i++) {
