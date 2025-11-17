@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getCategoryColor } from "../utils/categoryColors";
 import { formatCurrency } from "../utils/formatters";
-import axios from "axios";
-
-const API_BASE = "http://127.0.0.1:5500/api";
+import { getTopItems, getItemHeatmap } from "../utils/api";
 
 // Local type definitions (avoiding import issues)
 interface TopItem {
@@ -50,11 +48,9 @@ export default function ItemHeatmap() {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${API_BASE}/reports/top-items`, {
-          params: { start: startDate, end: endDate, limit: 25 },
-        });
+        const response = await getTopItems(startDate, endDate, 25);
 
-        const items = response.data.data;
+        const items = response.data;
         setTopItems(items);
 
         // Auto-select first item
@@ -78,14 +74,12 @@ export default function ItemHeatmap() {
 
     const loadHeatmapData = async () => {
       try {
-        const response = await axios.get(`${API_BASE}/reports/item-heatmap`, {
-          params: {
-            item_id: selectedItem.item_id,
-            start: startDate,
-            end: endDate,
-          },
-        });
-        setHeatmapData(response.data.data || []);
+        const response = await getItemHeatmap(
+          selectedItem.item_id,
+          startDate,
+          endDate
+        );
+        setHeatmapData(response.data || []);
       } catch (err) {
         console.error("Failed to load heatmap data", err);
       }
