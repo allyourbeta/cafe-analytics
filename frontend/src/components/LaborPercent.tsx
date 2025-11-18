@@ -2,6 +2,12 @@ import { getLaborPercent } from "../utils/api";
 import { useDateRange } from "../context/DateContext";
 import React from "react";
 
+// Local storage key for persisting target
+const LABOR_TARGET_STORAGE_KEY = "cafe_labor_target_percent";
+const DEFAULT_TARGET = 28;
+const MIN_TARGET = 15;
+const MAX_TARGET = 40;
+
 // Stoplight gauge system - instant visual labor cost control
 const LaborChart = ({
   data,
@@ -12,13 +18,28 @@ const LaborChart = ({
   includeSalaried: boolean;
   setIncludeSalaried: (value: boolean) => void;
 }) => {
-  const [target, setTarget] = React.useState(30);
+  // Load target from localStorage or use default
+  const [target, setTarget] = React.useState(() => {
+    const saved = localStorage.getItem(LABOR_TARGET_STORAGE_KEY);
+    if (saved) {
+      const parsed = parseInt(saved);
+      if (parsed >= MIN_TARGET && parsed <= MAX_TARGET) {
+        return parsed;
+      }
+    }
+    return DEFAULT_TARGET;
+  });
   const [isEditing, setIsEditing] = React.useState(false);
-  const [tempTarget, setTempTarget] = React.useState("30");
+  const [tempTarget, setTempTarget] = React.useState(target.toString());
   const [hoveredItem, setHoveredItem] = React.useState<Record<
     string,
     any
   > | null>(null);
+
+  // Save target to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem(LABOR_TARGET_STORAGE_KEY, target.toString());
+  }, [target]);
 
   // Get stoplight color based on performance vs target
   const getStoplightStatus = (laborPct: number) => {
@@ -35,19 +56,46 @@ const LaborChart = ({
     setTempTarget(value);
     const newTarget = parseInt(value);
     // Apply immediately if valid
-    if (newTarget >= 1 && newTarget <= 100) {
+    if (newTarget >= MIN_TARGET && newTarget <= MAX_TARGET) {
       setTarget(newTarget);
-      // TODO: Save to backend/localStorage
     }
   };
 
   const handleTargetBlur = () => {
     // Validate on blur and revert if invalid
     const newTarget = parseInt(tempTarget);
-    if (newTarget < 1 || newTarget > 100 || isNaN(newTarget)) {
+    if (newTarget < MIN_TARGET || newTarget > MAX_TARGET || isNaN(newTarget)) {
       setTempTarget(target.toString());
     }
     setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleTargetBlur();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const newTarget = Math.min(MAX_TARGET, target + 1);
+      setTarget(newTarget);
+      setTempTarget(newTarget.toString());
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const newTarget = Math.max(MIN_TARGET, target - 1);
+      setTarget(newTarget);
+      setTempTarget(newTarget.toString());
+    }
+  };
+
+  const increment = () => {
+    if (target < MAX_TARGET) {
+      setTarget(target + 1);
+    }
+  };
+
+  const decrement = () => {
+    if (target > MIN_TARGET) {
+      setTarget(target - 1);
+    }
   };
 
   // Calculate weighted average: total labor cost / total sales
@@ -70,7 +118,7 @@ const LaborChart = ({
         borderRadius: "12px",
       }}
     >
-      {/* Header with editable target and toggle */}
+      {/* Header with stepper target control and toggle */}
       <div
         style={{
           display: "flex",
@@ -92,64 +140,119 @@ const LaborChart = ({
         </h3>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ fontSize: "14px", color: "#6B7280" }}>(Target:</span>
-          {isEditing ? (
-            <input
-              type="number"
-              value={tempTarget}
-              onChange={(e) => handleTargetChange(e.target.value)}
-              onBlur={handleTargetBlur}
-              onKeyDown={(e) => e.key === "Enter" && handleTargetBlur()}
-              autoFocus
-              min="1"
-              max="100"
+
+          {/* Stepper Control */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Minus button */}
+            <button
+              onClick={decrement}
+              disabled={target <= MIN_TARGET}
               style={{
-                width: "50px",
-                padding: "4px 8px",
-                fontSize: "14px",
-                fontWeight: "600",
-                border: "2px solid #3B82F6",
-                borderRadius: "4px",
-                textAlign: "center",
-                outline: "none",
-              }}
-            />
-          ) : (
-            <span
-              onClick={() => {
-                setIsEditing(true);
-                setTempTarget(target.toString());
-              }}
-              style={{
-                fontSize: "14px",
-                fontWeight: "600",
-                color: "#3B82F6",
-                cursor: "pointer",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                backgroundColor: "#EFF6FF",
+                width: "28px",
+                height: "28px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: target <= MIN_TARGET ? "#F3F4F6" : "#F3F4F6",
+                border: "1px solid #D1D5DB",
+                borderRadius: "6px",
+                cursor: target <= MIN_TARGET ? "not-allowed" : "pointer",
                 transition: "all 0.2s",
+                opacity: target <= MIN_TARGET ? 0.4 : 1,
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#DBEAFE")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "#EFF6FF")
-              }
-            >
-              {target}%
-            </span>
-          )}
-          {!isEditing && (
-            <span
-              onClick={() => {
-                setIsEditing(true);
-                setTempTarget(target.toString());
+              onMouseEnter={(e) => {
+                if (target > MIN_TARGET) {
+                  e.currentTarget.style.backgroundColor = "#E5E7EB";
+                }
               }}
-              style={{ fontSize: "14px", color: "#9CA3AF", cursor: "pointer" }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#F3F4F6";
+              }}
             >
-              ✎
-            </span>
-          )}
+              <span style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}>−</span>
+            </button>
+
+            {/* Editable target value */}
+            {isEditing ? (
+              <input
+                type="number"
+                value={tempTarget}
+                onChange={(e) => handleTargetChange(e.target.value)}
+                onBlur={handleTargetBlur}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                min={MIN_TARGET}
+                max={MAX_TARGET}
+                style={{
+                  width: "50px",
+                  padding: "4px 8px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  border: "2px solid #3B82F6",
+                  borderRadius: "6px",
+                  textAlign: "center",
+                  outline: "none",
+                }}
+              />
+            ) : (
+              <span
+                onClick={() => {
+                  setIsEditing(true);
+                  setTempTarget(target.toString());
+                }}
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#3B82F6",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  minWidth: "40px",
+                  textAlign: "center",
+                  borderRadius: "6px",
+                  backgroundColor: "#EFF6FF",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#DBEAFE")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#EFF6FF")
+                }
+              >
+                {target}%
+              </span>
+            )}
+
+            {/* Plus button */}
+            <button
+              onClick={increment}
+              disabled={target >= MAX_TARGET}
+              style={{
+                width: "28px",
+                height: "28px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: target >= MAX_TARGET ? "#F3F4F6" : "#F3F4F6",
+                border: "1px solid #D1D5DB",
+                borderRadius: "6px",
+                cursor: target >= MAX_TARGET ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+                opacity: target >= MAX_TARGET ? 0.4 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (target < MAX_TARGET) {
+                  e.currentTarget.style.backgroundColor = "#E5E7EB";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#F3F4F6";
+              }}
+            >
+              <span style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}>+</span>
+            </button>
+          </div>
+
           <span style={{ fontSize: "14px", color: "#6B7280" }}>)</span>
         </div>
 
@@ -531,7 +634,7 @@ export default function LaborPercent() {
   const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [includeSalaried, setIncludeSalaried] = React.useState(true);
+  const [includeSalaried, setIncludeSalaried] = React.useState(false); // Default to Students-only
 
   const fetchData = async () => {
     try {
