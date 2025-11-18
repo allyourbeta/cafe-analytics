@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReportLayout from "./ReportLayout";
 import { getHourlyForecast } from "../utils/api";
+
+// Labor target localStorage (same as LaborPercent component)
+const LABOR_TARGET_STORAGE_KEY = "cafe_labor_target_percent";
+const DEFAULT_TARGET = 28;
+const MIN_TARGET = 15;
+const MAX_TARGET = 40;
 
 // Professional hourly chart component
 const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
@@ -137,8 +143,13 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
                           }}
                         />
 
+                        {/* Student hours label (pre-calculated by backend) */}
+                        <div className="text-[10px] font-medium text-green-700 mt-1 text-center leading-tight">
+                          {item.student_hours}
+                        </div>
+
                         {/* Hour label */}
-                        <div className="text-xs font-medium text-gray-600 mt-1">
+                        <div className="text-xs font-medium text-gray-600 mt-0.5">
                           {hourLabel}
                         </div>
                       </div>
@@ -172,15 +183,152 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
 };
 
 export default function HourlyForecast() {
+  // Load target from localStorage
+  const [target, setTarget] = useState(() => {
+    const saved = localStorage.getItem(LABOR_TARGET_STORAGE_KEY);
+    if (saved) {
+      const parsed = parseInt(saved);
+      if (parsed >= MIN_TARGET && parsed <= MAX_TARGET) {
+        return parsed;
+      }
+    }
+    return DEFAULT_TARGET;
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempTarget, setTempTarget] = useState(target.toString());
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Save target to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(LABOR_TARGET_STORAGE_KEY, target.toString());
+    // Trigger re-fetch when target changes
+    setRefreshKey(prev => prev + 1);
+  }, [target]);
+
+  const handleTargetChange = (value: string) => {
+    setTempTarget(value);
+    const newTarget = parseInt(value);
+    if (newTarget >= MIN_TARGET && newTarget <= MAX_TARGET) {
+      setTarget(newTarget);
+    }
+  };
+
+  const handleTargetBlur = () => {
+    const newTarget = parseInt(tempTarget);
+    if (newTarget < MIN_TARGET || newTarget > MAX_TARGET || isNaN(newTarget)) {
+      setTempTarget(target.toString());
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleTargetBlur();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const newTarget = Math.min(MAX_TARGET, target + 1);
+      setTarget(newTarget);
+      setTempTarget(newTarget.toString());
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const newTarget = Math.max(MIN_TARGET, target - 1);
+      setTarget(newTarget);
+      setTempTarget(newTarget.toString());
+    }
+  };
+
+  const increment = () => {
+    if (target < MAX_TARGET) {
+      setTarget(target + 1);
+    }
+  };
+
+  const decrement = () => {
+    if (target > MIN_TARGET) {
+      setTarget(target - 1);
+    }
+  };
+
+  // Custom fetchData that includes target parameter
+  const fetchDataWithTarget = () => getHourlyForecast(target);
+
   return (
-    <ReportLayout
-      title="Next 15-21 Days"
-      fetchData={getHourlyForecast}
-      columns={[]}
-      needsDateRange={false}
-      ChartComponent={HourlyChart}
-      enableCache={true}
-      cacheKey="hourly_forecast"
-    />
+    <div>
+      {/* Target % Stepper Control Header */}
+      <div className="flex items-center justify-center gap-3 mb-4 pb-4 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900">Hourly Sales Forecast</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">(Target:</span>
+
+          {/* Stepper Control */}
+          <div className="flex items-center gap-2">
+            {/* Minus button */}
+            <button
+              onClick={decrement}
+              disabled={target <= MIN_TARGET}
+              className={`w-7 h-7 flex items-center justify-center bg-gray-100 border border-gray-300 rounded-md transition-all ${
+                target <= MIN_TARGET
+                  ? "opacity-40 cursor-not-allowed"
+                  : "hover:bg-gray-200 cursor-pointer"
+              }`}
+            >
+              <span className="text-base text-gray-700 leading-none">−</span>
+            </button>
+
+            {/* Editable target value */}
+            {isEditing ? (
+              <input
+                type="number"
+                value={tempTarget}
+                onChange={(e) => handleTargetChange(e.target.value)}
+                onBlur={handleTargetBlur}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                min={MIN_TARGET}
+                max={MAX_TARGET}
+                className="w-12 px-2 py-1 text-sm font-semibold border-2 border-blue-600 rounded-md text-center outline-none"
+              />
+            ) : (
+              <span
+                onClick={() => {
+                  setIsEditing(true);
+                  setTempTarget(target.toString());
+                }}
+                className="text-sm font-semibold text-blue-600 cursor-pointer px-2 py-1 min-w-[40px] text-center rounded-md bg-blue-50 hover:bg-blue-100 transition-all"
+              >
+                {target}%
+              </span>
+            )}
+
+            {/* Plus button */}
+            <button
+              onClick={increment}
+              disabled={target >= MAX_TARGET}
+              className={`w-7 h-7 flex items-center justify-center bg-gray-100 border border-gray-300 rounded-md transition-all ${
+                target >= MAX_TARGET
+                  ? "opacity-40 cursor-not-allowed"
+                  : "hover:bg-gray-200 cursor-pointer"
+              }`}
+            >
+              <span className="text-base text-gray-700 leading-none">+</span>
+            </button>
+          </div>
+
+          <span className="text-sm text-gray-500">)</span>
+        </div>
+      </div>
+
+      {/* ReportLayout with custom fetch function */}
+      <ReportLayout
+        key={refreshKey}
+        title="Next 15-21 Days"
+        fetchData={fetchDataWithTarget}
+        columns={[]}
+        needsDateRange={false}
+        ChartComponent={HourlyChart}
+        enableCache={true}
+        cacheKey={`hourly_forecast_${target}`}
+      />
+    </div>
   );
 }

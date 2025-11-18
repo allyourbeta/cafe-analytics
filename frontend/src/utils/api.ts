@@ -178,8 +178,9 @@ export const getDailyForecast = async () => {
 };
 
 // P2: Hourly Forecast
-export const getHourlyForecast = async () => {
-  const response = await axios.get(`${API_BASE}/forecasts/hourly`);
+export const getHourlyForecast = async (targetPct?: number) => {
+  const params = targetPct ? `?target_pct=${targetPct}` : '';
+  const response = await axios.get(`${API_BASE}/forecasts/hourly${params}`);
   return response.data;
 };
 

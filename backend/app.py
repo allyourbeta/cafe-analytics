@@ -13,14 +13,13 @@ try:
 except ModuleNotFoundError:
     from labor_utils import calculate_hourly_labor_costs
 
-
 app = Flask(__name__)
+
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
     traceback.print_exc(file=sys.stderr)
     return jsonify({"error": "internal server error"}), 500
-
 
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -719,6 +718,34 @@ def daily_forecast(cursor):
 def hourly_forecast(cursor):
     today = datetime.now().date()
 
+    # Get target labor percentage from query params (default 28%)
+    target_pct = request.args.get('target_pct', 28, type=int)
+    if target_pct < 15 or target_pct > 40:
+        target_pct = 28  # Fallback to default if out of bounds
+
+    # Fetch student hourly wage rate from settings
+    cursor.execute("SELECT setting_value FROM settings WHERE setting_key = 'hourly_labor_rate'")
+    wage_row = cursor.fetchone()
+    student_wage = float(wage_row['setting_value']) if wage_row else 24.19  # fallback to current rate
+
+    # Helper function to calculate student hours range
+    def calculate_student_hours_range(sales, target_percent, wage):
+        """Calculate student hours range for scheduling"""
+        import math
+
+        labor_budget = sales * (target_percent / 100)
+        exact_hours = labor_budget / wage
+
+        # Round to nearest 0.5
+        lower_bound = math.floor(exact_hours * 2) / 2  # Floor to 0.5
+        upper_bound = math.ceil(exact_hours * 2) / 2  # Ceil to 0.5
+
+        # If exact match to 0.5 boundary, return single value
+        if lower_bound == upper_bound:
+            return f"{exact_hours:.1f} hrs"
+
+        return f"{lower_bound:.1f}-{upper_bound:.1f} hrs"
+
     # Single query: Get ALL hourly sales for the past 28 days
     # This replaces 84 separate queries (21 days × 4 historical dates)
     query = '''
@@ -785,9 +812,13 @@ def hourly_forecast(cursor):
             else:
                 avg_sales = sum(sales_points) / len(sales_points)
 
+            # Calculate student hours range for this forecast
+            student_hours = calculate_student_hours_range(avg_sales, target_pct, student_wage)
+
             hourly_forecasts.append({
                 'hour': f"{hour_str}:00",
-                'avg_sales': round(avg_sales, 2)
+                'avg_sales': round(avg_sales, 2),
+                'student_hours': student_hours
             })
 
         all_forecasts.append({
