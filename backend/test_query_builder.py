@@ -18,14 +18,7 @@ import os
 # Add parent directory to path so we can import from backend
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from query_builder import (
-    QueryBuilder,
-    build_items_revenue_query,
-    build_items_profit_query,
-    build_categories_revenue_query,
-    build_categories_profit_query,
-    build_top_items_query
-)
+from query_builder import QueryBuilder
 
 
 def test_basic_query_builder():
@@ -118,98 +111,6 @@ def test_multiple_filters():
 
     print("✓ Multiple filters work")
 
-
-def test_items_revenue_query():
-    """Test items-by-revenue query builder"""
-    print("Testing items-by-revenue query...")
-
-    query, params = build_items_revenue_query('2024-01-01', '2024-12-31', 'all')
-
-    # Verify key components are present
-    assert 'SELECT' in query
-    assert 'i.item_id' in query
-    assert 'i.item_name' in query
-    assert 'i.category' in query
-    assert 'SUM(t.quantity) as units_sold' in query
-    assert 'SUM(t.total_amount)' in query
-    assert 'FROM transactions t JOIN items i' in query
-    assert 'DATE(t.transaction_date) BETWEEN ? AND ?' in query
-    assert 'GROUP BY' in query
-    assert 'ORDER BY revenue DESC' in query
-
-    # Verify params
-    assert params == ['2024-01-01', '2024-12-31']
-
-    print("✓ Items revenue query correct")
-
-
-def test_items_profit_query():
-    """Test items-by-profit query builder"""
-    print("Testing items-by-profit query...")
-
-    # Test with 'all' filter
-    query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'all')
-    assert 'total_profit' in query
-    assert 'margin_pct' in query
-    # is_resold appears in SELECT but not as a WHERE filter for 'all'
-    assert 'i.is_resold = 1' not in query and 'i.is_resold = 0' not in query
-    assert params == ['2024-01-01', '2024-12-31']
-
-    # Test with 'purchased' filter
-    query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'purchased')
-    assert 'i.is_resold = 1' in query
-    assert params == ['2024-01-01', '2024-12-31']
-
-    print("✓ Items profit query correct")
-
-
-def test_categories_revenue_query():
-    """Test categories-by-revenue query builder"""
-    print("Testing categories-by-revenue query...")
-
-    query, params = build_categories_revenue_query('2024-01-01', '2024-12-31')
-
-    assert 'i.category' in query
-    assert 'SUM(t.quantity) as units_sold' in query
-    assert 'SUM(t.total_amount)' in query
-    assert 'GROUP BY i.category' in query
-    assert 'ORDER BY revenue DESC' in query
-    assert params == ['2024-01-01', '2024-12-31']
-
-    print("✓ Categories revenue query correct")
-
-
-def test_categories_profit_query():
-    """Test categories-by-profit query builder"""
-    print("Testing categories-by-profit query...")
-
-    query, params = build_categories_profit_query('2024-01-01', '2024-12-31')
-
-    assert 'i.category' in query
-    assert 'total_profit' in query
-    assert 'margin_pct' in query
-    assert 'GROUP BY i.category' in query
-    assert 'ORDER BY total_profit DESC' in query
-    assert params == ['2024-01-01', '2024-12-31']
-
-    print("✓ Categories profit query correct")
-
-
-def test_top_items_query():
-    """Test top-items query builder"""
-    print("Testing top-items query...")
-
-    query, params = build_top_items_query('2024-01-01', '2024-12-31', 25)
-
-    assert 'i.item_id' in query
-    assert 'i.item_name' in query
-    assert 'total_revenue' in query
-    assert 'LIMIT ?' in query
-    assert params == ['2024-01-01', '2024-12-31', 25]
-
-    print("✓ Top items query correct")
-
-
 def test_method_chaining():
     """Test that method chaining works"""
     print("Testing method chaining...")
@@ -254,40 +155,6 @@ def test_query_validation():
     print("✓ Query validation works")
 
 
-def compare_old_vs_new_queries():
-    """
-    Compare the structure of old queries vs new QueryBuilder queries.
-    This helps verify we didn't break anything during refactoring.
-    """
-    print("\n" + "=" * 60)
-    print("QUERY COMPARISON: Old vs New")
-    print("=" * 60)
-
-    # Items by Revenue
-    print("\n1. Items by Revenue Query:")
-    query, params = build_items_revenue_query('2024-01-01', '2024-12-31')
-    print(f"   Params: {params}")
-    print(f"   Has date filter: {'DATE(t.transaction_date) BETWEEN' in query}")
-    print(f"   Has group by: {'GROUP BY' in query}")
-    print(f"   Has order by: {'ORDER BY revenue DESC' in query}")
-
-    # Items by Profit with filter
-    print("\n2. Items by Profit Query (purchased):")
-    query, params = build_items_profit_query('2024-01-01', '2024-12-31', 'purchased')
-    print(f"   Params: {params}")
-    print(f"   Has date filter: {'DATE(t.transaction_date) BETWEEN' in query}")
-    print(f"   Has item type filter: {'i.is_resold = 1' in query}")
-    print(f"   Has profit calculation: {'total_profit' in query}")
-
-    # Categories by Revenue
-    print("\n3. Categories by Revenue Query:")
-    query, params = build_categories_revenue_query('2024-01-01', '2024-12-31')
-    print(f"   Params: {params}")
-    print(f"   Groups by category: {'GROUP BY i.category' in query}")
-
-    print("\n" + "=" * 60)
-
-
 def run_all_tests():
     """Run all tests and report results"""
     print("\n" + "=" * 60)
@@ -299,11 +166,6 @@ def run_all_tests():
         test_date_range_filter,
         test_item_type_filter,
         test_multiple_filters,
-        test_items_revenue_query,
-        test_items_profit_query,
-        test_categories_revenue_query,
-        test_categories_profit_query,
-        test_top_items_query,
         test_method_chaining,
         test_query_validation,
     ]
@@ -323,9 +185,6 @@ def run_all_tests():
             print(f"✗ Test error: {test.__name__}")
             print(f"  Error: {e}")
             failed += 1
-
-    # Run comparison
-    compare_old_vs_new_queries()
 
     # Summary
     print("\n" + "=" * 60)
