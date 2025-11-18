@@ -148,7 +148,8 @@ const HourlyChart = ({ data }: { data: Record<string, any>[] }) => {
                         <div className="flex justify-center items-center">
                           <div className="text-base font-bold text-green-800 leading-tight">
                             {(() => {
-                              const range = item.student_hours.split(" ")[0];
+                              const range =
+                                item.student_hours?.split(" ")[0] || "0.0";
                               // If no dash, duplicate the value (e.g., "0.0" becomes "0.0-0.0")
                               const [start, end] = range.includes("-")
                                 ? range.split("-")
