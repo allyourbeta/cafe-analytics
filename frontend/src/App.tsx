@@ -1,9 +1,18 @@
+import { useEffect } from "react";
 import "./index.css";
 import Dashboard from "./components/Dashboard";
 import { DateProvider } from "./context/DateContext";
 import { ReportFiltersProvider } from "./context/ReportFiltersContext";
 
 function App() {
+  // Set document title based on environment
+  useEffect(() => {
+    const title = import.meta.env.DEV
+      ? "Café - DEV"
+      : "edmonds café analytics";
+    document.title = title;
+  }, []);
+
   return (
     <DateProvider>
       <ReportFiltersProvider>
