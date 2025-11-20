@@ -269,6 +269,16 @@ export default function Dashboard() {
         start.setDate(start.getDate() - daysToMonday);
         end = today;
         break;
+      case "Last Week":
+        // Get Monday of last week
+        start = new Date(today);
+        const lastWeekDayOfWeek = start.getDay(); // 0=Sunday, 1=Monday, etc.
+        const daysToLastMonday = lastWeekDayOfWeek === 0 ? 6 : lastWeekDayOfWeek - 1;
+        start.setDate(start.getDate() - daysToLastMonday - 7); // Go back to last week's Monday
+        // End is Sunday of last week
+        end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        break;
       case "This Month":
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = today;
@@ -296,6 +306,29 @@ export default function Dashboard() {
           start = new Date(year, 3, 1);
         }
         end = today;
+        break;
+      case "Last Quarter":
+        // Quarters: Q1=July-Sept, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-June
+        const lqYear = today.getFullYear();
+        const lqMonth = today.getMonth(); // 0=Jan, 6=July, etc.
+
+        if (lqMonth >= 6 && lqMonth <= 8) {
+          // Currently in Q1 (July-Sept), so last quarter was Q4 (Apr-June)
+          start = new Date(lqYear, 3, 1);  // April 1
+          end = new Date(lqYear, 5, 30);   // June 30
+        } else if (lqMonth >= 9 && lqMonth <= 11) {
+          // Currently in Q2 (Oct-Dec), so last quarter was Q1 (July-Sept)
+          start = new Date(lqYear, 6, 1);  // July 1
+          end = new Date(lqYear, 8, 30);   // September 30
+        } else if (lqMonth >= 0 && lqMonth <= 2) {
+          // Currently in Q3 (Jan-Mar), so last quarter was Q2 (Oct-Dec of last year)
+          start = new Date(lqYear - 1, 9, 1);   // October 1 of last year
+          end = new Date(lqYear - 1, 11, 31);   // December 31 of last year
+        } else {
+          // Currently in Q4 (Apr-June), so last quarter was Q3 (Jan-Mar)
+          start = new Date(lqYear, 0, 1);   // January 1
+          end = new Date(lqYear, 2, 31);    // March 31
+        }
         break;
       case "This FY":
         // FY starts July 1
@@ -522,9 +555,11 @@ export default function Dashboard() {
                   "Today",
                   "Yesterday",
                   "This Week",
+                  "Last Week",
                   "This Month",
                   "Last Month",
                   "This Quarter",
+                  "Last Quarter",
                   "This FY",
                   "Last FY",
                 ].map((preset) => (

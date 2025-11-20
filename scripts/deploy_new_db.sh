@@ -37,3 +37,7 @@ else
     echo "❌ Database upload failed"
     exit 1
 fi
+
+# Clear cache (new step!)
+curl -X POST https://edmondscafe.pythonanywhere.com/api/admin/clear-cache
+
