@@ -5,6 +5,7 @@ export interface FilterValues {
   sortOrder?: "top" | "bottom";
   viewMode?: "item" | "category";
   selectedCategory?: string;
+  saturdayFilter?: "all" | "non-game" | "gamedays";
 }
 
 interface ToggleButtonProps {
@@ -41,7 +42,7 @@ const ToggleButton = ({
 interface FilterBarProps {
   filters: FilterValues;
   onFilterChange: (filters: FilterValues) => void;
-  enabledFilters: Array<"itemType" | "sortOrder" | "viewMode" | "category">;
+  enabledFilters: Array<"itemType" | "sortOrder" | "viewMode" | "category" | "saturdayFilter">;
   showCategoryDropdown?: boolean;
 }
 
@@ -144,6 +145,38 @@ export default function FilterBar({
             isActive={filters.sortOrder === "bottom"}
             onClick={() => updateFilter("sortOrder", "bottom")}
             color="#3B82F6"
+          />
+        </div>
+      )}
+
+      {/* Saturday Filter (All / Non-Game / Game Days) */}
+      {enabledFilters.includes("saturdayFilter") && (
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            backgroundColor: "#E5E7EB",
+            padding: "4px",
+            borderRadius: "6px",
+          }}
+        >
+          <ToggleButton
+            label="All Saturdays"
+            isActive={filters.saturdayFilter === "all"}
+            onClick={() => updateFilter("saturdayFilter", "all")}
+            color="#F59E0B"
+          />
+          <ToggleButton
+            label="Non-Game"
+            isActive={filters.saturdayFilter === "non-game"}
+            onClick={() => updateFilter("saturdayFilter", "non-game")}
+            color="#F59E0B"
+          />
+          <ToggleButton
+            label="Game Days"
+            isActive={filters.saturdayFilter === "gamedays"}
+            onClick={() => updateFilter("saturdayFilter", "gamedays")}
+            color="#F59E0B"
           />
         </div>
       )}

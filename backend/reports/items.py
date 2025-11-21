@@ -153,10 +153,23 @@ def item_heatmap(cursor):
     end_date = request.args.get('end', default_end)
     item_id = request.args.get('item_id')
 
+    # Optional date filtering (e.g., to exclude game days)
+    exclude_dates_str = request.args.get('exclude_dates', '')
+    exclude_dates = [d.strip() for d in exclude_dates_str.split(',') if d.strip()] if exclude_dates_str else []
+
     if not item_id:
         return error_response('item_id required', 400)
 
-    query = '''
+    # Build WHERE clause with optional date exclusion
+    where_clause = 'WHERE item_id = ? AND DATE(transaction_date) BETWEEN ? AND ?'
+    params = [item_id, start_date, end_date]
+
+    if exclude_dates:
+        placeholders = ','.join('?' * len(exclude_dates))
+        where_clause += f' AND DATE(transaction_date) NOT IN ({placeholders})'
+        params.extend(exclude_dates)
+
+    query = f'''
         WITH daily_hourly_totals AS (
             SELECT 
                 DATE(transaction_date) as sale_date,
@@ -165,8 +178,7 @@ def item_heatmap(cursor):
                 SUM(total_amount) as daily_revenue,
                 SUM(quantity) as daily_units
             FROM transactions
-            WHERE item_id = ?
-              AND DATE(transaction_date) BETWEEN ? AND ?
+            {where_clause}
             GROUP BY sale_date, day_num, hour
         )
         SELECT 
@@ -188,7 +200,7 @@ def item_heatmap(cursor):
         ORDER BY day_num, hour
     '''
 
-    cursor.execute(query, (item_id, start_date, end_date))
+    cursor.execute(query, params)
     rows = cursor.fetchall()
 
     data = [dict(row) for row in rows]

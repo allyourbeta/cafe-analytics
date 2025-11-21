@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getSalesPerHour } from "../utils/api";
+import { useSaturdayFilter } from "../utils/useSaturdayFilter";
+import FilterBar from "./FilterBar";
 
 type ViewMode = "average" | "day-of-week";
 
@@ -401,6 +403,9 @@ export default function SalesPerHour() {
   // Get dates from global context
   const { startDate, endDate } = useDateRange();
 
+  // Use Saturday filter hook
+  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(startDate, endDate);
+
   // Format date for display
   const formatDate = (dateStr: string) => {
     // Parse date string as local date to avoid timezone shift
@@ -419,7 +424,8 @@ export default function SalesPerHour() {
     setLoading(true);
     setError(null);
     try {
-      const response = await getSalesPerHour(startDate, endDate, viewMode);
+      const excludeDates = getExcludeDates();
+      const response = await getSalesPerHour(startDate, endDate, viewMode, undefined, excludeDates);
       setData(response.data);
       if (response.metadata) {
         setMetadata(response.metadata);
@@ -432,10 +438,10 @@ export default function SalesPerHour() {
     }
   };
 
-  // Load data when dates or view mode change
+  // Load data when dates, view mode, or filters change
   useEffect(() => {
     loadData();
-  }, [startDate, endDate, viewMode]);
+  }, [startDate, endDate, viewMode, filters.saturdayFilter]);
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;
@@ -467,28 +473,38 @@ export default function SalesPerHour() {
           </h3>
         </div>
 
-        {/* Toggle buttons */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setViewMode("average")}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              viewMode === "average"
-                ? "bg-emerald-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Overall Average
-          </button>
-          <button
-            onClick={() => setViewMode("day-of-week")}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              viewMode === "day-of-week"
-                ? "bg-emerald-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            By Day of Week
-          </button>
+        {/* Filters - horizontal layout */}
+        <div className="flex gap-4 items-center flex-wrap mb-4">
+          {/* Saturday Filter */}
+          <FilterBar
+            filters={filters}
+            onFilterChange={setFilters}
+            enabledFilters={["saturdayFilter"]}
+          />
+
+          {/* Toggle buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode("average")}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                viewMode === "average"
+                  ? "bg-emerald-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Overall Average
+            </button>
+            <button
+              onClick={() => setViewMode("day-of-week")}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                viewMode === "day-of-week"
+                  ? "bg-emerald-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              By Day of Week
+            </button>
+          </div>
         </div>
 
         {metadata && metadata.missing_days > 0 && viewMode === "average" && (

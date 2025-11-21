@@ -1,6 +1,8 @@
 import { getLaborPercent } from "../utils/api";
 import { useDateRange } from "../context/DateContext";
 import React from "react";
+import { useSaturdayFilter } from "../utils/useSaturdayFilter";
+import FilterBar from "./FilterBar";
 
 // Local storage key for persisting target
 const LABOR_TARGET_STORAGE_KEY = "cafe_labor_target_percent";
@@ -636,14 +638,19 @@ export default function LaborPercent() {
   const [error, setError] = React.useState<string | null>(null);
   const [includeSalaried, setIncludeSalaried] = React.useState(false); // Default to Students-only
 
+  // Use Saturday filter hook
+  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(startDate, endDate);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
+      const excludeDates = getExcludeDates();
       const response = await getLaborPercent(
         startDate,
         endDate,
-        includeSalaried
+        includeSalaried,
+        excludeDates
       );
       if (response.success) {
         setData(response.data || []);
@@ -659,10 +666,19 @@ export default function LaborPercent() {
 
   React.useEffect(() => {
     fetchData();
-  }, [startDate, endDate, includeSalaried]);
+  }, [startDate, endDate, includeSalaried, filters.saturdayFilter]);
 
   return (
     <div style={{ padding: "24px" }}>
+      {/* Saturday Filter */}
+      <div style={{ marginBottom: "16px" }}>
+        <FilterBar
+          filters={filters}
+          onFilterChange={setFilters}
+          enabledFilters={["saturdayFilter"]}
+        />
+      </div>
+
       {loading && (
         <div style={{ textAlign: "center", padding: "48px" }}>Loading...</div>
       )}

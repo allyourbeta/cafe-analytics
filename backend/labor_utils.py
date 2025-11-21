@@ -111,7 +111,8 @@ def calculate_hourly_labor_costs(
         conn,
         start_date: str,
         end_date: str,
-        include_salaried: bool = True
+        include_salaried: bool = True,
+        exclude_dates: List[str] = None
 ) -> Dict[str, Dict[str, float]]:
     """
     Calculate total labor cost for each hour across all shifts in date range.
@@ -133,6 +134,7 @@ def calculate_hourly_labor_costs(
         start_date: Start date in 'YYYY-MM-DD' format
         end_date: End date in 'YYYY-MM-DD' format
         include_salaried: If True, includes salaried employees. If False, only hourly (students).
+        exclude_dates: Optional list of dates to exclude (e.g., ['2025-09-06', '2025-09-13'])
 
     Returns:
         Dictionary mapping hour strings to breakdown dictionaries
@@ -156,6 +158,9 @@ def calculate_hourly_labor_costs(
     """
     cursor = conn.cursor()
 
+    if exclude_dates is None:
+        exclude_dates = []
+
     # Get labor rates from settings table
     cursor.execute(
         "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('hourly_labor_rate', 'salaried_labor_rate')")
@@ -164,34 +169,43 @@ def calculate_hourly_labor_costs(
     hourly_rate = settings.get('hourly_labor_rate', 20.00)  # Default $20 if not set
     salaried_rate = settings.get('salaried_labor_rate', 30.00)  # Default $30 if not set
 
+    # Build WHERE clause with optional date exclusion
+    base_where = 'WHERE shift_date BETWEEN ? AND ?'
+    params = [start_date, end_date]
+
+    if exclude_dates:
+        placeholders = ','.join('?' * len(exclude_dates))
+        base_where += f' AND shift_date NOT IN ({placeholders})'
+        params.extend(exclude_dates)
+
     # Build query with optional employee type filter
     if include_salaried:
         # Get all shifts (both hourly students and salaried)
-        query = '''
+        query = f'''
             SELECT 
                 shift_start, 
                 shift_end, 
                 employee_type,
                 employee_name
             FROM labor_hours
-            WHERE shift_date BETWEEN ? AND ?
+            {base_where}
             ORDER BY shift_start
         '''
     else:
         # Get only hourly (student) shifts
-        query = '''
+        query = f'''
             SELECT 
                 shift_start, 
                 shift_end, 
                 employee_type,
                 employee_name
             FROM labor_hours
-            WHERE shift_date BETWEEN ? AND ?
+            {base_where}
                 AND employee_type = 'hourly'
             ORDER BY shift_start
         '''
 
-    cursor.execute(query, (start_date, end_date))
+    cursor.execute(query, params)
     shifts = cursor.fetchall()
 
     # Accumulate labor costs by hour with breakdown

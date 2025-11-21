@@ -3,6 +3,8 @@ import { useDateRange } from "../context/DateContext";
 import { getCategoryColor } from "../utils/categoryColors";
 import { formatCurrency } from "../utils/formatters";
 import { getTopItems, getItemHeatmap } from "../utils/api";
+import { useSaturdayFilter } from "../utils/useSaturdayFilter";
+import FilterBar from "./FilterBar";
 
 // Local type definitions (avoiding import issues)
 interface TopItem {
@@ -42,6 +44,9 @@ export default function ItemHeatmap() {
 
   const { startDate, endDate } = useDateRange();
 
+  // Use Saturday filter hook
+  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(startDate, endDate);
+
   // Load top items
   useEffect(() => {
     const loadTopItems = async () => {
@@ -74,10 +79,12 @@ export default function ItemHeatmap() {
 
     const loadHeatmapData = async () => {
       try {
+        const excludeDates = getExcludeDates();
         const response = await getItemHeatmap(
           selectedItem.item_id,
           startDate,
-          endDate
+          endDate,
+          excludeDates
         );
         setHeatmapData(response.data || []);
       } catch (err) {
@@ -86,7 +93,7 @@ export default function ItemHeatmap() {
     };
 
     loadHeatmapData();
-  }, [selectedItem, startDate, endDate]);
+  }, [selectedItem, startDate, endDate, filters.saturdayFilter]);
 
   // Create a map for quick lookups
   const dataMap = new Map<string, number>();
@@ -242,6 +249,15 @@ export default function ItemHeatmap() {
             <p className="text-sm text-gray-500 mt-1">
               Revenue by day and hour
             </p>
+          </div>
+
+          {/* Saturday Filter */}
+          <div className="mb-4">
+            <FilterBar
+              filters={filters}
+              onFilterChange={setFilters}
+              enabledFilters={["saturdayFilter"]}
+            />
           </div>
 
           {/* Heatmap grid */}

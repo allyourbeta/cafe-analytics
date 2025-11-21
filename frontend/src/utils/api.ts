@@ -113,11 +113,15 @@ export const getSalesPerHour = async (
   startDate: string,
   endDate: string,
   mode: "average" | "single" | "day-of-week" = "average",
-  singleDate?: string
+  singleDate?: string,
+  excludeDates?: string[]
 ) => {
   const params: any = { start: startDate, end: endDate, mode };
   if (mode === "single" && singleDate) {
     params.date = singleDate;
+  }
+  if (excludeDates && excludeDates.length > 0) {
+    params.exclude_dates = excludeDates.join(',');
   }
   const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, {
     params,
@@ -137,14 +141,19 @@ export const getTotalSales = async (startDate: string, endDate: string) => {
 export const getLaborPercent = async (
   startDate: string,
   endDate: string,
-  includeSalaried: boolean = true
+  includeSalaried: boolean = true,
+  excludeDates?: string[]
 ) => {
+  const params: any = {
+    start: startDate,
+    end: endDate,
+    include_salaried: includeSalaried,
+  };
+  if (excludeDates && excludeDates.length > 0) {
+    params.exclude_dates = excludeDates.join(',');
+  }
   const response = await axios.get(`${API_BASE}/reports/labor-percent`, {
-    params: {
-      start: startDate,
-      end: endDate,
-      include_salaried: includeSalaried,
-    },
+    params,
   });
   return response.data;
 };
@@ -201,10 +210,15 @@ export const getTopItems = async (
 export const getItemHeatmap = async (
   itemId: number,
   startDate: string,
-  endDate: string
+  endDate: string,
+  excludeDates?: string[]
 ) => {
+  const params: any = { item_id: itemId, start: startDate, end: endDate };
+  if (excludeDates && excludeDates.length > 0) {
+    params.exclude_dates = excludeDates.join(',');
+  }
   const response = await axios.get(`${API_BASE}/reports/item-heatmap`, {
-    params: { item_id: itemId, start: startDate, end: endDate },
+    params,
   });
   return response.data;
 };

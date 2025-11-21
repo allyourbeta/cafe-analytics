@@ -30,6 +30,10 @@ def sales_per_hour(cursor):
     end_date = request.args.get('end', default_end)
     single_date = request.args.get('date')  # For single mode
 
+    # Optional date filtering (e.g., to exclude game days)
+    exclude_dates_str = request.args.get('exclude_dates', '')
+    exclude_dates = [d.strip() for d in exclude_dates_str.split(',') if d.strip()] if exclude_dates_str else []
+
     if mode == 'single':
         # Single day mode - show actual sales for specific day
         target_date = single_date if single_date else end_date
@@ -53,7 +57,17 @@ def sales_per_hour(cursor):
     elif mode == 'day-of-week':
         # Day-of-week mode - calculate average sales per hour for each day of week
         # We need to divide by the count of that specific day of week, not all days
-        query = '''
+
+        # Build the WHERE clause with optional date exclusion
+        where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
+        params = [start_date, end_date]
+
+        if exclude_dates:
+            placeholders = ','.join('?' * len(exclude_dates))
+            where_clause += f' AND DATE(transaction_date) NOT IN ({placeholders})'
+            params.extend(exclude_dates)
+
+        query = f'''
             WITH hourly_sales AS (
                 SELECT 
                     CASE CAST(strftime('%w', transaction_date) AS INTEGER)
@@ -70,7 +84,7 @@ def sales_per_hour(cursor):
                     DATE(transaction_date) as date,
                     SUM(total_amount) as daily_hourly_sales
                 FROM transactions
-                WHERE DATE(transaction_date) BETWEEN ? AND ?
+                {where_clause}
                 GROUP BY day_of_week, day_num, hour, date
             )
             SELECT 
@@ -83,7 +97,7 @@ def sales_per_hour(cursor):
             ORDER BY day_num, hour
         '''
 
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
         # Group data by day of week
@@ -111,14 +125,24 @@ def sales_per_hour(cursor):
 
     else:
         # Average mode - calculate average sales per hour across date range
-        # First, get all days that have data in the range
-        days_query = '''
+
+        # Build WHERE clause with optional date exclusion
+        where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
+        params = [start_date, end_date]
+
+        if exclude_dates:
+            placeholders = ','.join('?' * len(exclude_dates))
+            where_clause += f' AND DATE(transaction_date) NOT IN ({placeholders})'
+            params.extend(exclude_dates)
+
+        # First, get all days that have data in the range (after exclusions)
+        days_query = f'''
             SELECT DISTINCT DATE(transaction_date) as day
             FROM transactions
-            WHERE DATE(transaction_date) BETWEEN ? AND ?
+            {where_clause}
             ORDER BY day
         '''
-        cursor.execute(days_query, (start_date, end_date))
+        cursor.execute(days_query, params)
         days_with_data = [row['day'] for row in cursor.fetchall()]
 
         # Calculate total days in range for missing data note
@@ -129,7 +153,7 @@ def sales_per_hour(cursor):
         missing_days_count = total_days_in_range - days_with_data_count
 
         # Get average sales per hour across all days with data
-        query = '''
+        query = f'''
             SELECT 
                 hour,
                 ROUND(AVG(hourly_sales), 2) as sales
@@ -139,14 +163,14 @@ def sales_per_hour(cursor):
                     DATE(transaction_date) as day,
                     SUM(total_amount) as hourly_sales
                 FROM transactions
-                WHERE DATE(transaction_date) BETWEEN ? AND ?
+                {where_clause}
                 GROUP BY day, hour
             )
             GROUP BY hour
             ORDER BY hour
         '''
 
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         data = [dict(row) for row in rows]
 
@@ -172,13 +196,26 @@ def labor_percent(cursor):
     end_date = request.args.get('end', default_end)
     include_salaried = request.args.get('include_salaried', 'true').lower() == 'true'
 
+    # Optional date filtering (e.g., to exclude game days)
+    exclude_dates_str = request.args.get('exclude_dates', '')
+    exclude_dates = [d.strip() for d in exclude_dates_str.split(',') if d.strip()] if exclude_dates_str else []
+
+    # Build WHERE clause with optional date exclusion
+    where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
+    params = [start_date, end_date]
+
+    if exclude_dates:
+        placeholders = ','.join('?' * len(exclude_dates))
+        where_clause += f' AND DATE(transaction_date) NOT IN ({placeholders})'
+        params.extend(exclude_dates)
+
     # First, check if there's any revenue data in this date range
-    revenue_check_query = '''
+    revenue_check_query = f'''
         SELECT COUNT(*) as transaction_count
         FROM transactions
-        WHERE DATE(transaction_date) BETWEEN ? AND ?
+        {where_clause}
     '''
-    cursor.execute(revenue_check_query, (start_date, end_date))
+    cursor.execute(revenue_check_query, params)
     has_revenue_data = cursor.fetchone()['transaction_count'] > 0
 
     # If no revenue data, return empty result (like items_by_revenue does)
@@ -190,24 +227,24 @@ def labor_percent(cursor):
         )
 
     # Get hourly sales from transactions
-    sales_query = '''
+    sales_query = f'''
         SELECT 
             strftime('%Y-%m-%d %H:00:00', transaction_date) as hour,
             ROUND(SUM(total_amount), 2) as sales
         FROM transactions
-        WHERE DATE(transaction_date) BETWEEN ? AND ?
+        {where_clause}
         GROUP BY hour
         ORDER BY hour
     '''
 
-    cursor.execute(sales_query, (start_date, end_date))
+    cursor.execute(sales_query, params)
     sales_data = {row['hour']: row['sales'] for row in cursor.fetchall()}
 
     # Calculate hourly labor costs with proper proration and breakdown
     # Returns: {'hour': {'total_cost': X, 'salaried_hours': Y, 'salaried_cost': Z, ...}}
     # Note: calculate_hourly_labor_costs needs connection, not cursor
     conn = cursor.connection
-    labor_breakdown = calculate_hourly_labor_costs(conn, start_date, end_date, include_salaried)
+    labor_breakdown = calculate_hourly_labor_costs(conn, start_date, end_date, include_salaried, exclude_dates)
 
     # Combine sales and labor data
     # Get all hours that have either sales or labor
