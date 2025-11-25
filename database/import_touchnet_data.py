@@ -10,7 +10,7 @@ Usage:
     python import_touchnet_data.py <excel_file1> <excel_file2> ...
 
 Example:
-    python import_touchnet_data.py data/*.xls
+    python import_touchnet_data.py datafiles/*.xls
 """
 
 import sqlite3
@@ -18,24 +18,6 @@ import sys
 import re
 from datetime import datetime
 from collections import defaultdict
-import csv
-
-# Category mapping from backup CSV
-CATEGORY_MAPPING = {}
-
-
-def load_category_mapping(csv_path):
-    """Load item_id → category mapping from CSV."""
-    with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            item_id = int(row['item_id'])
-            CATEGORY_MAPPING[item_id] = {
-                'category': row['category'],
-                'price': float(row['current_price']),
-                'cost': float(row['current_cost'])
-            }
-    print(f"✅ Loaded {len(CATEGORY_MAPPING)} category mappings")
 
 
 def parse_excel_file(excel_path):
@@ -43,7 +25,7 @@ def parse_excel_file(excel_path):
     Parse TouchNet Excel file and extract items + transactions.
 
     Returns:
-        items: dict {touchnet_id: {'name': str, 'category': str, 'price': float, 'cost': float}}
+        items: dict {touchnet_id: {'name': str, 'transactions': list}}
         transactions: list of dicts
     """
     print(f"\n📄 Processing: {excel_path}")
@@ -56,7 +38,6 @@ def parse_excel_file(excel_path):
     transactions = []
     current_item_id = None
     current_item_name = None
-    current_category = None
 
     for row_idx in range(sheet.nrows):
         # Get first two columns
@@ -71,26 +52,11 @@ def parse_excel_file(excel_path):
             current_item_id = int(item_match.group(1))
             current_item_name = item_match.group(2).strip()
 
-            # Get category info from mapping (or default to 'other drinks')
-            if current_item_id in CATEGORY_MAPPING:
-                mapping = CATEGORY_MAPPING[current_item_id]
-                current_category = mapping['category']
-                price = mapping['price']
-                cost = mapping['cost']
-            else:
-                print(
-                    f"  ⚠️  Item not in mapping: {current_item_id} {current_item_name} (defaulting to 'other drinks')")
-                current_category = 'other drinks'
-                price = 0.0
-                cost = 0.0
-
-            # Store item info (will update price if we see higher values in transactions)
+            # Store item info (will collect transactions for price calculation)
             if current_item_id not in items:
                 items[current_item_id] = {
                     'name': current_item_name,
-                    'category': current_category,
-                    'price': price,
-                    'cost': cost
+                    'transactions': []
                 }
 
         elif current_item_id is not None:
@@ -152,21 +118,19 @@ def parse_excel_file(excel_path):
                     except Exception as e:
                         continue
 
-                    # Update item's current price if this transaction has a higher price
-                    if unit_price > items[current_item_id]['price']:
-                        items[current_item_id]['price'] = unit_price
-
-                    # Store transaction
-                    transactions.append({
+                    # Store transaction with timestamp for later price calculation
+                    txn = {
                         'timestamp': dt,
                         'item_id': current_item_id,
                         'item_name': current_item_name,
-                        'category': current_category,
                         'quantity': quantity,
                         'register_num': register_num,
                         'unit_price': unit_price,
                         'total_amount': amount
-                    })
+                    }
+                    
+                    transactions.append(txn)
+                    items[current_item_id]['transactions'].append(txn)
 
             except Exception as e:
                 # Not a transaction row, skip
@@ -178,15 +142,31 @@ def parse_excel_file(excel_path):
     return items, transactions
 
 
-def import_data(db_path, excel_files, category_csv):
+def import_data(db_path, excel_files):
     """Import all data from Excel files into database."""
-
-    # Load category mappings first
-    load_category_mapping(category_csv)
 
     # Connect to database
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
+    # Load existing items from database (source of truth)
+    print("\n💾 Loading existing items from database...")
+    cursor.execute("""
+        SELECT item_id, item_name, category, current_price, current_cost
+        FROM items
+    """)
+    
+    existing_items = {}
+    for row in cursor.fetchall():
+        item_id, name, category, price, cost = row
+        existing_items[item_id] = {
+            'name': name,
+            'category': category,
+            'price': price,
+            'cost': cost
+        }
+    
+    print(f"  ✅ Loaded {len(existing_items)} existing items from database")
 
     all_items = {}
     all_transactions = []
@@ -195,38 +175,75 @@ def import_data(db_path, excel_files, category_csv):
     for excel_file in excel_files:
         items, transactions = parse_excel_file(excel_file)
 
-        # Merge items (keep highest price/cost seen)
+        # Merge items
         for item_id, item_data in items.items():
             if item_id in all_items:
-                # Update with highest price
-                if item_data['price'] > all_items[item_id]['price']:
-                    all_items[item_id]['price'] = item_data['price']
-                if item_data['cost'] > all_items[item_id]['cost']:
-                    all_items[item_id]['cost'] = item_data['cost']
+                # Update name if changed, keep transactions
+                all_items[item_id]['name'] = item_data['name']
+                all_items[item_id]['transactions'].extend(item_data['transactions'])
             else:
                 all_items[item_id] = item_data
 
         all_transactions.extend(transactions)
 
-    # Insert items
-    print(f"\n💾 Inserting {len(all_items)} items...")
+    # Calculate most recent price for each item
+    print(f"\n💰 Calculating prices from most recent transactions...")
+    for item_id, item_data in all_items.items():
+        if item_data['transactions']:
+            # Sort by timestamp, most recent first
+            sorted_txns = sorted(item_data['transactions'], 
+                               key=lambda t: t['timestamp'], 
+                               reverse=True)
+            # Get price from most recent transaction
+            item_data['most_recent_price'] = sorted_txns[0]['unit_price']
+        else:
+            item_data['most_recent_price'] = 0.0
+
+    # Process items: insert new ones, update existing ones
+    print(f"\n💾 Processing {len(all_items)} items...")
+    new_count = 0
+    updated_count = 0
+    
     for item_id, item_data in sorted(all_items.items()):
-        try:
+        if item_id in existing_items:
+            # Item exists - update name and price, keep category and cost
             cursor.execute("""
-                INSERT INTO items (item_id, item_name, category, current_price, current_cost)
-                VALUES (?, ?, ?, ?, ?)
+                UPDATE items 
+                SET item_name = ?, current_price = ?, last_updated = CURRENT_TIMESTAMP
+                WHERE item_id = ?
             """, (
-                item_id,
                 item_data['name'],
-                item_data['category'],
-                item_data['price'],
-                item_data['cost']
+                item_data['most_recent_price'],
+                item_id
             ))
-        except sqlite3.IntegrityError as e:
-            print(f"  ⚠️  Duplicate item_id {item_id}: {item_data['name']}")
+            updated_count += 1
+        else:
+            # New item - use defaults and warn
+            print(f"  🆕 NEW ITEM: {item_id} {item_data['name']} (defaulting to 'other drinks')")
+            try:
+                cursor.execute("""
+                    INSERT INTO items (item_id, item_name, category, current_price, current_cost)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    item_id,
+                    item_data['name'],
+                    'other drinks',  # Default category
+                    item_data['most_recent_price'],
+                    0.0  # Default cost
+                ))
+                new_count += 1
+            except sqlite3.IntegrityError as e:
+                print(f"  ⚠️  Error inserting item {item_id}: {e}")
+
+    print(f"  ✅ New items: {new_count}")
+    print(f"  ✅ Updated items: {updated_count}")
+
+    # Now load all items (including newly inserted) for transaction processing
+    cursor.execute("SELECT item_id, category FROM items")
+    item_categories = {row[0]: row[1] for row in cursor.fetchall()}
 
     # Insert transactions
-    print(f"💾 Processing {len(all_transactions)} transactions...")
+    print(f"\n💾 Processing {len(all_transactions)} transactions...")
 
     # Sort by timestamp for consistency
     all_transactions.sort(key=lambda t: t['timestamp'])
@@ -236,6 +253,9 @@ def import_data(db_path, excel_files, category_csv):
     update_count = 0
 
     for txn in all_transactions:
+        # Get category from database
+        category = item_categories.get(txn['item_id'], 'other drinks')
+        
         if txn['quantity'] < 0:
             # This is a cancellation - find the matching positive transaction
             cancel_qty = abs(txn['quantity'])
@@ -284,7 +304,7 @@ def import_data(db_path, excel_files, category_csv):
                     txn['timestamp'],
                     txn['item_id'],
                     txn['item_name'],
-                    txn['category'],
+                    category,
                     txn['quantity'],
                     txn['register_num'],
                     txn['unit_price'],
@@ -304,7 +324,8 @@ def import_data(db_path, excel_files, category_csv):
     conn.close()
 
     print("\n✅ Import complete!")
-    print(f"   Items: {len(all_items)}")
+    print(f"   New items: {new_count}")
+    print(f"   Updated items: {updated_count}")
     print(f"   Transactions: {insert_count}")
 
 
@@ -335,14 +356,6 @@ def verify_import(db_path):
     min_date, max_date = cursor.fetchone()
     print(f"   Date range: {min_date} - {max_date}")
 
-    # Verify item 101 is Espresso
-    cursor.execute("SELECT item_id, item_name, category FROM items WHERE item_id = 101")
-    result = cursor.fetchone()
-    if result:
-        print(f"   ✅ Item 101 = {result[1]} ({result[2]})")
-    else:
-        print(f"   ⚠️  Item 101 not found!")
-
     # Check for orphaned transactions
     cursor.execute("""
         SELECT COUNT(*) FROM transactions t
@@ -371,18 +384,18 @@ def verify_import(db_path):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python import_touchnet_data.py <excel_file1> <excel_file2> ...")
+        print("\nExample:")
+        print("  python import_touchnet_data.py datafiles/*.xls")
         sys.exit(1)
 
     db_path = "cafe_reports.db"
-    category_csv = "complete_product_list_with_categories.csv"
     excel_files = sys.argv[1:]
 
     print("🚀 TouchNet Data Import")
     print(f"   Database: {db_path}")
-    print(f"   Category mapping: {category_csv}")
     print(f"   Excel files: {len(excel_files)}")
 
-    import_data(db_path, excel_files, category_csv)
+    import_data(db_path, excel_files)
     verify_import(db_path)
 
     print("\n🎉 Done! Check the verification output above.")
