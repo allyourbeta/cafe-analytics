@@ -5,7 +5,9 @@
  * @returns Formatted string with commas
  */
 export function formatCurrency(num: number, decimals: number = 0): string {
-  return `$${num.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  // Handle undefined/null values defensively
+  const safeNum = num ?? 0;
+  return `$${safeNum.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
 
 /**
@@ -15,7 +17,9 @@ export function formatCurrency(num: number, decimals: number = 0): string {
  * @returns Formatted string with commas
  */
 export function formatNumber(num: number, decimals: number = 0): string {
-  return num.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  // Handle undefined/null values defensively
+  const safeNum = num ?? 0;
+  return safeNum.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 /**
@@ -38,8 +42,8 @@ export function getTodayPacificTime(): string {
 }
 
 /**
- * Aggregate items by category, summing units and profit
- * @param items - Array of items with category, units_sold, total_profit, margin_pct
+ * Aggregate items by category, summing units, profit, and revenue
+ * @param items - Array of items with category, units_sold, total_profit, margin_pct, and/or revenue
  * @returns Array of category aggregates
  */
 export function aggregateByCategory(items: any[]): any[] {
@@ -53,14 +57,21 @@ export function aggregateByCategory(items: any[]): any[] {
         units_sold: 0,
         total_profit: 0,
         total_revenue: 0, // For weighted margin calculation
+        revenue: 0, // Direct revenue aggregation for ItemsByRevenue
       });
     }
 
     const agg = categoryMap.get(category);
     agg.units_sold += item.units_sold || 0;
     agg.total_profit += item.total_profit || 0;
-    // Calculate revenue from profit and margin to get weighted average
-    if (item.margin_pct && item.margin_pct > 0) {
+
+    // If item has direct revenue field (from ItemsByRevenue), aggregate it
+    if (item.revenue !== undefined) {
+      agg.revenue += item.revenue || 0;
+      agg.total_revenue += item.revenue || 0;
+    }
+    // Otherwise calculate revenue from profit and margin (for profit reports)
+    else if (item.margin_pct && item.margin_pct > 0) {
       const revenue = item.total_profit / (item.margin_pct / 100);
       agg.total_revenue += revenue;
     }
@@ -75,5 +86,5 @@ export function aggregateByCategory(items: any[]): any[] {
           ? (agg.total_profit / agg.total_revenue) * 100
           : 0,
     }))
-    .sort((a, b) => b.total_profit - a.total_profit); // Sort by profit descending
+    .sort((a, b) => (b.revenue || b.total_profit) - (a.revenue || a.total_profit)); // Sort by revenue or profit
 }
