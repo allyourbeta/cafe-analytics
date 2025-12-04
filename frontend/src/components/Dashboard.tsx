@@ -130,8 +130,8 @@ export default function Dashboard() {
   const reports: ReportItem[] = [
     {
       id: "items-by-revenue",
-      title: "Items by Revenue",
-      description: "Items and categories ranked",
+      title: "Items Sold",
+      description: "By revenue and by quantity",
       icon: <BarChart3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-orange-400 to-orange-600",
       component: <ItemsByRevenue />,
