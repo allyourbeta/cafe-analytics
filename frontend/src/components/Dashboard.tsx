@@ -137,14 +137,6 @@ export default function Dashboard() {
       component: <ItemsByRevenue />,
     },
     {
-      id: "sales-per-hour",
-      title: "Revenue per Hour",
-      description: "Total revenue, per hour",
-      icon: <Clock className="w-5 h-5 text-white" />,
-      iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
-      component: <SalesPerHour />,
-    },
-    {
       id: "item-heatmap",
       title: "Item Sales Heatmap",
       description: "Top-25 items, hourly sales",
@@ -168,6 +160,14 @@ export default function Dashboard() {
       icon: <TrendingUp className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <ItemsByMargin />,
+    },
+    {
+      id: "sales-per-hour",
+      title: "Revenue per Hour",
+      description: "Total revenue, per hour",
+      icon: <Clock className="w-5 h-5 text-white" />,
+      iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
+      component: <SalesPerHour />,
     },
     {
       id: "labor-percent",
