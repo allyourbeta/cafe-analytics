@@ -32,6 +32,8 @@ import HourlyForecast from "./HourlyForecast";
 import ItemHeatmap from "./ItemHeatmap";
 import ItemDemandForecast from "./Itemdemandforecast";
 import TimePeriodComparison from "./Timeperiodcomparison";
+import WeeklyMonthlyTrends from "./WeeklyMonthlyTrends";
+import DatePicker from "./DatePicker";
 
 interface KPICardProps {
   icon: React.ReactNode;
@@ -182,6 +184,14 @@ export default function Dashboard() {
       icon: <BarChart3 className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <TimePeriodComparison />,
+    },
+    {
+      id: "weekly-monthly-trends",
+      title: "Weekly & Monthly Trends",
+      description: "Revenue patterns over time",
+      icon: <TrendingUp className="w-5 h-5 text-white" />,
+      iconBg: "bg-gradient-to-br from-teal-400 to-teal-600",
+      component: <WeeklyMonthlyTrends />,
     },
     {
       id: "daily-forecast",
@@ -546,11 +556,12 @@ export default function Dashboard() {
           {/* Popup (open state) */}
           {isDatePickerOpen && (
             <div
-              className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-lg rounded-lg p-4 min-w-[320px] z-50"
+              className="absolute right-0 top-full mt-2 bg-white border border-gray-200 shadow-lg rounded-lg p-4 z-50"
+              style={{ minWidth: "580px" }}
               role="dialog"
             >
               {/* Presets grid */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="grid grid-cols-5 gap-2 mb-4">
                 {[
                   "Today",
                   "Yesterday",
@@ -580,38 +591,22 @@ export default function Dashboard() {
               {/* Divider */}
               <div className="border-t border-gray-200 my-4" />
 
-              {/* Custom date inputs */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={tempStartDate}
-                    onChange={(e) => {
-                      setTempStartDate(e.target.value);
-                      setTempPreset("");
-                    }}
-                    className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={tempEndDate}
-                    onChange={(e) => {
-                      setTempEndDate(e.target.value);
-                      setTempPreset("");
-                    }}
-                    className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  />
-                </div>
-              </div>
+              {/* Calendar date picker - Monday first */}
+              <DatePicker
+                selectedStart={tempStartDate}
+                selectedEnd={tempEndDate}
+                onStartChange={(date) => {
+                  setTempStartDate(date);
+                  setTempPreset("");
+                }}
+                onEndChange={(date) => {
+                  setTempEndDate(date);
+                  setTempPreset("");
+                }}
+              />
 
+              {/* Divider */}
+              <div className="border-t border-gray-200 my-4" />
               {/* Apply button */}
               <button
                 onClick={handleApplyDateRange}
@@ -817,7 +812,7 @@ export default function Dashboard() {
               value={`${avgLaborPct.toFixed(1)}% | ${avgStudentLaborPct.toFixed(
                 1
               )}%`}
-              subtitle="with salaried / only students"
+              subtitle="with salaried | only students"
             />
           </div>
 

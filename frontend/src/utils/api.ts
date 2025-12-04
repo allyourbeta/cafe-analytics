@@ -291,3 +291,38 @@ export const getAllItems = async () => {
   const response = await axios.get(`${API_BASE}/items`);
   return response.data;
 };
+
+// R11: Weekly and Monthly Revenue Trends
+export interface RevenuePeriod {
+  label: string;
+  start_date: string;
+  end_date: string;
+  revenue: number;
+  is_complete: boolean;
+}
+
+export interface ExcludedPartial {
+  start: string;
+  end: string;
+  reason: string;
+  end_partial_start?: string;
+  end_partial_end?: string;
+}
+
+export interface RevenueTrendsData {
+  periods: RevenuePeriod[];
+  average: number;
+  excluded_partial: ExcludedPartial | null;
+  granularity: "week" | "month";
+}
+
+export const getRevenueTrends = async (
+  startDate: string,
+  endDate: string,
+  granularity: "week" | "month" = "week"
+) => {
+  const response = await axios.get(`${API_BASE}/reports/revenue-trends`, {
+    params: { start: startDate, end: endDate, granularity },
+  });
+  return response.data;
+};
