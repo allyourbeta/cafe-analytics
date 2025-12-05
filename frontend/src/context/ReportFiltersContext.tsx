@@ -14,6 +14,7 @@ export interface ReportFilters {
   sortOrder: "top" | "bottom";
   itemType: "all" | "purchased" | "house-made";
   selectedCategory: string;
+  metric: "revenue" | "units";
 }
 
 /**
@@ -24,6 +25,7 @@ const defaultFilters: ReportFilters = {
   sortOrder: "top",
   itemType: "all",
   selectedCategory: "all",
+  metric: "revenue",
 };
 
 interface ReportFiltersContextType {

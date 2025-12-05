@@ -42,17 +42,29 @@ const RevenueChart = ({
 }) => {
   // Use centralized filters
   const { filters, updateFilters } = useReportFilters();
+  const metric = filters.metric;
+
+  // Sort data by selected metric
+  const sortedByMetric = [...data].sort((a, b) => {
+    const aVal = metric === "revenue" ? a.revenue : a.units_sold;
+    const bVal = metric === "revenue" ? b.revenue : b.units_sold;
+    return bVal - aVal; // Descending
+  });
 
   // In category mode, show all categories (no top/bottom split)
-  // In item mode, show top 10 or bottom 10
+  // In item mode, show top 20 or bottom 20
   const displayData =
     filters.viewMode === "category"
-      ? data // Show all categories
+      ? sortedByMetric // Show all categories
       : filters.sortOrder === "top"
-      ? data.slice(0, 10)
-      : data.slice(-10).reverse();
+      ? sortedByMetric.slice(0, 20)
+      : sortedByMetric.slice(-20).reverse();
 
-  const maxRevenue = Math.max(...displayData.map((item) => item.revenue));
+  const maxValue = Math.max(
+    ...displayData.map((item) =>
+      metric === "revenue" ? item.revenue : item.units_sold
+    )
+  );
 
   return (
     <div
@@ -71,7 +83,7 @@ const RevenueChart = ({
       >
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
-            Items by Revenue
+            Items by {metric === "revenue" ? "Revenue" : "Units"}
           </h3>
 
           <FilterBar
@@ -79,8 +91,8 @@ const RevenueChart = ({
             onFilterChange={updateFilters}
             enabledFilters={
               filters.viewMode === "item"
-                ? ["viewMode", "itemType", "sortOrder", "category"]
-                : ["viewMode"]
+                ? ["viewMode", "itemType", "sortOrder", "metric", "category"]
+                : ["viewMode", "metric"]
             }
             showCategoryDropdown={filters.viewMode === "item"}
           />
@@ -90,7 +102,8 @@ const RevenueChart = ({
       {/* Bar chart */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {displayData.map((item, index) => {
-          const widthPercent = (item.revenue / maxRevenue) * 100;
+          const value = metric === "revenue" ? item.revenue : item.units_sold;
+          const widthPercent = (value / maxValue) * 100;
           const displayName =
             filters.viewMode === "category"
               ? getCategoryDisplayName(item.category)
@@ -146,7 +159,9 @@ const RevenueChart = ({
                       color: "white",
                     }}
                   >
-                    {formatCurrency(item.revenue, 0)}
+                    {metric === "revenue"
+                      ? formatCurrency(value, 0)
+                      : formatNumber(value, 0)}
                   </span>
                 </div>
               </div>
@@ -165,6 +180,7 @@ export default function ItemsByRevenue() {
 
   const { startDate, endDate } = useDateRange();
   const { filters } = useReportFilters();
+  const metric = filters.metric;
 
   const loadData = async () => {
     setLoading(true);
@@ -197,9 +213,12 @@ export default function ItemsByRevenue() {
       ? data
       : data.filter((item) => item.category === filters.selectedCategory);
 
-  // Sort data based on sortOrder (reverse for bottom 10 in table)
-  const sortedData =
-    filters.sortOrder === "top" ? filteredData : [...filteredData].reverse();
+  // Sort data based on selected metric and sortOrder
+  const sortedData = [...filteredData].sort((a, b) => {
+    const aVal = metric === "revenue" ? a.revenue : a.units_sold;
+    const bVal = metric === "revenue" ? b.revenue : b.units_sold;
+    return filters.sortOrder === "top" ? bVal - aVal : aVal - bVal;
+  });
 
   if (loading) {
     return <div className="p-6 text-gray-600">Loading...</div>;

@@ -6,6 +6,7 @@ export interface FilterValues {
   viewMode?: "item" | "category";
   selectedCategory?: string;
   saturdayFilter?: "all" | "non-game" | "gamedays";
+  metric?: "revenue" | "units";
 }
 
 interface ToggleButtonProps {
@@ -42,7 +43,7 @@ const ToggleButton = ({
 interface FilterBarProps {
   filters: FilterValues;
   onFilterChange: (filters: FilterValues) => void;
-  enabledFilters: Array<"itemType" | "sortOrder" | "viewMode" | "category" | "saturdayFilter">;
+  enabledFilters: Array<"itemType" | "sortOrder" | "viewMode" | "category" | "saturdayFilter" | "metric">;
   showCategoryDropdown?: boolean;
 }
 
@@ -135,15 +136,41 @@ export default function FilterBar({
           }}
         >
           <ToggleButton
-            label="Top 10"
+            label="Top 20"
             isActive={filters.sortOrder === "top"}
             onClick={() => updateFilter("sortOrder", "top")}
             color="#3B82F6"
           />
           <ToggleButton
-            label="Bottom 10"
+            label="Bottom 20"
             isActive={filters.sortOrder === "bottom"}
             onClick={() => updateFilter("sortOrder", "bottom")}
+            color="#3B82F6"
+          />
+        </div>
+      )}
+
+      {/* Metric Toggle (Revenue / Units) */}
+      {enabledFilters.includes("metric") && (
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            backgroundColor: "#E5E7EB",
+            padding: "4px",
+            borderRadius: "6px",
+          }}
+        >
+          <ToggleButton
+            label="Revenue"
+            isActive={filters.metric === "revenue"}
+            onClick={() => updateFilter("metric", "revenue")}
+            color="#3B82F6"
+          />
+          <ToggleButton
+            label="Units"
+            isActive={filters.metric === "units"}
+            onClick={() => updateFilter("metric", "units")}
             color="#3B82F6"
           />
         </div>
