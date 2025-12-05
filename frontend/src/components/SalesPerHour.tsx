@@ -4,6 +4,7 @@ import { getSalesPerHour } from "../utils/api";
 import { useSaturdayFilter } from "../utils/useSaturdayFilter";
 import FilterBar from "./FilterBar";
 import ReportStateWrapper from "./ReportStateWrapper";
+import SummaryCard, { SummaryCardGrid } from "./SummaryCard";
 
 type ViewMode = "average" | "day-of-week";
 
@@ -137,98 +138,23 @@ const SalesChart = ({ data }: { data: Record<string, any>[] }) => {
       </div>
 
       {/* Summary cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
-          marginTop: "24px",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#DBEAFE",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #BFDBFE",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#1E40AF",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            🔥 PEAK HOUR
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#1E40AF" }}
-          >
-            {peakHour.hour}
-          </div>
-          <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
-            ${peakHour.sales.toFixed(0)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: "#DBEAFE",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #BFDBFE",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#1E40AF",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            💰 TOTAL SALES
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#1E40AF" }}
-          >
-            ${totalSales.toFixed(0)}
-          </div>
-          <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
-            Across {data.length} hours
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: "#DBEAFE",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #BFDBFE",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#1E40AF",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            📊 AVG PER HOUR
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#1E40AF" }}
-          >
-            ${(totalSales / data.length).toFixed(0)}
-          </div>
-          <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
-            Per labor hour
-          </div>
-        </div>
-      </div>
+      <SummaryCardGrid>
+        <SummaryCard
+          label="🔥 PEAK HOUR"
+          value={peakHour.hour}
+          subtitle={`$${peakHour.sales.toFixed(0)}`}
+        />
+        <SummaryCard
+          label="💰 TOTAL SALES"
+          value={`$${totalSales.toFixed(0)}`}
+          subtitle={`Across ${data.length} hours`}
+        />
+        <SummaryCard
+          label="📊 AVG PER HOUR"
+          value={`$${(totalSales / data.length).toFixed(0)}`}
+          subtitle="Per labor hour"
+        />
+      </SummaryCardGrid>
     </div>
   );
 };

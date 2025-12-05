@@ -3,6 +3,7 @@ import { useDateRange } from "../context/DateContext";
 import React from "react";
 import { useSaturdayFilter } from "../utils/useSaturdayFilter";
 import FilterBar from "./FilterBar";
+import SummaryCard, { SummaryCardGrid } from "./SummaryCard";
 
 // Local storage key for persisting target
 const LABOR_TARGET_STORAGE_KEY = "cafe_labor_target_percent";
@@ -171,7 +172,11 @@ const LaborChart = ({
                 e.currentTarget.style.backgroundColor = "#F3F4F6";
               }}
             >
-              <span style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}>−</span>
+              <span
+                style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}
+              >
+                −
+              </span>
             </button>
 
             {/* Editable target value */}
@@ -251,7 +256,11 @@ const LaborChart = ({
                 e.currentTarget.style.backgroundColor = "#F3F4F6";
               }}
             >
-              <span style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}>+</span>
+              <span
+                style={{ fontSize: "16px", color: "#374151", lineHeight: 1 }}
+              >
+                +
+              </span>
             </button>
           </div>
 
@@ -536,97 +545,26 @@ const LaborChart = ({
       </div>
 
       {/* Summary cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "16px",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#F0FDF4",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #BBF7D0",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#166534",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            ✓ UNDER TARGET
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#166534" }}
-          >
-            {underTargetCount}
-          </div>
-          <div style={{ fontSize: "14px", color: "#166534", marginTop: "2px" }}>
-            hours on track
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: "#FEF3C7",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #FDE68A",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#92400E",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            📊 AVERAGE
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#92400E" }}
-          >
-            {avgLabor.toFixed(1)}%
-          </div>
-          <div style={{ fontSize: "14px", color: "#92400E", marginTop: "2px" }}>
-            across all hours
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: "#FEE2E2",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "2px solid #FECACA",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "12px",
-              color: "#991B1B",
-              fontWeight: "600",
-              marginBottom: "4px",
-            }}
-          >
-            ✗ OVER TARGET
-          </div>
-          <div
-            style={{ fontSize: "24px", fontWeight: "700", color: "#991B1B" }}
-          >
-            {overTargetCount}
-          </div>
-          <div style={{ fontSize: "14px", color: "#991B1B", marginTop: "2px" }}>
-            hours overstaffed
-          </div>
-        </div>
-      </div>
+      <SummaryCardGrid minCardWidth={180}>
+        <SummaryCard
+          label="✓ UNDER TARGET"
+          value={underTargetCount}
+          subtitle="hours on track"
+          variant="green"
+        />
+        <SummaryCard
+          label="📊 AVERAGE"
+          value={`${avgLabor.toFixed(1)}%`}
+          subtitle="across all hours"
+          variant="yellow"
+        />
+        <SummaryCard
+          label="✗ OVER TARGET"
+          value={overTargetCount}
+          subtitle="hours overstaffed"
+          variant="red"
+        />
+      </SummaryCardGrid>
     </div>
   );
 };
@@ -639,7 +577,10 @@ export default function LaborPercent() {
   const [includeSalaried, setIncludeSalaried] = React.useState(false); // Default to Students-only
 
   // Use Saturday filter hook
-  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(startDate, endDate);
+  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(
+    startDate,
+    endDate
+  );
 
   const fetchData = async () => {
     try {
