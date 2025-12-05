@@ -137,15 +137,6 @@ export default function Dashboard() {
       component: <ItemsByRevenue />,
     },
     {
-      id: "item-heatmap",
-      title: "Item Sales Heatmap",
-      description: "Top-25 items, hourly sales",
-      icon: <Grid3x3 className="w-5 h-5 text-white" />,
-      iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
-      component: <ItemHeatmap />,
-    },
-
-    {
       id: "items-by-profit",
       title: "Items by Profit $$",
       description: "Items and categories ranked",
@@ -160,6 +151,14 @@ export default function Dashboard() {
       icon: <TrendingUp className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <ItemsByMargin />,
+    },
+          {
+      id: "item-heatmap",
+      title: "Item Sales Heatmap",
+      description: "Top-25 items, hourly sales",
+      icon: <Grid3x3 className="w-5 h-5 text-white" />,
+      iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      component: <ItemHeatmap />,
     },
     {
       id: "sales-per-hour",
