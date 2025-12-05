@@ -3,6 +3,7 @@ import { useDateRange } from "../context/DateContext";
 import { getSalesPerHour } from "../utils/api";
 import { useSaturdayFilter } from "../utils/useSaturdayFilter";
 import FilterBar from "./FilterBar";
+import ReportStateWrapper from "./ReportStateWrapper";
 
 type ViewMode = "average" | "day-of-week";
 
@@ -404,7 +405,10 @@ export default function SalesPerHour() {
   const { startDate, endDate } = useDateRange();
 
   // Use Saturday filter hook
-  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(startDate, endDate);
+  const { filters, setFilters, getExcludeDates } = useSaturdayFilter(
+    startDate,
+    endDate
+  );
 
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -425,7 +429,13 @@ export default function SalesPerHour() {
     setError(null);
     try {
       const excludeDates = getExcludeDates();
-      const response = await getSalesPerHour(startDate, endDate, viewMode, undefined, excludeDates);
+      const response = await getSalesPerHour(
+        startDate,
+        endDate,
+        viewMode,
+        undefined,
+        excludeDates
+      );
       setData(response.data);
       if (response.metadata) {
         setMetadata(response.metadata);
@@ -443,84 +453,76 @@ export default function SalesPerHour() {
     loadData();
   }, [startDate, endDate, viewMode, filters.saturdayFilter]);
 
-  if (loading) {
-    return <div className="p-6 text-gray-600">Loading...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>
-    );
-  }
-
-  if (data.length === 0) {
-    return <div className="p-6 text-gray-500">No data for this period</div>;
-  }
-
   return (
-    <div className="p-6">
-      {/* Header with title and toggle */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-700">
-            {viewMode === "average"
-              ? "Average hourly pattern"
-              : "Day-of-week hourly pattern"}
-            :{" "}
-            {startDate === endDate
-              ? formatDate(startDate)
-              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
-          </h3>
-        </div>
-
-        {/* Filters - horizontal layout */}
-        <div className="flex gap-4 items-center flex-wrap mb-4">
-          {/* Saturday Filter */}
-          <FilterBar
-            filters={filters}
-            onFilterChange={setFilters}
-            enabledFilters={["saturdayFilter"]}
-          />
-
-          {/* Toggle buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode("average")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                viewMode === "average"
-                  ? "bg-emerald-500 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Overall Average
-            </button>
-            <button
-              onClick={() => setViewMode("day-of-week")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                viewMode === "day-of-week"
-                  ? "bg-emerald-500 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              By Day of Week
-            </button>
+    <ReportStateWrapper
+      loading={loading}
+      error={error}
+      isEmpty={data.length === 0}
+    >
+      <div className="p-6">
+        {/* Header with title and toggle */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-700">
+              {viewMode === "average"
+                ? "Average hourly pattern"
+                : "Day-of-week hourly pattern"}
+              :{" "}
+              {startDate === endDate
+                ? formatDate(startDate)
+                : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+            </h3>
           </div>
+
+          {/* Filters - horizontal layout */}
+          <div className="flex gap-4 items-center flex-wrap mb-4">
+            {/* Saturday Filter */}
+            <FilterBar
+              filters={filters}
+              onFilterChange={setFilters}
+              enabledFilters={["saturdayFilter"]}
+            />
+
+            {/* Toggle buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode("average")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  viewMode === "average"
+                    ? "bg-emerald-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Overall Average
+              </button>
+              <button
+                onClick={() => setViewMode("day-of-week")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  viewMode === "day-of-week"
+                    ? "bg-emerald-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                By Day of Week
+              </button>
+            </div>
+          </div>
+
+          {metadata && metadata.missing_days > 0 && viewMode === "average" && (
+            <p className="text-sm text-gray-600 mb-4">
+              Note: Missing data for {metadata.missing_days} day
+              {metadata.missing_days > 1 ? "s" : ""} in range.
+            </p>
+          )}
         </div>
 
-        {metadata && metadata.missing_days > 0 && viewMode === "average" && (
-          <p className="text-sm text-gray-600 mb-4">
-            Note: Missing data for {metadata.missing_days} day
-            {metadata.missing_days > 1 ? "s" : ""} in range.
-          </p>
+        {/* Render appropriate view */}
+        {viewMode === "average" ? (
+          <SalesChart data={data} />
+        ) : (
+          <DayOfWeekCharts data={data} />
         )}
       </div>
-
-      {/* Render appropriate view */}
-      {viewMode === "average" ? (
-        <SalesChart data={data} />
-      ) : (
-        <DayOfWeekCharts data={data} />
-      )}
-    </div>
+    </ReportStateWrapper>
   );
 }

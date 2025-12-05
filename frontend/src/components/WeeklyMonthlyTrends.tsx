@@ -3,6 +3,7 @@ import { useDateRange } from "../context/DateContext";
 import { getRevenueTrends } from "../utils/api";
 import type { RevenueTrendsData, RevenuePeriod } from "../utils/api";
 import { formatCurrency } from "../utils/formatters";
+import ReportStateWrapper from "./ReportStateWrapper";
 
 type Granularity = "week" | "month";
 
@@ -166,7 +167,8 @@ const TrendsChart = ({
               );
 
               // Determine color based on comparison to average
-              const vsAvg = average > 0 ? (period.revenue - average) / average : 0;
+              const vsAvg =
+                average > 0 ? (period.revenue - average) / average : 0;
               let barColor = "#3B82F6"; // Default blue
               if (vsAvg > 0.05) barColor = "#1E40AF"; // Above avg: darker blue
               else if (vsAvg < -0.05) barColor = "#93C5FD"; // Below avg: lighter blue
@@ -208,7 +210,10 @@ const TrendsChart = ({
                       cursor: "pointer",
                       boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                     }}
-                    title={`${period.label}: ${formatCurrency(period.revenue, 2)}`}
+                    title={`${period.label}: ${formatCurrency(
+                      period.revenue,
+                      2
+                    )}`}
                   />
                 </div>
               );
@@ -370,9 +375,7 @@ const TrendsTable = ({
         <tbody>
           {periods.map((period, index) => {
             const vsAvgPct =
-              average > 0
-                ? ((period.revenue - average) / average) * 100
-                : 0;
+              average > 0 ? ((period.revenue - average) / average) * 100 : 0;
             const isPositive = vsAvgPct >= 0;
 
             return (
@@ -506,13 +509,12 @@ export default function WeeklyMonthlyTrends() {
     setShowAll(false);
   }, [granularity]);
 
-  if (loading) {
-    return <div className="p-6 text-gray-600">Loading...</div>;
-  }
-
-  if (error) {
+  // Handle loading and error states
+  if (loading || error) {
     return (
-      <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>
+      <ReportStateWrapper loading={loading} error={error} isEmpty={false}>
+        {null}
+      </ReportStateWrapper>
     );
   }
 
@@ -568,8 +570,8 @@ export default function WeeklyMonthlyTrends() {
               marginBottom: "8px",
             }}
           >
-            No complete {granularity === "week" ? "weeks" : "months"} in selected
-            range
+            No complete {granularity === "week" ? "weeks" : "months"} in
+            selected range
           </div>
           <div style={{ fontSize: "14px", color: "#B45309" }}>
             Select a longer date range to see complete{" "}
@@ -649,7 +651,9 @@ export default function WeeklyMonthlyTrends() {
             >
               {data.periods.length}
             </div>
-            <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
+            <div
+              style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}
+            >
               complete {granularity === "week" ? "weeks" : "months"}
             </div>
           </div>
@@ -680,7 +684,9 @@ export default function WeeklyMonthlyTrends() {
                 0
               )}
             </div>
-            <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
+            <div
+              style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}
+            >
               across all periods
             </div>
           </div>
@@ -708,7 +714,9 @@ export default function WeeklyMonthlyTrends() {
             >
               {formatCurrency(data.average, 0)}
             </div>
-            <div style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}>
+            <div
+              style={{ fontSize: "14px", color: "#1E40AF", marginTop: "2px" }}
+            >
               per {granularity}
             </div>
           </div>
@@ -740,44 +748,44 @@ export default function WeeklyMonthlyTrends() {
           ? data.periods
           : data.periods.slice(-MAX_VISIBLE_PERIODS);
 
-        return (
-          <TrendsTable periods={visiblePeriods} average={data.average} />
-        );
+        return <TrendsTable periods={visiblePeriods} average={data.average} />;
       })()}
 
       {/* Partial period note */}
-      {data.excluded_partial && (() => {
-        const periodType = granularity === "week" ? "week" : "month";
-        const { type, start, end } = data.excluded_partial;
+      {data.excluded_partial &&
+        (() => {
+          const periodType = granularity === "week" ? "week" : "month";
+          const { type, start, end } = data.excluded_partial;
 
-        let message = "";
-        if (type === "both") {
-          message = `Partial ${periodType}s omitted at start and end of range`;
-        } else {
-          message = `Partial ${periodType} omitted at ${type} of range`;
-        }
+          let message = "";
+          if (type === "both") {
+            message = `Partial ${periodType}s omitted at start and end of range`;
+          } else {
+            message = `Partial ${periodType} omitted at ${type} of range`;
+          }
 
-        return (
-          <div
-            style={{
-              marginTop: "16px",
-              padding: "12px 16px",
-              backgroundColor: "#F9FAFB",
-              borderRadius: "8px",
-              border: "1px solid #E5E7EB",
-              fontSize: "13px",
-              color: "#6B7280",
-            }}
-          >
-            <span style={{ fontWeight: "600" }}>ℹ️ Note:</span> {message}
-            {type !== "both" && (
-              <span>
-                {" "}({formatDate(start)} - {formatDate(end)})
-              </span>
-            )}
-          </div>
-        );
-      })()}
+          return (
+            <div
+              style={{
+                marginTop: "16px",
+                padding: "12px 16px",
+                backgroundColor: "#F9FAFB",
+                borderRadius: "8px",
+                border: "1px solid #E5E7EB",
+                fontSize: "13px",
+                color: "#6B7280",
+              }}
+            >
+              <span style={{ fontWeight: "600" }}>ℹ️ Note:</span> {message}
+              {type !== "both" && (
+                <span>
+                  {" "}
+                  ({formatDate(start)} - {formatDate(end)})
+                </span>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 }

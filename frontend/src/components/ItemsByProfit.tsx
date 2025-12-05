@@ -11,6 +11,7 @@ import {
 import FilterBar from "./FilterBar";
 import HorizontalBarChart, { toBarChartItems } from "./HorizontalBarChart";
 import DataTable, { type Column } from "./DataTable";
+import ReportStateWrapper from "./ReportStateWrapper";
 
 const itemColumns: Column[] = [
   {
@@ -172,33 +173,25 @@ export default function ItemsByProfit() {
   const sortedData =
     filters.sortOrder === "top" ? filteredData : [...filteredData].reverse();
 
-  if (loading) {
-    return <div className="p-6 text-gray-600">Loading...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 text-red-600 bg-red-50 p-3 rounded">{error}</div>
-    );
-  }
-
-  if (data.length === 0) {
-    return <div className="p-6 text-gray-500">No data for this period</div>;
-  }
-
   return (
-    <div>
-      {/* Chart with centralized filter controls */}
-      <ProfitChart data={filteredData} />
+    <ReportStateWrapper
+      loading={loading}
+      error={error}
+      isEmpty={data.length === 0}
+    >
+      <div>
+        {/* Chart with centralized filter controls */}
+        <ProfitChart data={filteredData} />
 
-      {/* Data table */}
-      <DataTable
-        data={sortedData}
-        columns={
-          filters.viewMode === "category" ? categoryColumns : itemColumns
-        }
-        className="mt-6"
-      />
-    </div>
+        {/* Data table */}
+        <DataTable
+          data={sortedData}
+          columns={
+            filters.viewMode === "category" ? categoryColumns : itemColumns
+          }
+          className="mt-6"
+        />
+      </div>
+    </ReportStateWrapper>
   );
 }
