@@ -746,38 +746,38 @@ export default function WeeklyMonthlyTrends() {
       })()}
 
       {/* Partial period note */}
-      {data.excluded_partial && (
-        <div
-          style={{
-            marginTop: "16px",
-            padding: "12px 16px",
-            backgroundColor: "#F9FAFB",
-            borderRadius: "8px",
-            border: "1px solid #E5E7EB",
-            fontSize: "13px",
-            color: "#6B7280",
-          }}
-        >
-          <span style={{ fontWeight: "600" }}>ℹ️ Note:</span>{" "}
-          {data.excluded_partial.reason}
-          {data.excluded_partial.reason.includes("start") &&
-            !data.excluded_partial.reason.includes("and end") && (
+      {data.excluded_partial && (() => {
+        const periodType = granularity === "week" ? "week" : "month";
+        const { type, start, end } = data.excluded_partial;
+
+        let message = "";
+        if (type === "both") {
+          message = `Partial ${periodType}s omitted at start and end of range`;
+        } else {
+          message = `Partial ${periodType} omitted at ${type} of range`;
+        }
+
+        return (
+          <div
+            style={{
+              marginTop: "16px",
+              padding: "12px 16px",
+              backgroundColor: "#F9FAFB",
+              borderRadius: "8px",
+              border: "1px solid #E5E7EB",
+              fontSize: "13px",
+              color: "#6B7280",
+            }}
+          >
+            <span style={{ fontWeight: "600" }}>ℹ️ Note:</span> {message}
+            {type !== "both" && (
               <span>
-                {" "}
-                ({formatDate(data.excluded_partial.start)} -{" "}
-                {formatDate(data.excluded_partial.end)} excluded)
+                {" "}({formatDate(start)} - {formatDate(end)})
               </span>
             )}
-          {data.excluded_partial.reason.includes("end") &&
-            !data.excluded_partial.reason.includes("start") && (
-              <span>
-                {" "}
-                ({formatDate(data.excluded_partial.start)} -{" "}
-                {formatDate(data.excluded_partial.end)} excluded)
-              </span>
-            )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

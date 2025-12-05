@@ -124,9 +124,9 @@ def revenue_trends(cursor):
             first_monday = start_dt + timedelta(days=days_until_monday)
             # Record the excluded partial week
             excluded_partial = {
+                'type': 'start',
                 'start': start_date,
-                'end': (first_monday - timedelta(days=1)).strftime('%Y-%m-%d'),
-                'reason': 'Partial week omitted at start of range'
+                'end': (first_monday - timedelta(days=1)).strftime('%Y-%m-%d')
             }
         else:
             first_monday = start_dt
@@ -173,16 +173,16 @@ def revenue_trends(cursor):
                 # Partial week at end - record but don't include
                 if not excluded_partial:
                     excluded_partial = {
+                        'type': 'end',
                         'start': current_monday.strftime('%Y-%m-%d'),
-                        'end': end_date,
-                        'reason': 'Partial week omitted at end of range'
+                        'end': end_date
                     }
-                elif excluded_partial.get('reason') == 'Partial week at start of range':
+                elif excluded_partial.get('type') == 'start':
                     # Both start and end have partials
                     excluded_partial = {
+                        'type': 'both',
                         'start': excluded_partial['start'],
                         'end': excluded_partial['end'],
-                        'reason': 'Partial weeks at start and end of range',
                         'end_partial_start': current_monday.strftime('%Y-%m-%d'),
                         'end_partial_end': end_date
                     }
@@ -201,9 +201,9 @@ def revenue_trends(cursor):
             # Record excluded partial
             last_day_of_start_month = monthrange(start_dt.year, start_dt.month)[1]
             excluded_partial = {
+                'type': 'start',
                 'start': start_date,
-                'end': datetime(start_dt.year, start_dt.month, last_day_of_start_month).strftime('%Y-%m-%d'),
-                'reason': 'Partial month omitted at start of range'
+                'end': datetime(start_dt.year, start_dt.month, last_day_of_start_month).strftime('%Y-%m-%d')
             }
         else:
             first_complete_month = start_dt
@@ -244,9 +244,18 @@ def revenue_trends(cursor):
                 # Partial month at end
                 if not excluded_partial:
                     excluded_partial = {
+                        'type': 'end',
                         'start': current_month_start.strftime('%Y-%m-%d'),
-                        'end': end_date,
-                        'reason': 'Partial month omitted at end of range'
+                        'end': end_date
+                    }
+                elif excluded_partial.get('type') == 'start':
+                    # Both start and end have partials
+                    excluded_partial = {
+                        'type': 'both',
+                        'start': excluded_partial['start'],
+                        'end': excluded_partial['end'],
+                        'end_partial_start': current_month_start.strftime('%Y-%m-%d'),
+                        'end_partial_end': end_date
                     }
 
             # Move to next month

@@ -302,9 +302,9 @@ export interface RevenuePeriod {
 }
 
 export interface ExcludedPartial {
+  type: "start" | "end" | "both";
   start: string;
   end: string;
-  reason: string;
   end_partial_start?: string;
   end_partial_end?: string;
 }
