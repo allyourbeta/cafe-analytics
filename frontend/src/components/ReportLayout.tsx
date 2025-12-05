@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import FilterBar, { type FilterValues } from "./FilterBar";
+import DataTable, { type Column } from "./DataTable";
 
-export interface Column {
-  key: string;
-  label: string;
-  align?: "left" | "right";
-  format?: (
-    value: number | string,
-    row: Record<string, any>
-  ) => string | number;
-}
+// Re-export Column type for backwards compatibility
+export type { Column };
 
 interface ReportLayoutProps {
   title: string;
@@ -186,45 +180,7 @@ export default function ReportLayout({
       )}
 
       {!loading && !error && data.length > 0 && columns.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`border border-gray-300 px-4 py-2 ${
-                      col.align === "right" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedData.map((row, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`border border-gray-300 px-4 py-2 ${
-                        col.align === "right" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {col.format
-                        ? col.format(row[col.key], row)
-                        : row[col.key]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="mt-2 text-sm text-gray-600">
-            Total rows: {filteredData.length}
-          </div>
-        </div>
+        <DataTable data={sortedData} columns={columns} />
       )}
 
       {!loading && !error && data.length === 0 && (

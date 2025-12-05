@@ -10,29 +10,48 @@ import {
 } from "../utils/formatters";
 import FilterBar from "./FilterBar";
 import HorizontalBarChart, { toBarChartItems } from "./HorizontalBarChart";
+import DataTable, { type Column } from "./DataTable";
 
-const columns = [
+const itemColumns: Column[] = [
   {
     key: "item_name",
     label: "Item",
-    align: "left" as const,
-    format: (val: string | number, _row?: any) =>
-      _row?.item_id ? `${_row.item_id} - ${val}` : val,
+    align: "left",
+    format: (val, row) => (row?.item_id ? `${row.item_id} - ${val}` : val),
   },
-  { key: "category", label: "Category", align: "left" as const },
+  { key: "category", label: "Category", align: "left" },
   {
     key: "units_sold",
     label: "Units",
-    align: "right" as const,
-    format: (val: number | string, _row?: any) =>
-      formatNumber(val as number, 0),
+    align: "right",
+    format: (val) => formatNumber(val as number, 0),
   },
   {
     key: "revenue",
     label: "Revenue",
-    align: "right" as const,
-    format: (val: number | string, _row?: any) =>
-      formatCurrency(val as number, 0),
+    align: "right",
+    format: (val) => formatCurrency(val as number, 0),
+  },
+];
+
+const categoryColumns: Column[] = [
+  {
+    key: "category",
+    label: "Category",
+    align: "left",
+    format: (val) => getCategoryDisplayName(val),
+  },
+  {
+    key: "units_sold",
+    label: "Units",
+    align: "right",
+    format: (val) => formatNumber(val as number, 0),
+  },
+  {
+    key: "revenue",
+    label: "Revenue",
+    align: "right",
+    format: (val) => formatCurrency(val as number, 0),
   },
 ];
 
@@ -172,73 +191,13 @@ export default function ItemsByRevenue() {
       <RevenueChart data={filteredData} />
 
       {/* Data table */}
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              {filters.viewMode === "category" ? (
-                <>
-                  <th className="border border-gray-300 px-4 py-2 text-left">
-                    Category
-                  </th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">
-                    Units
-                  </th>
-                  <th className="border border-gray-300 px-4 py-2 text-right">
-                    Revenue
-                  </th>
-                </>
-              ) : (
-                columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`border border-gray-300 px-4 py-2 ${
-                      col.align === "right" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {col.label}
-                  </th>
-                ))
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedData.map((row, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                {filters.viewMode === "category" ? (
-                  <>
-                    <td className="border border-gray-300 px-4 py-2 text-left">
-                      {getCategoryDisplayName(row.category)}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
-                      {formatNumber(row.units_sold, 0)}
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
-                      {formatCurrency(row.revenue, 0)}
-                    </td>
-                  </>
-                ) : (
-                  columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`border border-gray-300 px-4 py-2 ${
-                        col.align === "right" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {col.format
-                        ? col.format(row[col.key], row)
-                        : row[col.key]}
-                    </td>
-                  ))
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-2 text-sm text-gray-600">
-          Total rows: {filteredData.length}
-        </div>
-      </div>
+      <DataTable
+        data={sortedData}
+        columns={
+          filters.viewMode === "category" ? categoryColumns : itemColumns
+        }
+        className="mt-6"
+      />
     </div>
   );
 }
