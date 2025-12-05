@@ -4,6 +4,8 @@ import { getRevenueTrends } from "../utils/api";
 import type { RevenueTrendsData, RevenuePeriod } from "../utils/api";
 import { formatCurrency } from "../utils/formatters";
 import ReportStateWrapper from "./ReportStateWrapper";
+import ToggleButtonGroup from "./ToggleButtonGroup";
+import { formatDate, formatDateRange } from "../utils/formatters";
 
 type Granularity = "week" | "month";
 
@@ -474,18 +476,6 @@ export default function WeeklyMonthlyTrends() {
   // Get dates from global context
   const { startDate, endDate } = useDateRange();
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-    const options: Intl.DateTimeFormatOptions = {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    };
-    return date.toLocaleDateString("en-US", options);
-  };
-
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -528,28 +518,14 @@ export default function WeeklyMonthlyTrends() {
               {granularity === "week" ? "Weekly" : "Monthly"} Revenue Trends
             </h3>
             {/* Toggle buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setGranularity("week")}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  granularity === "week"
-                    ? "bg-blue-500 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setGranularity("month")}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  granularity === "month"
-                    ? "bg-blue-500 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Month
-              </button>
-            </div>
+            <ToggleButtonGroup
+              options={[
+                { value: "week", label: "Week" },
+                { value: "month", label: "Month" },
+              ]}
+              value={granularity}
+              onChange={setGranularity}
+            />
           </div>
         </div>
 
@@ -589,35 +565,20 @@ export default function WeeklyMonthlyTrends() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-700">
             {granularity === "week" ? "Weekly" : "Monthly"} Revenue Trends:{" "}
-            {startDate === endDate
-              ? formatDate(startDate)
-              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+            {formatDateRange(startDate, endDate)}
           </h3>
         </div>
 
         {/* Toggle buttons */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setGranularity("week")}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              granularity === "week"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Week
-          </button>
-          <button
-            onClick={() => setGranularity("month")}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-              granularity === "month"
-                ? "bg-blue-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Month
-          </button>
-        </div>
+        <ToggleButtonGroup
+          options={[
+            { value: "week", label: "Week" },
+            { value: "month", label: "Month" },
+          ]}
+          value={granularity}
+          onChange={setGranularity}
+          className="mb-4"
+        />
 
         {/* Summary stats */}
         <div

@@ -5,6 +5,8 @@ import { useSaturdayFilter } from "../utils/useSaturdayFilter";
 import FilterBar from "./FilterBar";
 import ReportStateWrapper from "./ReportStateWrapper";
 import SummaryCard, { SummaryCardGrid } from "./SummaryCard";
+import ToggleButtonGroup from "./ToggleButtonGroup";
+import { formatDateRange } from "../utils/formatters";
 
 type ViewMode = "average" | "day-of-week";
 
@@ -336,20 +338,6 @@ export default function SalesPerHour() {
     endDate
   );
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    // Parse date string as local date to avoid timezone shift
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-
-    const options: Intl.DateTimeFormatOptions = {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    };
-    return date.toLocaleDateString("en-US", options);
-  };
-
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -393,10 +381,7 @@ export default function SalesPerHour() {
               {viewMode === "average"
                 ? "Average hourly pattern"
                 : "Day-of-week hourly pattern"}
-              :{" "}
-              {startDate === endDate
-                ? formatDate(startDate)
-                : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+              : {formatDateRange(startDate, endDate)}
             </h3>
           </div>
 
@@ -410,28 +395,15 @@ export default function SalesPerHour() {
             />
 
             {/* Toggle buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("average")}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  viewMode === "average"
-                    ? "bg-emerald-500 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Overall Average
-              </button>
-              <button
-                onClick={() => setViewMode("day-of-week")}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  viewMode === "day-of-week"
-                    ? "bg-emerald-500 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                By Day of Week
-              </button>
-            </div>
+            <ToggleButtonGroup
+              options={[
+                { value: "average", label: "Overall Average" },
+                { value: "day-of-week", label: "By Day of Week" },
+              ]}
+              value={viewMode}
+              onChange={setViewMode}
+              variant="emerald"
+            />
           </div>
 
           {metadata && metadata.missing_days > 0 && viewMode === "average" && (

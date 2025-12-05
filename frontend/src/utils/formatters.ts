@@ -1,4 +1,37 @@
 /**
+ * Format a date string (YYYY-MM-DD) for display
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @param options - Intl.DateTimeFormatOptions (default: short format)
+ * @returns Formatted date string like "Oct 30, 2025"
+ */
+export function formatDate(
+  dateStr: string,
+  options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }
+): string {
+  // Parse date string as local date to avoid timezone shift
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", options);
+}
+
+/**
+ * Format a date range for display
+ * @param startDate - Start date string in YYYY-MM-DD format
+ * @param endDate - End date string in YYYY-MM-DD format
+ * @returns Formatted range like "Oct 30, 2025" or "Oct 30 - Nov 5, 2025"
+ */
+export function formatDateRange(startDate: string, endDate: string): string {
+  if (startDate === endDate) {
+    return formatDate(startDate);
+  }
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+}
+
+/**
  * Format a number with commas for thousands separators
  * @param num - The number to format
  * @param decimals - Number of decimal places (default: 0 for no cents)
@@ -86,5 +119,7 @@ export function aggregateByCategory(items: any[]): any[] {
           ? (agg.total_profit / agg.total_revenue) * 100
           : 0,
     }))
-    .sort((a, b) => (b.revenue || b.total_profit) - (a.revenue || a.total_profit)); // Sort by revenue or profit
+    .sort(
+      (a, b) => (b.revenue || b.total_profit) - (a.revenue || a.total_profit)
+    ); // Sort by revenue or profit
 }
