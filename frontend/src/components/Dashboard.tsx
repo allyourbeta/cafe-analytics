@@ -139,15 +139,15 @@ export default function Dashboard() {
     {
       id: "items-by-profit",
       title: "Items by Profit $$",
-      description: "Items and categories ranked",
+      description: "",
       icon: <DollarSign className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
       component: <ItemsByProfit />,
     },
     {
       id: "items-by-margin",
-      title: "Items by Profit Margin %",
-      description: "",
+      title: "Items by Profit Margin",
+      description: "Profit % Per Unit",
       icon: <TrendingUp className="w-5 h-5 text-white" />,
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <ItemsByMargin />,
