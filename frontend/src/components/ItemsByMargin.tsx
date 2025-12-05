@@ -1,8 +1,8 @@
 import ReportLayout, { type Column } from "./ReportLayout";
 import { getItemsByMargin } from "../utils/api";
-import { getCategoryColor } from "../utils/categoryColors";
 import { type FilterValues } from "./FilterBar";
 import { TOP_N_COUNT } from "../context/ReportFiltersContext";
+import HorizontalBarChart, { toBarChartItems } from "./HorizontalBarChart";
 
 const columns: Column[] = [
   {
@@ -39,7 +39,7 @@ const columns: Column[] = [
   },
 ];
 
-// Horizontal bar chart for margin %
+// Chart wrapper that delegates to HorizontalBarChart
 const MarginChart = ({
   data,
   filters,
@@ -52,79 +52,15 @@ const MarginChart = ({
       ? data.slice(0, TOP_N_COUNT)
       : data.slice(-TOP_N_COUNT).reverse();
 
-  return (
-    <div
-      style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
-    >
-      {/* Header with title */}
-      <div
-        style={{
-          marginBottom: "20px",
-        }}
-      >
-        <h3 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
-          Items by Profit Margin %
-        </h3>
-      </div>
+  // Transform data for the bar chart
+  const chartData = toBarChartItems(displayData, "margin_pct", "item");
 
-      {/* Bar chart */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {displayData.map((item, index) => {
-          return (
-            <div
-              key={index}
-              style={{ display: "flex", alignItems: "center", gap: "12px" }}
-            >
-              <div
-                style={{
-                  width: "160px",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {item.item_name}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  backgroundColor: "#f3f4f6",
-                  borderRadius: "4px",
-                  height: "32px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${item.margin_pct}%`,
-                    height: "100%",
-                    backgroundColor: getCategoryColor(item.category),
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    paddingRight: "8px",
-                    transition: "width 0.3s ease",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "white",
-                    }}
-                  >
-                    {item.margin_pct.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+  return (
+    <HorizontalBarChart
+      data={chartData}
+      title="Items by Profit Margin %"
+      formatValue={(v) => `${v.toFixed(1)}%`}
+    />
   );
 };
 

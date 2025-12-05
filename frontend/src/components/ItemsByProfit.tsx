@@ -2,16 +2,14 @@ import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { useReportFilters, TOP_N_COUNT } from "../context/ReportFiltersContext";
 import { getItemsByProfit } from "../utils/api";
-import {
-  getCategoryColor,
-  getCategoryDisplayName,
-} from "../utils/categoryColors";
+import { getCategoryDisplayName } from "../utils/categoryColors";
 import {
   formatCurrency,
   formatNumber,
   aggregateByCategory,
 } from "../utils/formatters";
 import FilterBar from "./FilterBar";
+import HorizontalBarChart, { toBarChartItems } from "./HorizontalBarChart";
 
 const columns = [
   {
@@ -44,21 +42,24 @@ const columns = [
   },
 ];
 
-// Horizontal bar chart by category
+// Chart wrapper that handles filters and delegates to HorizontalBarChart
 const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
-  // Use centralized filters
   const { filters, updateFilters } = useReportFilters();
 
-  // In category mode, show all categories (no top/bottom split)
-  // In item mode, show top 10 or bottom 10
+  // In category mode, show all categories; in item mode, show top/bottom N
   const displayData =
     filters.viewMode === "category"
-      ? data // Show all categories
+      ? data
       : filters.sortOrder === "top"
       ? data.slice(0, TOP_N_COUNT)
       : data.slice(-TOP_N_COUNT).reverse();
 
-  const maxProfit = Math.max(...displayData.map((item) => item.total_profit));
+  // Transform data for the bar chart
+  const chartData = toBarChartItems(
+    displayData,
+    "total_profit",
+    filters.viewMode
+  );
 
   return (
     <div
@@ -80,7 +81,6 @@ const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
             Items by Profit $$
           </h3>
 
-          {/* Use FilterBar component with centralized state */}
           <FilterBar
             filters={filters}
             onFilterChange={updateFilters}
@@ -95,72 +95,11 @@ const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
       </div>
 
       {/* Bar chart */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {displayData.map((item, index) => {
-          const widthPercent = (item.total_profit / maxProfit) * 100;
-          const displayName =
-            filters.viewMode === "category"
-              ? getCategoryDisplayName(item.category)
-              : item.item_name;
-          const barColor =
-            filters.viewMode === "category"
-              ? getCategoryColor(item.category)
-              : getCategoryColor(item.category);
-
-          return (
-            <div
-              key={index}
-              style={{ display: "flex", alignItems: "center", gap: "12px" }}
-            >
-              <div
-                style={{
-                  width: "160px",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {displayName}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  backgroundColor: "#f3f4f6",
-                  borderRadius: "4px",
-                  height: "32px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${widthPercent}%`,
-                    height: "100%",
-                    backgroundColor: barColor,
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    paddingRight: "8px",
-                    transition: "width 0.3s ease",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "white",
-                    }}
-                  >
-                    {formatCurrency(item.total_profit, 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <HorizontalBarChart
+        data={chartData}
+        title=""
+        formatValue={(v) => formatCurrency(v, 0)}
+      />
     </div>
   );
 };

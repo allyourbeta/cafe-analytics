@@ -2,16 +2,14 @@ import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
 import { useReportFilters, TOP_N_COUNT } from "../context/ReportFiltersContext";
 import { getItemsByRevenue } from "../utils/api";
-import {
-  getCategoryColor,
-  getCategoryDisplayName,
-} from "../utils/categoryColors";
+import { getCategoryDisplayName } from "../utils/categoryColors";
 import {
   formatCurrency,
   formatNumber,
   aggregateByCategory,
 } from "../utils/formatters";
 import FilterBar from "./FilterBar";
+import HorizontalBarChart, { toBarChartItems } from "./HorizontalBarChart";
 
 const columns = [
   {
@@ -38,9 +36,8 @@ const columns = [
   },
 ];
 
-// Simple CSS bar chart
+// Chart wrapper that handles filters and delegates to HorizontalBarChart
 const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
-  // Use centralized filters
   const { filters, updateFilters } = useReportFilters();
   const metric = filters.metric;
 
@@ -48,29 +45,26 @@ const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
   const sortedByMetric = [...data].sort((a, b) => {
     const aVal = metric === "revenue" ? a.revenue : a.units_sold;
     const bVal = metric === "revenue" ? b.revenue : b.units_sold;
-    return bVal - aVal; // Descending
+    return bVal - aVal;
   });
 
-  // In category mode, show all categories (no top/bottom split)
-  // In item mode, show top 20 or bottom 20
+  // In category mode, show all categories; in item mode, show top/bottom N
   const displayData =
     filters.viewMode === "category"
-      ? sortedByMetric // Show all categories
+      ? sortedByMetric
       : filters.sortOrder === "top"
       ? sortedByMetric.slice(0, TOP_N_COUNT)
       : sortedByMetric.slice(-TOP_N_COUNT).reverse();
 
-  const maxValue = Math.max(
-    ...displayData.map((item) =>
-      metric === "revenue" ? item.revenue : item.units_sold
-    )
-  );
+  // Transform data for the bar chart
+  const valueKey = metric === "revenue" ? "revenue" : "units_sold";
+  const chartData = toBarChartItems(displayData, valueKey, filters.viewMode);
 
   return (
     <div
       style={{ padding: "20px", backgroundColor: "white", borderRadius: "8px" }}
     >
-      {/* Header with title and centralized filter controls */}
+      {/* Header with title and filter controls */}
       <div
         style={{
           display: "flex",
@@ -100,75 +94,13 @@ const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
       </div>
 
       {/* Bar chart */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {displayData.map((item, index) => {
-          const value = metric === "revenue" ? item.revenue : item.units_sold;
-          const widthPercent = (value / maxValue) * 100;
-          const displayName =
-            filters.viewMode === "category"
-              ? getCategoryDisplayName(item.category)
-              : item.item_name;
-          const barColor =
-            filters.viewMode === "category"
-              ? getCategoryColor(item.category)
-              : getCategoryColor(item.category);
-
-          return (
-            <div
-              key={index}
-              style={{ display: "flex", alignItems: "center", gap: "12px" }}
-            >
-              <div
-                style={{
-                  width: "160px",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {displayName}
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  backgroundColor: "#f3f4f6",
-                  borderRadius: "4px",
-                  height: "32px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${widthPercent}%`,
-                    height: "100%",
-                    backgroundColor: barColor,
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    paddingRight: "8px",
-                    transition: "width 0.3s ease",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "white",
-                    }}
-                  >
-                    {metric === "revenue"
-                      ? formatCurrency(value, 0)
-                      : formatNumber(value, 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <HorizontalBarChart
+        data={chartData}
+        title=""
+        formatValue={(v) =>
+          metric === "revenue" ? formatCurrency(v, 0) : formatNumber(v, 0)
+        }
+      />
     </div>
   );
 };
