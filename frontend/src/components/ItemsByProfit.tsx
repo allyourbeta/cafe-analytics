@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { useReportFilters } from "../context/ReportFiltersContext";
+import { useReportFilters, TOP_N_COUNT } from "../context/ReportFiltersContext";
 import { getItemsByProfit } from "../utils/api";
 import {
   getCategoryColor,
@@ -45,11 +45,7 @@ const columns = [
 ];
 
 // Horizontal bar chart by category
-const ProfitChart = ({
-  data,
-}: {
-  data: Record<string, any>[];
-}) => {
+const ProfitChart = ({ data }: { data: Record<string, any>[] }) => {
   // Use centralized filters
   const { filters, updateFilters } = useReportFilters();
 
@@ -59,8 +55,8 @@ const ProfitChart = ({
     filters.viewMode === "category"
       ? data // Show all categories
       : filters.sortOrder === "top"
-      ? data.slice(0, 10)
-      : data.slice(-10).reverse();
+      ? data.slice(0, TOP_N_COUNT)
+      : data.slice(-TOP_N_COUNT).reverse();
 
   const maxProfit = Math.max(...displayData.map((item) => item.total_profit));
 

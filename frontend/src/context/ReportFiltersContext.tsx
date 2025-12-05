@@ -7,6 +7,11 @@ import {
 } from "react";
 
 /**
+ * Number of items to show in top/bottom views
+ */
+export const TOP_N_COUNT = 20;
+
+/**
  * Filter types used across report components
  */
 export interface ReportFilters {
@@ -53,7 +58,11 @@ const ReportFiltersContext = createContext<
  *   Wrap your app/router with <ReportFiltersProvider>
  *   Then use the useReportFilters() hook in any component
  */
-export const ReportFiltersProvider = ({ children }: { children: ReactNode }) => {
+export const ReportFiltersProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   // Initialize from sessionStorage if available, otherwise use defaults
   const [filters, setFilters] = useState<ReportFilters>(() => {
     try {
@@ -168,8 +177,12 @@ export const useReportFilters = () => {
 export const useReportFiltersWithOverrides = (
   overrides?: Partial<ReportFilters>
 ) => {
-  const { filters: globalFilters, updateFilter, updateFilters, resetFilters } =
-    useReportFilters();
+  const {
+    filters: globalFilters,
+    updateFilter,
+    updateFilters,
+    resetFilters,
+  } = useReportFilters();
 
   const filters = {
     ...globalFilters,

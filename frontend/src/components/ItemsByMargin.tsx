@@ -2,6 +2,7 @@ import ReportLayout, { type Column } from "./ReportLayout";
 import { getItemsByMargin } from "../utils/api";
 import { getCategoryColor } from "../utils/categoryColors";
 import { type FilterValues } from "./FilterBar";
+import { TOP_N_COUNT } from "../context/ReportFiltersContext";
 
 const columns: Column[] = [
   {
@@ -48,8 +49,8 @@ const MarginChart = ({
 }) => {
   const displayData =
     filters?.sortOrder === "top"
-      ? data.slice(0, 10)
-      : data.slice(-10).reverse();
+      ? data.slice(0, TOP_N_COUNT)
+      : data.slice(-TOP_N_COUNT).reverse();
 
   return (
     <div

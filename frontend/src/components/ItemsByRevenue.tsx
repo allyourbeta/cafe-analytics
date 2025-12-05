@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useDateRange } from "../context/DateContext";
-import { useReportFilters } from "../context/ReportFiltersContext";
+import { useReportFilters, TOP_N_COUNT } from "../context/ReportFiltersContext";
 import { getItemsByRevenue } from "../utils/api";
 import {
   getCategoryColor,
   getCategoryDisplayName,
 } from "../utils/categoryColors";
-import { formatCurrency, formatNumber, aggregateByCategory } from "../utils/formatters";
+import {
+  formatCurrency,
+  formatNumber,
+  aggregateByCategory,
+} from "../utils/formatters";
 import FilterBar from "./FilterBar";
 
 const columns = [
@@ -35,11 +39,7 @@ const columns = [
 ];
 
 // Simple CSS bar chart
-const RevenueChart = ({
-  data,
-}: {
-  data: Record<string, any>[];
-}) => {
+const RevenueChart = ({ data }: { data: Record<string, any>[] }) => {
   // Use centralized filters
   const { filters, updateFilters } = useReportFilters();
   const metric = filters.metric;
@@ -57,8 +57,8 @@ const RevenueChart = ({
     filters.viewMode === "category"
       ? sortedByMetric // Show all categories
       : filters.sortOrder === "top"
-      ? sortedByMetric.slice(0, 20)
-      : sortedByMetric.slice(-20).reverse();
+      ? sortedByMetric.slice(0, TOP_N_COUNT)
+      : sortedByMetric.slice(-TOP_N_COUNT).reverse();
 
   const maxValue = Math.max(
     ...displayData.map((item) =>
@@ -293,7 +293,9 @@ export default function ItemsByRevenue() {
                         col.align === "right" ? "text-right" : "text-left"
                       }`}
                     >
-                      {col.format ? col.format(row[col.key], row) : row[col.key]}
+                      {col.format
+                        ? col.format(row[col.key], row)
+                        : row[col.key]}
                     </td>
                   ))
                 )}
