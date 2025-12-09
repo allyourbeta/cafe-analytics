@@ -14,9 +14,8 @@ except ImportError:
 meta_bp = Blueprint('meta', __name__)
 
 
-# Data freshness - most recent transaction timestamp
+# Data freshness - most recent transaction timestamp (no cache - always fresh on page load)
 @meta_bp.route('/api/data-freshness', methods=['GET'])
-@cache.cached(timeout=43200)
 @with_database
 def data_freshness(cursor):
     """Return the timestamp of the most recent transaction in the database."""
