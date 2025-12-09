@@ -43,7 +43,6 @@ export interface MarginItem {
   margin_pct: number;
 }
 
-
 export interface DailyForecast {
   date: string;
   day_of_week: string;
@@ -119,7 +118,7 @@ export const getSalesPerHour = async (
     params.date = singleDate;
   }
   if (excludeDates && excludeDates.length > 0) {
-    params.exclude_dates = excludeDates.join(',');
+    params.exclude_dates = excludeDates.join(",");
   }
   const response = await axios.get(`${API_BASE}/reports/sales-per-hour`, {
     params,
@@ -148,7 +147,7 @@ export const getLaborPercent = async (
     include_salaried: includeSalaried,
   };
   if (excludeDates && excludeDates.length > 0) {
-    params.exclude_dates = excludeDates.join(',');
+    params.exclude_dates = excludeDates.join(",");
   }
   const response = await axios.get(`${API_BASE}/reports/labor-percent`, {
     params,
@@ -186,11 +185,10 @@ export const getDailyForecast = async () => {
 
 // P2: Hourly Forecast
 export const getHourlyForecast = async (targetPct?: number) => {
-  const params = targetPct ? `?target_pct=${targetPct}` : '';
+  const params = targetPct ? `?target_pct=${targetPct}` : "";
   const response = await axios.get(`${API_BASE}/forecasts/hourly${params}`);
   return response.data;
 };
-
 
 // R8: Get top items for heatmap
 export const getTopItems = async (
@@ -213,7 +211,7 @@ export const getItemHeatmap = async (
 ) => {
   const params: any = { item_id: itemId, start: startDate, end: endDate };
   if (excludeDates && excludeDates.length > 0) {
-    params.exclude_dates = excludeDates.join(',');
+    params.exclude_dates = excludeDates.join(",");
   }
   const response = await axios.get(`${API_BASE}/reports/item-heatmap`, {
     params,
@@ -324,5 +322,11 @@ export const getRevenueTrends = async (
   const response = await axios.get(`${API_BASE}/reports/revenue-trends`, {
     params: { start: startDate, end: endDate, granularity },
   });
+  return response.data;
+};
+
+// Data freshness - most recent transaction timestamp
+export const getDataFreshness = async () => {
+  const response = await axios.get(`${API_BASE}/data-freshness`);
   return response.data;
 };

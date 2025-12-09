@@ -21,6 +21,7 @@ import {
   getItemsByRevenue,
   getLaborPercent,
   getTotalSales,
+  getDataFreshness,
 } from "../utils/api";
 import ItemsByRevenue from "./ItemsByRevenue";
 import SalesPerHour from "./SalesPerHour";
@@ -108,6 +109,7 @@ export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [topSellerRevenue, setTopSellerRevenue] = useState<number>(0);
+  const [dataFreshness, setDataFreshness] = useState<string | null>(null);
 
   // Helper to change report and save to sessionStorage
   const handleReportChange = (reportId: string) => {
@@ -152,7 +154,7 @@ export default function Dashboard() {
       iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       component: <ItemsByMargin />,
     },
-          {
+    {
       id: "item-heatmap",
       title: "Item Sales Heatmap",
       description: "Top-25 items, hourly sales",
@@ -282,7 +284,8 @@ export default function Dashboard() {
         // Get Monday of last week
         start = new Date(today);
         const lastWeekDayOfWeek = start.getDay(); // 0=Sunday, 1=Monday, etc.
-        const daysToLastMonday = lastWeekDayOfWeek === 0 ? 6 : lastWeekDayOfWeek - 1;
+        const daysToLastMonday =
+          lastWeekDayOfWeek === 0 ? 6 : lastWeekDayOfWeek - 1;
         start.setDate(start.getDate() - daysToLastMonday - 7); // Go back to last week's Monday
         // End is Sunday of last week
         end = new Date(start);
@@ -323,20 +326,20 @@ export default function Dashboard() {
 
         if (lqMonth >= 6 && lqMonth <= 8) {
           // Currently in Q1 (July-Sept), so last quarter was Q4 (Apr-June)
-          start = new Date(lqYear, 3, 1);  // April 1
-          end = new Date(lqYear, 5, 30);   // June 30
+          start = new Date(lqYear, 3, 1); // April 1
+          end = new Date(lqYear, 5, 30); // June 30
         } else if (lqMonth >= 9 && lqMonth <= 11) {
           // Currently in Q2 (Oct-Dec), so last quarter was Q1 (July-Sept)
-          start = new Date(lqYear, 6, 1);  // July 1
-          end = new Date(lqYear, 8, 30);   // September 30
+          start = new Date(lqYear, 6, 1); // July 1
+          end = new Date(lqYear, 8, 30); // September 30
         } else if (lqMonth >= 0 && lqMonth <= 2) {
           // Currently in Q3 (Jan-Mar), so last quarter was Q2 (Oct-Dec of last year)
-          start = new Date(lqYear - 1, 9, 1);   // October 1 of last year
-          end = new Date(lqYear - 1, 11, 31);   // December 31 of last year
+          start = new Date(lqYear - 1, 9, 1); // October 1 of last year
+          end = new Date(lqYear - 1, 11, 31); // December 31 of last year
         } else {
           // Currently in Q4 (Apr-June), so last quarter was Q3 (Jan-Mar)
-          start = new Date(lqYear, 0, 1);   // January 1
-          end = new Date(lqYear, 2, 31);    // March 31
+          start = new Date(lqYear, 0, 1); // January 1
+          end = new Date(lqYear, 2, 31); // March 31
         }
         break;
       case "This FY":
@@ -359,13 +362,13 @@ export default function Dashboard() {
         if (lyCurrentMonth >= 6) {
           // Currently in July+ of this FY, so last FY was:
           // July 1 (last year) to June 30 (this year)
-          start = new Date(lyCurrentYear - 1, 6, 1);  // July 1, last year
-          end = new Date(lyCurrentYear, 5, 30);       // June 30, this year
+          start = new Date(lyCurrentYear - 1, 6, 1); // July 1, last year
+          end = new Date(lyCurrentYear, 5, 30); // June 30, this year
         } else {
           // Currently in Jan-June of this FY, so last FY was:
           // July 1 (two years ago) to June 30 (last year)
-          start = new Date(lyCurrentYear - 2, 6, 1);  // July 1, two years ago
-          end = new Date(lyCurrentYear - 1, 5, 30);   // June 30, last year
+          start = new Date(lyCurrentYear - 2, 6, 1); // July 1, two years ago
+          end = new Date(lyCurrentYear - 1, 5, 30); // June 30, last year
         }
         break;
       default:
@@ -512,6 +515,32 @@ export default function Dashboard() {
     loadDashboardData();
   }, [startDate, endDate]);
 
+  // Load data freshness once on mount
+  useEffect(() => {
+    const loadDataFreshness = async () => {
+      try {
+        const response = await getDataFreshness();
+        if (response.data?.last_transaction) {
+          // Parse and format the timestamp in Pacific Time
+          const dt = new Date(response.data.last_transaction);
+          const formatted = dt.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+            timeZone: "America/Los_Angeles",
+          });
+          setDataFreshness(formatted);
+        }
+      } catch (error) {
+        console.error("Error loading data freshness:", error);
+      }
+    };
+    loadDataFreshness();
+  }, []);
+
   if (loading) {
     return <div className="p-8">Loading...</div>;
   }
@@ -537,6 +566,11 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500">
               Today: {getTodayPacificTime()}
             </p>
+            {dataFreshness && (
+              <p className="text-xs text-amber-600 font-medium">
+                TouchNet data through {dataFreshness}
+              </p>
+            )}
           </div>
         </div>
         {/* Date Range Picker */}

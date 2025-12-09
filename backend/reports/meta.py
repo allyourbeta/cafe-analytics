@@ -14,6 +14,21 @@ except ImportError:
 meta_bp = Blueprint('meta', __name__)
 
 
+# Data freshness - most recent transaction timestamp
+@meta_bp.route('/api/data-freshness', methods=['GET'])
+@cache.cached(timeout=43200)
+@with_database
+def data_freshness(cursor):
+    """Return the timestamp of the most recent transaction in the database."""
+    cursor.execute('SELECT MAX(transaction_date) as last_transaction FROM transactions')
+    row = cursor.fetchone()
+    last_transaction = row['last_transaction'] if row['last_transaction'] else None
+    
+    return jsonify(success_response({
+        'last_transaction': last_transaction
+    }))
+
+
 # Total Sales for date range
 @meta_bp.route('/api/total-sales', methods=['GET'])
 @cache.cached(timeout=43200, query_string=True)
