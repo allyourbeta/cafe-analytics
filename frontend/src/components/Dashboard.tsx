@@ -567,7 +567,7 @@ export default function Dashboard() {
               Today: {getTodayPacificTime()}
             </p>
             {dataFreshness && (
-              <p className="text-xs text-amber-600 font-medium">
+              <p className="text-sm text-blue-500 font-medium">
                 TouchNet data through {dataFreshness}
               </p>
             )}
