@@ -16,6 +16,7 @@ Example:
 import sqlite3
 import sys
 import re
+import requests
 from datetime import datetime
 from collections import defaultdict
 
@@ -397,5 +398,18 @@ if __name__ == "__main__":
 
     import_data(db_path, excel_files)
     verify_import(db_path)
+
+    # Clear Flask cache if server is running
+    print("\n🧹 Clearing API cache...")
+    try:
+        response = requests.post('http://localhost:5500/api/admin/clear-cache', timeout=2)
+        if response.status_code == 200:
+            print("   ✅ Cache cleared successfully")
+        else:
+            print(f"   ⚠️  Cache clear returned status {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        print("   ℹ️  Flask server not running locally - skipping cache clear")
+    except Exception as e:
+        print(f"   ⚠️  Could not clear cache: {e}")
 
     print("\n🎉 Done! Check the verification output above.")

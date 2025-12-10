@@ -29,15 +29,11 @@ if [ $? -eq 0 ]; then
     echo "✓ Database uploaded successfully"
     echo ""
     echo "🔄 Clearing cache on PythonAnywhere..."
-    curl -X POST https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/admin/clear-cache
-    echo ""
+    curl -s -X POST https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/admin/clear-cache > /dev/null
+    echo "✓ Cache cleared"
     echo ""
     echo "✅ Done! New data is live at https://$PYTHONANYWHERE_USER.pythonanywhere.com"
 else
     echo "❌ Database upload failed"
     exit 1
 fi
-
-# Clear cache (new step!)
-curl -X POST https://edmondscafe.pythonanywhere.com/api/admin/clear-cache
-
