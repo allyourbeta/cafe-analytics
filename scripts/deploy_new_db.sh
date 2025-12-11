@@ -28,7 +28,11 @@ scp "$DB_FILE" "$PYTHONANYWHERE_USER@ssh.pythonanywhere.com:$REMOTE_DB_PATH"
 if [ $? -eq 0 ]; then
     echo "✓ Database uploaded successfully"
     echo ""
-    echo "🔄 Clearing cache on PythonAnywhere..."
+    echo "🔄 Reloading web app..."
+    ssh $PYTHONANYWHERE_USER@ssh.pythonanywhere.com "touch /var/www/${PYTHONANYWHERE_USER}_pythonanywhere_com_wsgi.py"
+    echo "✓ Web app reloaded"
+    echo ""
+    echo "🧹 Clearing cache..."
     curl -s -X POST https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/admin/clear-cache > /dev/null
     echo "✓ Cache cleared"
     echo ""
