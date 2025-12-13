@@ -230,7 +230,7 @@ def import_data(db_path, excel_files):
                     item_data['name'],
                     'other drinks',  # Default category
                     item_data['most_recent_price'],
-                    0.0  # Default cost
+                    None  # Unknown cost (NULL)
                 ))
                 new_count += 1
             except sqlite3.IntegrityError as e:

@@ -79,6 +79,7 @@ def items_by_profit(cursor):
         FROM transactions t
         JOIN items i ON t.item_id = i.item_id
         WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+          AND i.current_cost IS NOT NULL
     '''
 
     # Add item_type filter if specified
@@ -123,7 +124,7 @@ def items_by_margin(cursor):
             ROUND(current_price - current_cost, 2) as profit_per_unit,
             ROUND((current_price - current_cost) / current_price * 100, 2) as margin_pct
         FROM items
-        WHERE current_price > 0
+        WHERE current_price > 0 AND current_cost IS NOT NULL
     '''
 
     # Add item_type filter if specified
