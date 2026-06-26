@@ -101,6 +101,11 @@ def parse_excel_file(excel_path):
                     except:
                         continue
 
+                    # Normalize cancellation pattern: TouchNet sometimes reports
+                    # qty=+1, amount=-X instead of qty=-1, amount=-X for cancellations
+                    if quantity > 0 and amount < 0:
+                        quantity = -quantity
+
                     # Calculate unit cost
                     unit_price = amount / quantity if quantity > 0 else 0.0
 

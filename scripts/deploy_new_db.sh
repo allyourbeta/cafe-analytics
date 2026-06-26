@@ -33,7 +33,7 @@ if [ $? -eq 0 ]; then
     echo "✓ Web app reloaded"
     echo ""
     echo "🧹 Clearing cache..."
-    curl -s -X POST https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/admin/clear-cache > /dev/null
+    curl -s -u "$CAFE_ADMIN_CREDS" -X POST https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/admin/clear-cache > /dev/null
     echo "✓ Cache cleared"
     echo ""
     echo "✅ Done! New data is live at https://$PYTHONANYWHERE_USER.pythonanywhere.com"

@@ -44,3 +44,69 @@ def clear_cache_endpoint():
         return jsonify(success_response(None, message='Cache cleared successfully'))
     except Exception as e:
         return error_response(e)
+
+
+@admin_bp.route('/api/admin/sync-vivonet', methods=['POST'])
+def sync_vivonet():
+    """
+    Trigger Vivonet import for a date range.
+
+    POST body (JSON, all optional):
+        start: "YYYYMMDD" (default: yesterday)
+        end:   "YYYYMMDD" (default: start + 1 day)
+        store: "cafe" | "events" (default: "cafe")
+
+    Example:
+        curl -X POST http://localhost:5500/api/admin/sync-vivonet
+        curl -X POST http://localhost:5500/api/admin/sync-vivonet \
+             -H "Content-Type: application/json" \
+             -d '{"start": "20260301", "end": "20260302"}'
+    """
+    from datetime import datetime, timedelta
+
+    # Resolve import path: database/ is a sibling of backend/
+    db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          '..', '..', 'database')
+    db_dir = os.path.normpath(db_dir)
+
+    # Add database/ to sys.path so the import works
+    if db_dir not in sys.path:
+        sys.path.insert(0, db_dir)
+
+    try:
+        from import_vivonet_data import import_vivonet
+    except ImportError as e:
+        try:
+            from vivonet_service import import_vivonet
+        except ImportError:
+            return error_response(f"Could not load vivonet import module: {e}", 500)
+
+    body = request.get_json(silent=True) or {}
+    store = body.get("store", "cafe")
+
+    if store not in ("cafe", "events"):
+        return error_response("store must be 'cafe' or 'events'", 400)
+
+    # Default: yesterday
+    if "start" not in body:
+        yesterday = datetime.now() - timedelta(days=1)
+        start = yesterday.strftime("%Y%m%d")
+    else:
+        start = body["start"]
+
+    if "end" not in body:
+        end_dt = datetime.strptime(start, "%Y%m%d") + timedelta(days=1)
+        end = end_dt.strftime("%Y%m%d")
+    else:
+        end = body["end"]
+
+    db_path = os.path.join(db_dir, "cafe_reports.db")
+
+    try:
+        stats = import_vivonet(start, end, store, db_path)
+        # Clear cache after successful import
+        cache.clear()
+        return jsonify(success_response(stats,
+                                        message="Vivonet sync complete"))
+    except Exception as e:
+        return error_response(e)
