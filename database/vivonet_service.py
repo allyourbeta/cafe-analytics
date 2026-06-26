@@ -17,7 +17,7 @@ try:
 except ImportError:
     requests = None
 API_BASE = "https://api.vivonet.com/v1/companies/83832"
-API_KEY = "c32c16776f038bd6abf7e882463be83f"
+API_KEY = os.environ.get("VIVONET_API_KEY")
 
 STORE_IDS = {
     "cafe": "192328",
