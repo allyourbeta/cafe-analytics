@@ -39,6 +39,7 @@ from vivonet_service import (
     ensure_vivonet_columns,
     ingest_orders,
     import_vivonet,
+    fetch_orders,
     setup_logging,
 )
 
@@ -141,6 +142,35 @@ def make_line_item(line_id, product_id, product_name, qty, price,
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+class TestFetchOrders(unittest.TestCase):
+
+    @patch("vivonet_service.requests.get")
+    def test_no_content_response_returns_empty_list(self, mock_get):
+        """Vivonet returns 204 No Content for valid days with no orders."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 204
+        mock_resp.text = ""
+        mock_get.return_value = mock_resp
+
+        orders = fetch_orders("cafe", "20260712", "20260713")
+
+        self.assertEqual(orders, [])
+        mock_resp.raise_for_status.assert_not_called()
+
+    @patch("vivonet_service.requests.get")
+    def test_empty_response_returns_empty_list(self, mock_get):
+        """Blank API body should be treated as no orders, not a crash."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = ""
+        mock_get.return_value = mock_resp
+
+        orders = fetch_orders("cafe", "20260712", "20260713")
+
+        self.assertEqual(orders, [])
+        mock_resp.raise_for_status.assert_called_once()
+
 
 class TestVivonetTimestampParsing(unittest.TestCase):
 

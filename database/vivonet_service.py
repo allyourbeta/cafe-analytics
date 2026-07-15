@@ -80,12 +80,29 @@ def fetch_orders(store_key, start_date, end_date):
 
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=30)
+
+        # Vivonet returns 204 No Content on valid days with no orders.
+        # Treat that as a successful empty result so backfills can continue.
+        if resp.status_code == 204:
+            print("  ℹ️  No orders returned (204 No Content)")
+            return []
+
         resp.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"  ❌ API error: {e}")
         return []
 
-    data = resp.json()
+    if not resp.text.strip():
+        print("  ℹ️  No orders returned (empty response)")
+        return []
+
+    try:
+        data = resp.json()
+    except ValueError:
+        snippet = resp.text[:300].replace("\n", " ")
+        print(f"  ❌ Non-JSON response from API: {snippet}")
+        return []
+
     if isinstance(data, dict) and "status" in data:
         print(f"  ❌ API returned error: {data.get('message', data)}")
         return []

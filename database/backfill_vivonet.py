@@ -2,14 +2,14 @@
 """
 One-time backfill of historical Vivonet data.
 
-Loops through a date range in 7-day chunks to avoid overloading the API
-with large single requests. Calls the same ingestion logic as the daily
-import script.
+Loops through a date range one day at a time. The Vivonet orders endpoint
+rejects ranges greater than 24 hours, so daily chunks are the safe default.
+Calls the same ingestion logic as the daily import script.
 
 Usage:
     python backfill_vivonet.py --start 20260201 --end 20260320
     python backfill_vivonet.py --start 20260201 --end 20260320 --store events
-    python backfill_vivonet.py --start 20260201 --end 20260320 --chunk-days 3
+    python backfill_vivonet.py --start 20260201 --end 20260320 --db cafe_reports_vivonet_dev.db
 """
 
 import argparse
@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from vivonet_service import import_vivonet
 
 
-def backfill(start_str, end_str, store_key="cafe", chunk_days=7, db_path=None):
+def backfill(start_str, end_str, store_key="cafe", chunk_days=1, db_path=None):
     """
     Backfill Vivonet data in chunks.
 
@@ -28,7 +28,7 @@ def backfill(start_str, end_str, store_key="cafe", chunk_days=7, db_path=None):
         start_str: "YYYYMMDD" — first day to import (inclusive)
         end_str: "YYYYMMDD" — last day to import (exclusive)
         store_key: "cafe" or "events"
-        chunk_days: number of days per API call (default 7)
+        chunk_days: number of days per API call (default 1; max 1 for orders endpoint)
         db_path: database path override
     """
     start_dt = datetime.strptime(start_str, "%Y%m%d")
@@ -36,6 +36,10 @@ def backfill(start_str, end_str, store_key="cafe", chunk_days=7, db_path=None):
 
     if start_dt >= end_dt:
         print("❌ Start date must be before end date.")
+        sys.exit(1)
+
+    if chunk_days != 1:
+        print("❌ Vivonet orders endpoint only allows 24-hour ranges; use --chunk-days 1.")
         sys.exit(1)
 
     total_days = (end_dt - start_dt).days
@@ -89,7 +93,7 @@ def backfill(start_str, end_str, store_key="cafe", chunk_days=7, db_path=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Backfill historical Vivonet data in chunks"
+        description="Backfill historical Vivonet data one day at a time"
     )
     parser.add_argument(
         "--start", required=True,
@@ -104,8 +108,8 @@ if __name__ == "__main__":
         help="Store to import (default: cafe)"
     )
     parser.add_argument(
-        "--chunk-days", type=int, default=7,
-        help="Days per API chunk (default: 7)"
+        "--chunk-days", type=int, default=1,
+        help="Days per API chunk (default: 1; Vivonet orders max is 1)"
     )
     parser.add_argument(
         "--db", default=None,
