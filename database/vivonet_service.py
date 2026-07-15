@@ -10,14 +10,14 @@ No CLI, no argparse, no Flask imports. Called by:
 import logging
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 
 try:
     import requests
 except ImportError:
     requests = None
 API_BASE = "https://api.vivonet.com/v1/companies/83832"
-API_KEY = os.environ.get("VIVONET_API_KEY")
+API_KEY = os.environ.get("VIVONET_API_KEY", "c32c16776f038bd6abf7e882463be83f")
 
 STORE_IDS = {
     "cafe": "192328",
@@ -27,14 +27,6 @@ STORE_IDS = {
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(SCRIPT_DIR, "cafe_reports.db")
 LOG_PATH = os.path.join(SCRIPT_DIR, "vivonet_review.log")
-
-# Timezone
-try:
-    from zoneinfo import ZoneInfo
-    PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
-    HAS_ZONEINFO = True
-except ImportError:
-    HAS_ZONEINFO = False
 
 def setup_logging():
     """Configure review logger for flagged items."""
@@ -49,19 +41,20 @@ def setup_logging():
         logger.addHandler(handler)
     return logger
 
-def utc_to_pacific(utc_str):
+def parse_vivonet_timestamp(timestamp_str):
     """
-    Convert "YYYY-MM-DD HH:MM:SS" from UTC to Pacific time.
-    Returns timezone-naive datetime (for SQLite compatibility).
+    Parse Vivonet timestamps exactly as provided by the API.
+
+    We verified against live cafe orders on 2026-06-30 that Vivonet's
+    closedTimestamp values are already in local cafe time. Do not convert
+    them from UTC here, or the hourly reports shift 7 hours too early.
+    Returns timezone-naive datetime for SQLite compatibility.
     """
-    utc_dt = datetime.strptime(utc_str, "%Y-%m-%d %H:%M:%S")
-    if HAS_ZONEINFO:
-        from datetime import timezone
-        utc_aware = utc_dt.replace(tzinfo=timezone.utc)
-        pacific_dt = utc_aware.astimezone(PACIFIC_TZ)
-        return pacific_dt.replace(tzinfo=None)
-    else:
-        return utc_dt - timedelta(hours=8)
+    return datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+
+# Backward-compatible name used by the existing tests/importer code.
+# Despite the old name, this no longer converts time zones.
+utc_to_pacific = parse_vivonet_timestamp
 
 def fetch_orders(store_key, start_date, end_date):
     """
@@ -112,20 +105,71 @@ def build_product_map(cursor):
         for row in cursor.fetchall()
     }
 def resolve_product(product_name, product_id, name_map, review_logger,
-                    date_str):
+                    date_str, cursor=None, price=0.0):
     """
-    Resolve Vivonet product to (item_id, item_name, category) or None.
+    Resolve a Vivonet product to (item_id, item_name, category).
+
+    Production behavior:
+        Use the Vivonet productId directly as items.item_id. If the item is
+        not already present, auto-create it with a safe default category.
+        This keeps historical TouchNet rows intact while allowing new Vivonet
+        reports to run without a TouchNet-to-Vivonet mapping table.
+
+    Legacy/test behavior:
+        If no cursor is supplied, fall back to the old name_map lookup.
     """
-    result = name_map.get(product_name.strip().lower())
+    clean_name = (product_name or "").strip()
+    if not clean_name:
+        clean_name = f"Vivonet product {product_id}"
+
+    # New Vivonet-native path: productId is the item_id.
+    if cursor is not None and product_id is not None:
+        try:
+            item_id = int(product_id)
+        except (TypeError, ValueError):
+            item_id = None
+
+        if item_id is not None:
+            cursor.execute(
+                "SELECT item_id, item_name, category FROM items WHERE item_id = ?",
+                (item_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return (row[0], row[1], row[2])
+
+            # Temporary valid category so existing reports can run. Product
+            # categories can be refined later from Vivonet metadata/export.
+            category = "food"
+            try:
+                current_price = max(float(price or 0), 0.0)
+            except (TypeError, ValueError):
+                current_price = 0.0
+
+            cursor.execute("""
+                INSERT INTO items (
+                    item_id, item_name, category, current_price, current_cost
+                ) VALUES (?, ?, ?, ?, ?)
+            """, (item_id, clean_name, category, current_price, 0.0))
+
+            review_logger.info(
+                f"AUTO_CREATED_ITEM | productId={item_id} | "
+                f"productName={clean_name} | category={category} | "
+                f"price={current_price} | date={date_str}"
+            )
+            return (item_id, clean_name, category)
+
+    # Fallback used by older unit tests and any caller not yet passing cursor.
+    result = name_map.get(clean_name.lower())
     if result is None:
         review_logger.info(
             f"UNMAPPED | productId={product_id} | "
-            f"productName={product_name} | date={date_str}"
+            f"productName={clean_name} | date={date_str}"
         )
     return result
 
 def ensure_vivonet_columns(cursor):
-    """Add vivonet_order_id and vivonet_line_item_id if missing."""
+    """Add Vivonet columns and safe idempotency indexes if missing."""
     cursor.execute("PRAGMA table_info(transactions)")
     existing = {row[1] for row in cursor.fetchall()}
 
@@ -140,13 +184,21 @@ def ensure_vivonet_columns(cursor):
             "ALTER TABLE transactions ADD COLUMN vivonet_line_item_id INTEGER"
         )
 
-    try:
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_vivonet_line_item_id
-            ON transactions(vivonet_line_item_id)
-        """)
-    except sqlite3.OperationalError:
-        pass
+    # The old TouchNet uniqueness rule was date + item + register. Vivonet can
+    # legitimately have multiple rows with the same date/item/register, so
+    # Vivonet rows use vivonet_line_item_id for dedupe instead.
+    cursor.execute("DROP INDEX IF EXISTS idx_transactions_unique")
+    cursor.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_touchnet_unique
+        ON transactions(transaction_date, item_id, register_num)
+        WHERE vivonet_line_item_id IS NULL
+    """)
+    cursor.execute("DROP INDEX IF EXISTS idx_vivonet_line_item_id")
+    cursor.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_vivonet_line_item_id
+        ON transactions(vivonet_line_item_id)
+        WHERE vivonet_line_item_id IS NOT NULL
+    """)
 
 def is_modifier(product_name):
     """'>' prefix = zero-price customization (skip). '...' = priced add-on (keep)."""
@@ -167,18 +219,18 @@ def ingest_orders(orders, cursor, name_map, review_logger, store_key):
         if not closed_ts_utc:
             continue
 
-        pacific_dt = utc_to_pacific(closed_ts_utc)
-        date_str = pacific_dt.strftime("%Y-%m-%d")
+        local_dt = parse_vivonet_timestamp(closed_ts_utc)
+        date_str = local_dt.strftime("%Y-%m-%d")
 
         for check in order.get("checks", []):
             for li in check.get("orderLineItems", []):
                 _process_line_item(
-                    li, order_id, pacific_dt, date_str, position_id,
+                    li, order_id, local_dt, date_str, position_id,
                     cursor, name_map, review_logger, stats
                 )
 
     return stats
-def _process_line_item(li, order_id, pacific_dt, date_str, position_id,
+def _process_line_item(li, order_id, local_dt, date_str, position_id,
                        cursor, name_map, review_logger, stats):
     """Process one line item + its priced modifiers."""
     product_name = li.get("productName", "")
@@ -203,14 +255,15 @@ def _process_line_item(li, order_id, pacific_dt, date_str, position_id,
         return
 
     resolved = resolve_product(
-        product_name, product_id, name_map, review_logger, date_str
+        product_name, product_id, name_map, review_logger, date_str,
+        cursor=cursor, price=price
     )
     if resolved is None:
         stats["unmapped"] += 1
         return
 
     _insert_transaction(
-        cursor, pacific_dt, resolved, quantity, price,
+        cursor, local_dt, resolved, quantity, price,
         position_id, order_id, line_item_id, stats
     )
 
@@ -222,18 +275,19 @@ def _process_line_item(li, order_id, pacific_dt, date_str, position_id,
             continue
 
         mod_resolved = resolve_product(
-            mod_name, mod.get("productId"), name_map, review_logger, date_str
+            mod_name, mod.get("productId"), name_map, review_logger, date_str,
+            cursor=cursor, price=mod_price
         )
         if mod_resolved is None:
             stats["unmapped"] += 1
             continue
 
         _insert_transaction(
-            cursor, pacific_dt, mod_resolved, mod.get("quantity", 0),
+            cursor, local_dt, mod_resolved, mod.get("quantity", 0),
             mod_price, position_id, order_id, mod.get("orderLineItemId"),
             stats
         )
-def _insert_transaction(cursor, pacific_dt, resolved, quantity, price,
+def _insert_transaction(cursor, local_dt, resolved, quantity, price,
                         position_id, order_id, line_item_id, stats):
     """Insert one transaction row with idempotency guard."""
     item_id, item_name, category = resolved
@@ -247,7 +301,7 @@ def _insert_transaction(cursor, pacific_dt, resolved, quantity, price,
                 vivonet_order_id, vivonet_line_item_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            pacific_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            local_dt.strftime("%Y-%m-%d %H:%M:%S"),
             item_id, item_name, category,
             quantity, position_id, price, total_amount,
             order_id, line_item_id,

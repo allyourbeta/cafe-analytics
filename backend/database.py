@@ -4,9 +4,14 @@ import sqlite3
 from functools import wraps
 from flask import jsonify
 
-# Get absolute path relative to this file
+# Get absolute path relative to this file.
+# CAFE_DB_PATH lets us run the existing reports against a dev/test database
+# without replacing the production database file.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, '../database/cafe_reports.db')
+DEFAULT_DB_PATH = os.path.join(BASE_DIR, '../database/cafe_reports.db')
+DB_PATH = os.environ.get('CAFE_DB_PATH', DEFAULT_DB_PATH)
+if not os.path.isabs(DB_PATH):
+    DB_PATH = os.path.abspath(os.path.join(BASE_DIR, DB_PATH))
 
 
 def get_db():

@@ -3,7 +3,7 @@
 Tests for the Vivonet import pipeline.
 
 Covers:
-    - Timezone conversion (UTC → Pacific, DST handling)
+    - Vivonet timestamp parsing (API values are already local cafe time)
     - Modifier filtering (> prefix skipped, ... prefix kept if priced)
     - Void/negative quantity flagging
     - Idempotent re-ingestion (vivonet_line_item_id dedup)
@@ -142,30 +142,22 @@ def make_line_item(line_id, product_id, product_name, qty, price,
 # Tests
 # ---------------------------------------------------------------------------
 
-class TestTimezoneConversion(unittest.TestCase):
+class TestVivonetTimestampParsing(unittest.TestCase):
 
-    def test_basic_utc_to_pacific(self):
-        """Winter UTC → PST (UTC-8)."""
+    def test_basic_timestamp_preserved(self):
+        """Vivonet timestamps are already local cafe time; preserve them."""
         result = utc_to_pacific("2026-01-15 20:00:00")
-        self.assertEqual(result, datetime(2026, 1, 15, 12, 0, 0))
+        self.assertEqual(result, datetime(2026, 1, 15, 20, 0, 0))
 
-    def test_summer_utc_to_pacific(self):
-        """Summer UTC → PDT (UTC-7) if zoneinfo available."""
+    def test_summer_timestamp_preserved(self):
+        """Do not subtract PDT offset from summer Vivonet timestamps."""
         result = utc_to_pacific("2026-07-15 20:00:00")
-        try:
-            from zoneinfo import ZoneInfo
-            # With zoneinfo: PDT = UTC-7
-            self.assertEqual(result, datetime(2026, 7, 15, 13, 0, 0))
-        except ImportError:
-            # Fallback: always UTC-8
-            self.assertEqual(result, datetime(2026, 7, 15, 12, 0, 0))
+        self.assertEqual(result, datetime(2026, 7, 15, 20, 0, 0))
 
-    def test_date_rollback_across_midnight(self):
-        """Early UTC morning rolls back to previous day Pacific."""
+    def test_no_date_rollback_across_midnight(self):
+        """Early local times remain on the same local date."""
         result = utc_to_pacific("2026-03-01 05:00:00")
-        # 05:00 UTC = 21:00 PST previous day (Feb 28)
-        self.assertEqual(result.day, 28)
-        self.assertEqual(result.month, 2)
+        self.assertEqual(result, datetime(2026, 3, 1, 5, 0, 0))
 
 
 class TestModifierFiltering(unittest.TestCase):
@@ -383,8 +375,8 @@ class TestIngestOrders(unittest.TestCase):
         self.cursor.execute("SELECT COUNT(*) FROM transactions")
         self.assertEqual(self.cursor.fetchone()[0], 2)
 
-    def test_unmapped_product_skipped(self):
-        """Products not in the items table are logged and skipped."""
+    def test_unknown_vivonet_product_auto_created(self):
+        """Unknown Vivonet products are auto-created using productId."""
         orders = [make_order(
             1005, "2026-02-17 18:15:00", 7898454,
             [make_line_item(50030, 99999, "Mystery Item", 1, 10.00)]
@@ -393,8 +385,18 @@ class TestIngestOrders(unittest.TestCase):
                               self.logger, "cafe")
         self.conn.commit()
 
-        self.assertEqual(stats["unmapped"], 1)
-        self.assertEqual(stats["inserted"], 0)
+        self.assertEqual(stats["unmapped"], 0)
+        self.assertEqual(stats["inserted"], 1)
+
+        self.cursor.execute(
+            "SELECT item_id, item_name, category, current_price "
+            "FROM items WHERE item_id = 99999"
+        )
+        row = self.cursor.fetchone()
+        self.assertEqual(row[0], 99999)
+        self.assertEqual(row[1], "Mystery Item")
+        self.assertEqual(row[2], "food")
+        self.assertAlmostEqual(row[3], 10.00)
 
     def test_multi_item_order(self):
         """Order with multiple line items all get inserted."""
@@ -431,10 +433,10 @@ class TestIngestOrders(unittest.TestCase):
         self.assertEqual(stats["inserted"], 0)
         self.assertEqual(stats["flagged"], 0)
 
-    def test_utc_timestamp_converted(self):
-        """Stored transaction_date should be Pacific, not UTC."""
+    def test_vivonet_timestamp_preserved(self):
+        """Stored transaction_date should preserve Vivonet local timestamp."""
         orders = [make_order(
-            1008, "2026-02-17 20:00:00", 7898454,  # 8pm UTC = noon PST
+            1008, "2026-02-17 20:00:00", 7898454,
             [make_line_item(50060, 17188487, "Brewed Coffee", 1, 3.50)]
         )]
         ingest_orders(orders, self.cursor, self.name_map, self.logger, "cafe")
@@ -446,8 +448,7 @@ class TestIngestOrders(unittest.TestCase):
         )
         ts_str = self.cursor.fetchone()[0]
         ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
-        # Should be 12:00 PST (or 13:00 if system has zoneinfo + PDT)
-        self.assertNotEqual(ts.hour, 20)  # Must NOT be UTC
+        self.assertEqual(ts.hour, 20)
 
 
 class TestImportVivonetEndToEnd(unittest.TestCase):
