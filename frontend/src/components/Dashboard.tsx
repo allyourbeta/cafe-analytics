@@ -568,7 +568,7 @@ export default function Dashboard() {
             </p>
             {dataFreshness && (
               <p className="text-sm text-blue-500 font-medium">
-                TouchNet data through {dataFreshness}
+                Sales data through {dataFreshness}
               </p>
             )}
           </div>
