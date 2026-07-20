@@ -15,11 +15,25 @@ CREATE TABLE items (
         'space rental'
     )),
     current_price DECIMAL(10,2) NOT NULL CHECK(current_price >= 0),
-    current_cost DECIMAL(10,2) NOT NULL CHECK(current_cost >= 0),
+    current_cost DECIMAL(10,2) CHECK(current_cost IS NULL OR current_cost >= 0),
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 , is_resold BOOLEAN DEFAULT 0);
 CREATE INDEX idx_items_category ON items(category);
 CREATE INDEX idx_items_name ON items(item_name);
+CREATE TABLE item_cost_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    cost DECIMAL(10,2) NOT NULL CHECK(cost >= 0),
+    effective_date DATE NOT NULL,
+    source TEXT,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items(item_id)
+);
+CREATE INDEX idx_item_cost_history_item_date
+ON item_cost_history (item_id, effective_date);
+CREATE UNIQUE INDEX idx_item_cost_history_unique_item_date
+ON item_cost_history (item_id, effective_date);
 CREATE TABLE transactions (
     transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
     transaction_date TIMESTAMP NOT NULL,

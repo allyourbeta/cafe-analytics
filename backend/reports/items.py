@@ -65,44 +65,83 @@ def items_by_profit(cursor):
     end_date = request.args.get('end', default_end)
     item_type = request.args.get('item_type', 'all')  # 'all', 'purchased', 'house-made'
 
-    # Base query with is_resold field
-    query = '''
-        SELECT 
-            i.item_id,
-            i.item_name,
-            i.category,
-            i.is_resold,
-            SUM(t.quantity) as units_sold,
-
-            ROUND(SUM((t.unit_price - i.current_cost) * t.quantity), 2) as total_profit,
-            ROUND(SUM((t.unit_price - i.current_cost) * t.quantity) / NULLIF(SUM(t.unit_price * t.quantity), 0) * 100, 2) as margin_pct
-        FROM transactions t
-        JOIN items i ON t.item_id = i.item_id
-        WHERE DATE(t.transaction_date) BETWEEN ? AND ?
-          AND i.current_cost IS NOT NULL
+    # Profit reports must use the cost that was effective on the sale date.
+    # Do not fall back to items.current_cost here: current_cost is only the
+    # current snapshot/display value. Falling back would silently make
+    # historical profit reports wrong.
+    transaction_cte = '''
+        WITH transaction_costs AS (
+            SELECT
+                t.transaction_id,
+                t.item_id,
+                i.item_name,
+                i.category,
+                i.is_resold,
+                t.transaction_date,
+                t.quantity,
+                t.unit_price,
+                t.total_amount,
+                (
+                    SELECT ich.cost
+                    FROM item_cost_history ich
+                    WHERE ich.item_id = t.item_id
+                      AND ich.effective_date <= DATE(t.transaction_date)
+                    ORDER BY ich.effective_date DESC
+                    LIMIT 1
+                ) AS effective_cost
+            FROM transactions t
+            JOIN items i ON t.item_id = i.item_id
+            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
     '''
 
-    # Add item_type filter if specified
     params = [start_date, end_date]
     if item_type == 'purchased':
-        query += ' AND i.is_resold = 1'
+        transaction_cte += ' AND i.is_resold = 1'
     elif item_type == 'house-made':
-        query += ' AND i.is_resold = 0'
+        transaction_cte += ' AND i.is_resold = 0'
 
-    query += '''
-        GROUP BY t.item_id, i.item_name, i.category, i.is_resold
+    transaction_cte += '''
+        )
+    '''
+
+    query = transaction_cte + '''
+        SELECT
+            item_id,
+            item_name,
+            category,
+            is_resold,
+            SUM(quantity) as units_sold,
+            ROUND(SUM((unit_price - effective_cost) * quantity), 2) as total_profit,
+            ROUND(
+                SUM((unit_price - effective_cost) * quantity)
+                / NULLIF(SUM(unit_price * quantity), 0) * 100,
+                2
+            ) as margin_pct
+        FROM transaction_costs
+        WHERE effective_cost IS NOT NULL
+        GROUP BY item_id, item_name, category, is_resold
         ORDER BY total_profit DESC
     '''
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
-
     data = [dict(row) for row in rows]
+
+    missing_query = transaction_cte + '''
+        SELECT
+            COUNT(*) as missing_cost_transaction_rows,
+            COUNT(DISTINCT item_id) as missing_cost_distinct_items
+        FROM transaction_costs
+        WHERE effective_cost IS NULL
+    '''
+    cursor.execute(missing_query, params)
+    missing = dict(cursor.fetchone())
 
     return success_response(
         data,
         date_range={'start': start_date, 'end': end_date},
-        item_type=item_type
+        item_type=item_type,
+        missing_costs=missing
     )
 
 
