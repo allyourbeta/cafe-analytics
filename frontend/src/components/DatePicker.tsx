@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   startOfMonth,
   endOfMonth,
@@ -12,7 +12,6 @@ import {
   isSameDay,
   isWithinInterval,
   isBefore,
-  isAfter,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -36,9 +35,22 @@ export default function DatePicker({
   const startDate = selectedStart ? new Date(selectedStart + "T00:00:00") : null;
   const endDate = selectedEnd ? new Date(selectedEnd + "T00:00:00") : null;
 
-  // Current month being viewed for each calendar
-  const [startMonth, setStartMonth] = useState(startDate || new Date());
-  const [endMonth, setEndMonth] = useState(endDate || addMonths(new Date(), 0));
+  // Current month being viewed. The second calendar always shows the next month.
+  // This keeps the two-month range picker from showing the same month twice.
+  const [viewMonth, setViewMonth] = useState(startDate || endDate || new Date());
+
+  // Jump the viewport to the start month whenever the start date changes (preset click or a
+  // fresh start-date click). Deliberately does NOT react to end-date-only changes: once a start
+  // date is set, the user may navigate several months forward to pick an end date, and snapping
+  // the viewport back to the start month right after that click would hide the date they just picked.
+  useEffect(() => {
+    if (selectedStart) {
+      setViewMonth(startOfMonth(new Date(selectedStart + "T00:00:00")));
+    } else if (selectedEnd) {
+      setViewMonth(startOfMonth(new Date(selectedEnd + "T00:00:00")));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStart]);
 
   // Format date to YYYY-MM-DD for output
   const formatDateString = (date: Date): string => {
@@ -48,25 +60,22 @@ export default function DatePicker({
     return `${year}-${month}-${day}`;
   };
 
-  // Handle date click
-  const handleDateClick = (date: Date, isStartCalendar: boolean) => {
+  // Handle date click. This behaves like a standard range picker:
+  // first click starts a new range, second click sets the inclusive end date.
+  const handleDateClick = (date: Date) => {
     const dateStr = formatDateString(date);
 
-    if (isStartCalendar) {
+    if (!startDate || endDate) {
       onStartChange(dateStr);
-      // If new start is after current end, clear end
-      if (endDate && isAfter(date, endDate)) {
-        onEndChange("");
-      }
+      onEndChange("");
+      return;
+    }
+
+    if (isBefore(date, startDate)) {
+      onStartChange(dateStr);
+      onEndChange("");
     } else {
-      // End calendar
-      if (startDate && isBefore(date, startDate)) {
-        // If clicking before start, make this the new start
-        onStartChange(dateStr);
-        onEndChange("");
-      } else {
-        onEndChange(dateStr);
-      }
+      onEndChange(dateStr);
     }
   };
 
@@ -91,13 +100,17 @@ export default function DatePicker({
     return days;
   };
 
-  // Render a single calendar
+  // Render a single calendar month. The two visible calendars are adjacent months,
+  // not separate "start" and "end" calendars.
   const renderCalendar = (
     currentMonth: Date,
-    setCurrentMonth: (d: Date) => void,
-    isStartCalendar: boolean
+    showPreviousButton: boolean,
+    showNextButton: boolean
   ) => {
     const days = generateCalendarDays(currentMonth);
+    const hasValidRange = Boolean(
+      startDate && endDate && !isBefore(endDate, startDate)
+    );
 
     return (
       <div style={{ width: "240px" }}>
@@ -111,21 +124,25 @@ export default function DatePicker({
           }}
         >
           <button
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            onClick={() => setViewMonth(subMonths(viewMonth, 1))}
             style={{
               padding: "4px",
               background: "none",
               border: "none",
-              cursor: "pointer",
+              cursor: showPreviousButton ? "pointer" : "default",
               borderRadius: "4px",
+              visibility: showPreviousButton ? "visible" : "hidden",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#F3F4F6")
-            }
+            onMouseEnter={(e) => {
+              if (showPreviousButton) {
+                e.currentTarget.style.backgroundColor = "#F3F4F6";
+              }
+            }}
             onMouseLeave={(e) =>
               (e.currentTarget.style.backgroundColor = "transparent")
             }
             type="button"
+            aria-label="Previous month"
           >
             <ChevronLeft
               style={{ width: "16px", height: "16px", color: "#4B5563" }}
@@ -137,21 +154,25 @@ export default function DatePicker({
             {format(currentMonth, "MMMM yyyy")}
           </span>
           <button
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            onClick={() => setViewMonth(addMonths(viewMonth, 1))}
             style={{
               padding: "4px",
               background: "none",
               border: "none",
-              cursor: "pointer",
+              cursor: showNextButton ? "pointer" : "default",
               borderRadius: "4px",
+              visibility: showNextButton ? "visible" : "hidden",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#F3F4F6")
-            }
+            onMouseEnter={(e) => {
+              if (showNextButton) {
+                e.currentTarget.style.backgroundColor = "#F3F4F6";
+              }
+            }}
             onMouseLeave={(e) =>
               (e.currentTarget.style.backgroundColor = "transparent")
             }
             type="button"
+            aria-label="Next month"
           >
             <ChevronRight
               style={{ width: "16px", height: "16px", color: "#4B5563" }}
@@ -196,8 +217,9 @@ export default function DatePicker({
             const isStart = startDate && isSameDay(day, startDate);
             const isEnd = endDate && isSameDay(day, endDate);
             const isInRange =
-              startDate &&
-              endDate &&
+              hasValidRange &&
+              startDate !== null &&
+              endDate !== null &&
               isWithinInterval(day, { start: startDate, end: endDate });
             const isToday = isSameDay(day, new Date());
 
@@ -225,7 +247,7 @@ export default function DatePicker({
               <button
                 key={index}
                 type="button"
-                onClick={() => isCurrentMonth && handleDateClick(day, isStartCalendar)}
+                onClick={() => isCurrentMonth && handleDateClick(day)}
                 disabled={!isCurrentMonth}
                 style={{
                   height: "32px",
@@ -263,47 +285,63 @@ export default function DatePicker({
   };
 
   return (
-    <div style={{ display: "flex", gap: "24px" }}>
-      {/* Start Date Calendar */}
-      <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "12px",
-            color: "#6B7280",
-            marginBottom: "8px",
-            fontWeight: "500",
-          }}
-        >
-          Start Date
+    <div>
+      {/* Selected range summary */}
+      <div
+        style={{
+          display: "flex",
+          gap: "24px",
+          marginBottom: "12px",
+        }}
+      >
+        <div style={{ width: "240px" }}>
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#6B7280",
+              fontWeight: "500",
+            }}
+          >
+            Start Date
+          </span>
           {startDate && (
-            <span style={{ marginLeft: "8px", color: "#F97316" }}>
+            <span style={{ marginLeft: "8px", color: "#F97316", fontSize: "12px" }}>
               {format(startDate, "MMM d, yyyy")}
             </span>
           )}
-        </label>
-        {renderCalendar(startMonth, setStartMonth, true)}
-      </div>
-
-      {/* End Date Calendar */}
-      <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "12px",
-            color: "#6B7280",
-            marginBottom: "8px",
-            fontWeight: "500",
-          }}
-        >
-          End Date
+        </div>
+        <div style={{ width: "240px" }}>
+          <span
+            style={{
+              fontSize: "12px",
+              color: "#6B7280",
+              fontWeight: "500",
+            }}
+          >
+            End Date
+          </span>
           {endDate && (
-            <span style={{ marginLeft: "8px", color: "#F97316" }}>
+            <span style={{ marginLeft: "8px", color: "#F97316", fontSize: "12px" }}>
               {format(endDate, "MMM d, yyyy")}
             </span>
           )}
-        </label>
-        {renderCalendar(endMonth, setEndMonth, false)}
+        </div>
+      </div>
+
+      {/* Two adjacent calendar months */}
+      <div style={{ display: "flex", gap: "24px" }}>
+        {renderCalendar(viewMonth, true, false)}
+        {renderCalendar(addMonths(viewMonth, 1), false, true)}
+      </div>
+
+      <div
+        style={{
+          marginTop: "10px",
+          fontSize: "11px",
+          color: "#6B7280",
+        }}
+      >
+        Click a start date, then click an inclusive end date.
       </div>
     </div>
   );
