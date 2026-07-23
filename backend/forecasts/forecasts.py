@@ -10,6 +10,11 @@ try:
 except ImportError:
     from ..utils import success_response
 
+try:
+    from date_range import to_midnight_timestamp
+except ImportError:
+    from ..date_range import to_midnight_timestamp
+
 forecasts_bp = Blueprint('forecasts', __name__)
 
 
@@ -23,15 +28,20 @@ def daily_forecast(cursor):
     # Single query: Get ALL daily sales for the past 28 days
     # This replaces 84 separate queries (21 days × 4 historical dates)
     query = '''
-        SELECT 
+        SELECT
             DATE(transaction_date) as sale_date,
             SUM(total_amount) as daily_sales
         FROM transactions
-        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
-          AND DATE(transaction_date) < ?
+        WHERE transaction_date >= ?
+          AND transaction_date < ?
         GROUP BY DATE(transaction_date)
     '''
-    cursor.execute(query, (today.isoformat(), today.isoformat()))
+    # Window is the 28 days before today, excluding today (today's partial
+    # day would skew the historical average) -- same window the previous
+    # DATE(...) >= DATE(?, '-28 days') AND DATE(...) < ? predicate selected.
+    window_start = to_midnight_timestamp(today - timedelta(days=28))
+    window_end = to_midnight_timestamp(today)
+    cursor.execute(query, (window_start, window_end))
 
     # Build a lookup dictionary: {date_string: sales_amount}
     sales_by_date = {row['sale_date']: row['daily_sales'] for row in cursor.fetchall()}
@@ -117,16 +127,19 @@ def hourly_forecast(cursor):
     # Single query: Get ALL hourly sales for the past 28 days
     # This replaces 84 separate queries (21 days × 4 historical dates)
     query = '''
-        SELECT 
+        SELECT
             DATE(transaction_date) as sale_date,
             strftime('%H', transaction_date) as hour_num,
             SUM(total_amount) as sales
         FROM transactions
-        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
-          AND DATE(transaction_date) < ?
+        WHERE transaction_date >= ?
+          AND transaction_date < ?
         GROUP BY sale_date, hour_num
     '''
-    cursor.execute(query, (today.isoformat(), today.isoformat()))
+    # Same 28-days-before-today, excluding-today window as daily_forecast.
+    window_start = to_midnight_timestamp(today - timedelta(days=28))
+    window_end = to_midnight_timestamp(today)
+    cursor.execute(query, (window_start, window_end))
 
     # Build a nested lookup dictionary: {date: {hour: sales}}
     sales_by_date_hour = {}
@@ -213,16 +226,19 @@ def item_demand_forecast(cursor):
     # Single query: Get ALL item sales for the past 28 days
     # This replaces 16,800 separate queries (200 items × 21 days × 4 historical dates)
     query = '''
-        SELECT 
+        SELECT
             item_id,
             DATE(transaction_date) as sale_date,
             SUM(quantity) as total_qty
         FROM transactions
-        WHERE DATE(transaction_date) >= DATE(?, '-28 days')
-          AND DATE(transaction_date) < ?
+        WHERE transaction_date >= ?
+          AND transaction_date < ?
         GROUP BY item_id, DATE(transaction_date)
     '''
-    cursor.execute(query, (today.isoformat(), today.isoformat()))
+    # Same 28-days-before-today, excluding-today window as daily_forecast.
+    window_start = to_midnight_timestamp(today - timedelta(days=28))
+    window_end = to_midnight_timestamp(today)
+    cursor.execute(query, (window_start, window_end))
 
     # Build a nested lookup dictionary: {item_id: {date: quantity}}
     sales_by_item_date = {}
@@ -373,9 +389,11 @@ def category_demand_forecast(cursor):
                         SELECT SUM(quantity) as total_qty
                         FROM transactions
                         WHERE item_id IN ({placeholders})
-                        AND DATE(transaction_date) = ?
+                        AND transaction_date >= ? AND transaction_date < ?
                     '''
-                    cursor.execute(query, (*item_ids, date.isoformat()))
+                    day_start = to_midnight_timestamp(date)
+                    day_end = to_midnight_timestamp(date + timedelta(days=1))
+                    cursor.execute(query, (*item_ids, day_start, day_end))
                     result = cursor.fetchone()
 
                     if result['total_qty'] is not None:

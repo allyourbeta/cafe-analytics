@@ -9,6 +9,11 @@ try:
 except ImportError:
     from ..utils import get_default_date_range, success_response, error_response
 
+try:
+    from date_range import inclusive_date_range_to_timestamps
+except ImportError:
+    from ..date_range import inclusive_date_range_to_timestamps
+
 items_bp = Blueprint('items', __name__)
 
 
@@ -32,11 +37,12 @@ def items_by_revenue(cursor):
             ROUND(SUM(t.total_amount), 2) as revenue
         FROM transactions t
         JOIN items i ON t.item_id = i.item_id
-        WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+        WHERE t.transaction_date >= ? AND t.transaction_date < ?
     '''
 
     # Add item_type filter if specified
-    params = [start_date, end_date]
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    params = [start_ts, end_ts]
     if item_type == 'purchased':
         query += ' AND i.is_resold = 1'
     elif item_type == 'house-made':
@@ -91,10 +97,11 @@ def items_by_profit(cursor):
                 ) AS effective_cost
             FROM transactions t
             JOIN items i ON t.item_id = i.item_id
-            WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+            WHERE t.transaction_date >= ? AND t.transaction_date < ?
     '''
 
-    params = [start_date, end_date]
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    params = [start_ts, end_ts]
     if item_type == 'purchased':
         transaction_cte += ' AND i.is_resold = 1'
     elif item_type == 'house-made':
@@ -201,8 +208,9 @@ def item_heatmap(cursor):
         return error_response('item_id required', 400)
 
     # Build WHERE clause with optional date exclusion
-    where_clause = 'WHERE item_id = ? AND DATE(transaction_date) BETWEEN ? AND ?'
-    params = [item_id, start_date, end_date]
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    where_clause = 'WHERE item_id = ? AND transaction_date >= ? AND transaction_date < ?'
+    params = [item_id, start_ts, end_ts]
 
     if exclude_dates:
         placeholders = ','.join('?' * len(exclude_dates))
@@ -289,26 +297,28 @@ def time_period_comparison(cursor):
     period_a_day_list = [int(d.strip()) for d in period_a_days.split(',')]
     period_b_day_list = [int(d.strip()) for d in period_b_days.split(',')]
 
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+
     # Helper function to calculate revenue for a period
     def get_period_revenue(day_list, start_hour, end_hour):
         # Create placeholders for days
         day_placeholders = ','.join('?' * len(day_list))
 
         query = f'''
-            SELECT 
+            SELECT
                 ROUND(SUM(t.total_amount), 2) as revenue,
                 COUNT(DISTINCT DATE(t.transaction_date)) as days_counted,
                 SUM(t.quantity) as units_sold
             FROM transactions t
             WHERE t.item_id = ?
-            AND DATE(t.transaction_date) BETWEEN ? AND ?
+            AND t.transaction_date >= ? AND t.transaction_date < ?
             AND CAST(strftime('%w', t.transaction_date) AS INTEGER) IN ({day_placeholders})
             AND CAST(strftime('%H', t.transaction_date) AS INTEGER) >= ?
             AND CAST(strftime('%H', t.transaction_date) AS INTEGER) < ?
         '''
 
-        # Execute query with parameters: item_id, start_date, end_date, days, start_hour, end_hour
-        params = [item_id, start_date, end_date] + day_list + [start_hour, end_hour]
+        # Execute query with parameters: item_id, start_ts, end_ts, days, start_hour, end_hour
+        params = [item_id, start_ts, end_ts] + day_list + [start_hour, end_hour]
         cursor.execute(query, params)
         result = cursor.fetchone()
 

@@ -11,6 +11,11 @@ try:
 except ImportError:
     from ..utils import get_default_date_range, success_response
 
+try:
+    from date_range import inclusive_date_range_to_timestamps
+except ImportError:
+    from ..date_range import inclusive_date_range_to_timestamps
+
 meta_bp = Blueprint('meta', __name__)
 
 
@@ -40,10 +45,11 @@ def total_sales(cursor):
     query = '''
         SELECT ROUND(SUM(total_amount), 2) as total_sales
         FROM transactions
-        WHERE DATE(transaction_date) BETWEEN ? AND ?
+        WHERE transaction_date >= ? AND transaction_date < ?
     '''
 
-    cursor.execute(query, (start_date, end_date))
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    cursor.execute(query, (start_ts, end_ts))
     row = cursor.fetchone()
 
     total = row['total_sales'] if row['total_sales'] is not None else 0
@@ -90,13 +96,14 @@ def top_items(cursor):
             ROUND(SUM(t.total_amount), 2) as total_revenue
         FROM transactions t
         JOIN items i ON t.item_id = i.item_id
-        WHERE DATE(t.transaction_date) BETWEEN ? AND ?
+        WHERE t.transaction_date >= ? AND t.transaction_date < ?
         GROUP BY i.item_id, i.item_name, i.category
         ORDER BY total_revenue DESC
         LIMIT ?
     '''
 
-    cursor.execute(query, (start_date, end_date, limit))
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    cursor.execute(query, (start_ts, end_ts, limit))
     rows = cursor.fetchall()
 
     items = [dict(row) for row in rows]
@@ -156,11 +163,12 @@ def revenue_trends(cursor):
                 week_end = current_sunday.strftime('%Y-%m-%d')
 
                 # Query revenue for this week
+                week_start_ts, week_end_ts = inclusive_date_range_to_timestamps(week_start, week_end)
                 cursor.execute('''
                     SELECT ROUND(SUM(total_amount), 2) as revenue
                     FROM transactions
-                    WHERE DATE(transaction_date) BETWEEN ? AND ?
-                ''', (week_start, week_end))
+                    WHERE transaction_date >= ? AND transaction_date < ?
+                ''', (week_start_ts, week_end_ts))
 
                 row = cursor.fetchone()
                 revenue = row['revenue'] if row['revenue'] is not None else 0
@@ -235,11 +243,12 @@ def revenue_trends(cursor):
                 month_end = current_month_end.strftime('%Y-%m-%d')
 
                 # Query revenue for this month
+                month_start_ts, month_end_ts = inclusive_date_range_to_timestamps(month_start, month_end)
                 cursor.execute('''
                     SELECT ROUND(SUM(total_amount), 2) as revenue
                     FROM transactions
-                    WHERE DATE(transaction_date) BETWEEN ? AND ?
-                ''', (month_start, month_end))
+                    WHERE transaction_date >= ? AND transaction_date < ?
+                ''', (month_start_ts, month_end_ts))
 
                 row = cursor.fetchone()
                 revenue = row['revenue'] if row['revenue'] is not None else 0

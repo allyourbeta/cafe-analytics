@@ -10,6 +10,11 @@ try:
 except ImportError:
     from ..utils import get_default_date_range, success_response
 
+try:
+    from date_range import inclusive_date_range_to_timestamps
+except ImportError:
+    from ..date_range import inclusive_date_range_to_timestamps
+
 # Import labor utilities
 try:
     from labor_utils import calculate_hourly_labor_costs
@@ -39,16 +44,17 @@ def sales_per_hour(cursor):
         target_date = single_date if single_date else end_date
 
         query = '''
-            SELECT 
+            SELECT
                 strftime('%H:00', transaction_date) as hour,
                 ROUND(SUM(total_amount), 2) as sales
             FROM transactions
-            WHERE DATE(transaction_date) = ?
+            WHERE transaction_date >= ? AND transaction_date < ?
             GROUP BY hour
             ORDER BY hour
         '''
 
-        cursor.execute(query, (target_date,))
+        start_ts, end_ts = inclusive_date_range_to_timestamps(target_date, target_date)
+        cursor.execute(query, (start_ts, end_ts))
         rows = cursor.fetchall()
         data = [dict(row) for row in rows]
 
@@ -59,8 +65,9 @@ def sales_per_hour(cursor):
         # We need to divide by the count of that specific day of week, not all days
 
         # Build the WHERE clause with optional date exclusion
-        where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
-        params = [start_date, end_date]
+        start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+        where_clause = 'WHERE transaction_date >= ? AND transaction_date < ?'
+        params = [start_ts, end_ts]
 
         if exclude_dates:
             placeholders = ','.join('?' * len(exclude_dates))
@@ -127,8 +134,9 @@ def sales_per_hour(cursor):
         # Average mode - calculate average sales per hour across date range
 
         # Build WHERE clause with optional date exclusion
-        where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
-        params = [start_date, end_date]
+        start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+        where_clause = 'WHERE transaction_date >= ? AND transaction_date < ?'
+        params = [start_ts, end_ts]
 
         if exclude_dates:
             placeholders = ','.join('?' * len(exclude_dates))
@@ -201,8 +209,9 @@ def labor_percent(cursor):
     exclude_dates = [d.strip() for d in exclude_dates_str.split(',') if d.strip()] if exclude_dates_str else []
 
     # Build WHERE clause with optional date exclusion
-    where_clause = 'WHERE DATE(transaction_date) BETWEEN ? AND ?'
-    params = [start_date, end_date]
+    start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+    where_clause = 'WHERE transaction_date >= ? AND transaction_date < ?'
+    params = [start_ts, end_ts]
 
     if exclude_dates:
         placeholders = ','.join('?' * len(exclude_dates))

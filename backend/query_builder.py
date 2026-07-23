@@ -28,6 +28,12 @@ Usage Example:
 """
 
 
+try:
+    from date_range import inclusive_date_range_to_timestamps
+except ImportError:
+    from .date_range import inclusive_date_range_to_timestamps
+
+
 class QueryBuilder:
     """
     Simple SQL query builder for common reporting patterns.
@@ -83,16 +89,19 @@ class QueryBuilder:
 
     def add_date_range_filter(self, start_date, end_date):
         """
-        Add a date range filter on transaction_date.
+        Add a half-open date range filter on transaction_date.
 
         Args:
-            start_date (str): Start date in 'YYYY-MM-DD' format
-            end_date (str): End date in 'YYYY-MM-DD' format
+            start_date (str): Start date in 'YYYY-MM-DD' format (inclusive)
+            end_date (str): End date in 'YYYY-MM-DD' format (inclusive)
 
-        Adds WHERE clause: DATE(t.transaction_date) BETWEEN ? AND ?
+        Adds WHERE clause: t.transaction_date >= ? AND t.transaction_date < ?
+        using a half-open, raw-column range so SQLite can use
+        idx_transactions_date (see performance_audit_2026-07-22.md).
         """
-        self._where_clauses.append('DATE(t.transaction_date) BETWEEN ? AND ?')
-        self._params.extend([start_date, end_date])
+        start_ts, end_ts = inclusive_date_range_to_timestamps(start_date, end_date)
+        self._where_clauses.append('t.transaction_date >= ? AND t.transaction_date < ?')
+        self._params.extend([start_ts, end_ts])
         return self
 
     def add_item_type_filter(self, item_type):

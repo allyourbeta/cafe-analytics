@@ -53,8 +53,8 @@ def test_date_range_filter():
 
     query, params = qb.build()
 
-    assert 'DATE(t.transaction_date) BETWEEN ? AND ?' in query
-    assert params == ['2024-01-01', '2024-12-31']
+    assert 't.transaction_date >= ? AND t.transaction_date < ?' in query
+    assert params == ['2024-01-01 00:00:00', '2025-01-01 00:00:00']
 
     print("✓ Date range filter works")
 
@@ -104,10 +104,10 @@ def test_multiple_filters():
 
     query, params = qb.build()
 
-    assert 'DATE(t.transaction_date) BETWEEN ? AND ?' in query
+    assert 't.transaction_date >= ? AND t.transaction_date < ?' in query
     assert 'i.is_resold = 1' in query
     assert 'i.category = ?' in query
-    assert params == ['2024-01-01', '2024-12-31', 'Coffee']
+    assert params == ['2024-01-01 00:00:00', '2025-01-01 00:00:00', 'Coffee']
 
     print("✓ Multiple filters work")
 
