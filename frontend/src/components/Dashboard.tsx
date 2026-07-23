@@ -450,7 +450,16 @@ export default function Dashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const revenueData = await getItemsByRevenue(startDate, endDate);
+      // These four requests are independent of each other -- run them
+      // concurrently instead of awaiting them one at a time.
+      const [revenueData, salesData, laborDataTotal, laborDataStudent] =
+        await Promise.all([
+          getItemsByRevenue(startDate, endDate),
+          getTotalSales(startDate, endDate),
+          getLaborPercent(startDate, endDate, true),
+          getLaborPercent(startDate, endDate, false),
+        ]);
+
       if (revenueData.data.length > 0) {
         const top = revenueData.data[0];
         setTopSeller(top.item_name);
@@ -458,7 +467,6 @@ export default function Dashboard() {
         setTopSellerRevenue(top.revenue);
       }
 
-      const salesData = await getTotalSales(startDate, endDate);
       const totalSales = salesData.data.total_sales;
       setTodaySales(totalSales);
 
@@ -473,7 +481,6 @@ export default function Dashboard() {
 
       // Calculate average labor percentage for the date range (weighted by sales volume)
       // Get total labor (salaried + students)
-      const laborDataTotal = await getLaborPercent(startDate, endDate, true);
       if (laborDataTotal.data.length > 0) {
         const totalLaborCost = laborDataTotal.data.reduce(
           (sum: number, hour: any) => sum + hour.labor_cost,
@@ -489,7 +496,6 @@ export default function Dashboard() {
       }
 
       // Get student-only labor
-      const laborDataStudent = await getLaborPercent(startDate, endDate, false);
       if (laborDataStudent.data.length > 0) {
         const studentLaborCost = laborDataStudent.data.reduce(
           (sum: number, hour: any) => sum + hour.labor_cost,

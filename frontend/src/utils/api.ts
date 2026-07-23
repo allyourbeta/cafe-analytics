@@ -1,6 +1,39 @@
-import axios from "axios";
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 const API_BASE = "/api";
+
+// Dedupe identical GET requests. The dashboard's "Top Seller" KPI fetches
+// items-by-revenue while the dashboard is in its loading state; the active
+// items-by-revenue report panel only mounts (and fires the same request)
+// once that loading state clears a moment later -- so the second call isn't
+// concurrent with the first, it's just after it. Keep a resolved response
+// around briefly so that near-immediate repeat request reuses it instead of
+// firing an identical network call.
+const RESOLVED_CACHE_MS = 3000;
+const inFlightGets = new Map<string, Promise<AxiosResponse>>();
+
+const dedupedGet = (url: string, config?: AxiosRequestConfig) => {
+  const key = `${url}?${JSON.stringify(config?.params ?? {})}`;
+  const existing = inFlightGets.get(key);
+  if (existing) return existing;
+
+  const request = axios.get(url, config);
+  inFlightGets.set(key, request);
+
+  request.then(
+    () => {
+      setTimeout(() => {
+        if (inFlightGets.get(key) === request) inFlightGets.delete(key);
+      }, RESOLVED_CACHE_MS);
+    },
+    () => {
+      // Don't cache failures -- let the next attempt retry immediately.
+      inFlightGets.delete(key);
+    }
+  );
+
+  return request;
+};
 
 // Interfaces
 export interface RevenueItem {
@@ -99,7 +132,7 @@ export const getItemsByRevenue = async (
   endDate: string,
   itemType: "all" | "purchased" | "house-made" = "all"
 ) => {
-  const response = await axios.get(`${API_BASE}/reports/items-by-revenue`, {
+  const response = await dedupedGet(`${API_BASE}/reports/items-by-revenue`, {
     params: { start: startDate, end: endDate, item_type: itemType },
   });
   return response.data;
