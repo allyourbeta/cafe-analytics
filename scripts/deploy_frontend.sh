@@ -14,7 +14,23 @@ PYTHONANYWHERE_USER="edmondscafe"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
 REMOTE_DIST_PATH="/home/$PYTHONANYWHERE_USER/cafe-analytics/frontend/dist"
 BACKUP_DIR="/home/$PYTHONANYWHERE_USER/cafe-analytics/frontend/dist-backups"
+REMOTE_WSGI_PATH="/var/www/${PYTHONANYWHERE_USER}_pythonanywhere_com_wsgi.py"
+RELOAD_WAIT_SECONDS=8
+SITE_URL="https://$PYTHONANYWHERE_USER.pythonanywhere.com"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+# Printed on both success and failure — you need it most when a deploy goes bad.
+print_rollback_instructions() {
+    echo ""
+    echo "📋 Rollback instructions (if needed):"
+    echo "   ssh $PYTHONANYWHERE_USER@ssh.pythonanywhere.com"
+    echo "   cd ~/cafe-analytics/frontend"
+    echo "   rm -rf dist"
+    echo "   cp -r dist-backups/dist-backup-$TIMESTAMP dist"
+    echo "   touch $REMOTE_WSGI_PATH"
+    echo ""
+    echo "💾 Backup saved as: dist-backup-$TIMESTAMP"
+}
 
 echo "🏗️  Building frontend..."
 
@@ -74,46 +90,66 @@ scp -r "$FRONTEND_DIR/dist/"* "$PYTHONANYWHERE_USER@ssh.pythonanywhere.com:$REMO
 if [ $? -eq 0 ]; then
     echo "✓ Upload successful"
     echo ""
-    echo "🔄 IMPORTANT: Go to PythonAnywhere Web tab and click 'Reload' button"
-    echo "   Then press Enter here to continue with health check..."
-    read -r
-    
+    echo "🔄 Reloading web app..."
+
+    # Clicking "Reload" in the PythonAnywhere Web tab just updates the mtime on
+    # the WSGI file; the platform watches that file and restarts the worker.
+    # Touching it over SSH does the same thing without leaving the terminal.
+    ssh "$PYTHONANYWHERE_USER@ssh.pythonanywhere.com" "touch $REMOTE_WSGI_PATH"
+
+    # The worker restarts asynchronously, so the first request after a touch can
+    # still hit the old process. Give it a moment before health-checking.
+    echo "   Waiting ${RELOAD_WAIT_SECONDS}s for the worker to restart..."
+    sleep "$RELOAD_WAIT_SECONDS"
+
     echo ""
     echo "🏥 Running health check..."
-    
-    # Test if the site is responding
-    if curl -f -s "https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/health" > /dev/null 2>&1; then
-        echo "✅ Health check PASSED - API is responding"
+
+    # The site sits behind PythonAnywhere's Web-tab password protection, so an
+    # unauthenticated request gets 401 from the proxy and never reaches Flask.
+    # --netrc makes curl read credentials from ~/.netrc (chmod 600), keeping the
+    # password out of this script, out of git, and out of shell history.
+    # Expected ~/.netrc entry:
+    #     machine edmondscafe.pythonanywhere.com
+    #     login <basic-auth-username>
+    #     password <basic-auth-password>
+    CURL_OPTS=(--fail --silent --show-error --netrc --max-time 20)
+
+    checks_failed=0
+
+    # API check. --fail turns any 4xx/5xx into a non-zero exit, so a 401 here
+    # means the credentials are wrong, not that the app is down.
+    if curl "${CURL_OPTS[@]}" "$SITE_URL/api/health" > /dev/null; then
+        echo "✅ API check PASSED"
     else
-        echo "⚠️  Health check FAILED - API not responding"
-        echo "   Check: https://$PYTHONANYWHERE_USER.pythonanywhere.com/api/health"
+        echo "❌ API check FAILED - $SITE_URL/api/health"
+        checks_failed=1
+    fi
+
+    # Frontend check.
+    if curl "${CURL_OPTS[@]}" "$SITE_URL/" > /dev/null; then
+        echo "✅ Frontend check PASSED"
+    else
+        echo "❌ Frontend check FAILED - $SITE_URL"
+        checks_failed=1
+    fi
+
+    echo ""
+    if [ "$checks_failed" -ne 0 ]; then
+        echo "❌ Deployment uploaded but health checks FAILED."
         echo ""
-        echo "   This could mean:"
-        echo "   - You forgot to click Reload in PythonAnywhere"
-        echo "   - The backend needs to be deployed too"
-        echo "   - There's an actual issue with the deployment"
+        echo "   Possible causes:"
+        echo "   - 401: missing or wrong credentials in ~/.netrc"
+        echo "   - 502: worker still restarting; retry in a few seconds"
+        echo "   - Backend code needs deploying too"
+        echo ""
+        print_rollback_instructions
+        exit 1
     fi
-    
-    # Test if frontend is loading
-    echo ""
-    if curl -f -s "https://$PYTHONANYWHERE_USER.pythonanywhere.com/" > /dev/null 2>&1; then
-        echo "✅ Frontend check PASSED - site is loading"
-    else
-        echo "⚠️  Frontend check FAILED - site not loading"
-    fi
-    
-    echo ""
+
     echo "✅ Frontend deployment complete!"
-    echo "🌐 Visit: https://$PYTHONANYWHERE_USER.pythonanywhere.com"
-    echo ""
-    echo "📋 Rollback instructions (if needed):"
-    echo "   ssh $PYTHONANYWHERE_USER@ssh.pythonanywhere.com"
-    echo "   cd ~/cafe-analytics/frontend"
-    echo "   rm -rf dist"
-    echo "   cp -r dist-backups/dist-backup-$TIMESTAMP dist"
-    echo "   # Then reload in PythonAnywhere Web tab"
-    echo ""
-    echo "💾 Backup saved as: dist-backup-$TIMESTAMP"
+    echo "🌐 Visit: $SITE_URL"
+    print_rollback_instructions
 else
     echo "❌ Upload failed"
     exit 1
