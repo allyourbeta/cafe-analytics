@@ -53,7 +53,7 @@ Pull one day of real data to make sure your API key is still active:
 
 ```bash
 curl -s "https://api.vivonet.com/v1/companies/83832/stores/192328/data/orders?startTime=20260322&endTime=20260323" \
-  -H "X-API-Key: 36771b1160ae4d20de39790c42d70650" | python3 -c "
+  -H "X-API-Key: $VIVONET_API_KEY" | python3 -c "
 import json, sys
 orders = json.load(sys.stdin)
 print(f'Got {len(orders)} orders')

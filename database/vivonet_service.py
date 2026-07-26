@@ -11,13 +11,46 @@ import logging
 import os
 import sqlite3
 from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 try:
     import requests
 except ImportError:
     requests = None
 API_BASE = "https://api.vivonet.com/v1/companies/83832"
-API_KEY = os.environ.get("VIVONET_API_KEY", "c32c16776f038bd6abf7e882463be83f")
+
+# Resolved from __file__, not the caller's cwd, so this works whether the
+# caller is a repo-root CLI invocation, a database/ console, Flask under
+# WSGI, or a PythonAnywhere scheduled task.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+ENV_PATH = REPO_ROOT / ".env"
+
+
+class VivonetConfigError(RuntimeError):
+    """Raised when Vivonet API access is attempted without a configured key."""
+
+
+def get_vivonet_api_key(env_path=None):
+    """
+    Resolve the Vivonet API key.
+
+    Precedence: an existing process environment variable wins; otherwise the
+    project-root .env file is loaded (override=False keeps that precedence);
+    otherwise this raises. There is no hardcoded fallback. Never prints or
+    logs the resolved value.
+    """
+    load_dotenv(env_path or ENV_PATH, override=False)
+    key = (os.environ.get("VIVONET_API_KEY") or "").strip()
+    if not key:
+        raise VivonetConfigError(
+            "VIVONET_API_KEY is not configured. Set it as a process "
+            "environment variable or add it to the project-root .env file "
+            f"({ENV_PATH}). No fallback credential is available."
+        )
+    return key
+
 
 STORE_IDS = {
     "cafe": "192328",
@@ -74,7 +107,7 @@ def fetch_orders(store_key, start_date, end_date):
     store_id = STORE_IDS[store_key]
     url = f"{API_BASE}/stores/{store_id}/data/orders"
     params = {"startTime": start_date, "endTime": end_date}
-    headers = {"X-API-Key": API_KEY}
+    headers = {"X-API-Key": get_vivonet_api_key()}
 
     print(f"  📡 GET {url}?startTime={start_date}&endTime={end_date}")
 

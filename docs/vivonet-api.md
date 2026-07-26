@@ -8,14 +8,56 @@ pipeline. This knowledge was hard-won through trial and error on Feb 19, 2026
 
 ## Authentication
 
-**Header:** `X-API-Key: <see below>`
+**Header:** `X-API-Key: <see below>` — this is HTTP header auth for the
+Vivonet API itself, unrelated to the `~/.netrc`-based HTTP Basic Auth that
+protects the deployed frontend/health-check endpoints (see
+`scripts/deploy_frontend.sh`).
 
 **The API key is regularly rotated.** The current key lives in this
 SharePoint document (managed by Luis Escamilla):
 https://ihouseberkeley-my.sharepoint.com/:w:/g/personal/luisescamilla_ihouseberkeley_org/IQAwOCeyNfxpS4OKJSVLr4NNAYmzEgCo5fnfHrizqm_QnXA
 
-When the key changes, update `database/vivonet_service.py` (the `API_KEY`
-variable near the top of the file).
+The key is never stored in source code. It is read from the
+`VIVONET_API_KEY` environment variable via a project-root `.env` file,
+loaded by `database/vivonet_service.py:get_vivonet_api_key()`. **Never add
+the key to `vivonet_service.py` or any other source file.**
+
+### Local setup
+
+1. Copy or create the project-root `.env` file (see `.env.example`).
+2. Add `VIVONET_API_KEY=<current key>`.
+3. Never commit `.env` (it's gitignored).
+4. Keep its file permissions restricted (e.g. `chmod 600 .env`).
+
+### PythonAnywhere setup
+
+The production `.env` file lives at:
+
+```
+/home/edmondscafe/cafe-analytics/.env
+```
+
+Command-line imports and scheduled tasks run as separate processes and do
+**not** inherit environment variables defined only inside the WSGI process
+(e.g. variables set in `deployment/pythonanywhere_wsgi.py`). Because of
+this, both the web application and command-line import jobs
+(`import_vivonet_data.py`, `backfill_vivonet.py`, `update_vivonet_latest.py`,
+and any future scheduled task) rely on the same shared loader in
+`vivonet_service.py`, which reads the project-root `.env` directly rather
+than depending on the caller's environment.
+
+The PythonAnywhere `.env` file should be owner-readable only
+(`chmod 600 /home/edmondscafe/cafe-analytics/.env`).
+
+**When the key rotates:**
+
+1. Update the value in the local `.env` and the PythonAnywhere `.env` —
+   never in Python source.
+2. Verify the new key with a small read-only API request (see "Example"
+   below) before relying on it for a real import.
+3. The key that was previously exposed in this repository's Git history
+   should be rotated/invalidated externally with Vivonet — this is a
+   manual step outside of any code change.
 
 This is the ONLY header format that works. We discovered this by trying
 every common pattern until one returned a 200.
