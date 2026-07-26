@@ -1,4 +1,9 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  DEFAULT_PRESET,
+  calculatePresetDates,
+  isPreset,
+} from "../utils/datePresets";
 
 interface DateContextType {
   startDate: string;
@@ -9,97 +14,92 @@ interface DateContextType {
 
 const DateContext = createContext<DateContextType | undefined>(undefined);
 
-// Helper to get today's date in YYYY-MM-DD format (local timezone)
-const getTodayLocal = (): string => {
-  const now = new Date();
-  // Force local timezone by creating a new date with timezone offset
-  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return localDate.toISOString().split("T")[0];
-};
+// Bumped from "cafeDateRange". The old key stored resolved dates alongside a
+// preset label, so a tab left open across days would restore "Today" pointing
+// at a stale date. Changing the key retires those entries safely.
+const STORAGE_KEY = "cafeDateRange.v2";
+const LEGACY_STORAGE_KEY = "cafeDateRange";
 
-// Helper to get start of current quarter
-const getQuarterStartDate = (): string => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth(); // 0=Jan, 6=July, etc.
+/**
+ * What we persist.
+ *
+ * A preset is stored as the RULE only. Its dates are recomputed on every load,
+ * so "Today" can never drift. A hand-picked range has no rule behind it, so
+ * there we store the dates themselves.
+ */
+type SavedRange =
+  | { kind: "preset"; preset: string }
+  | { kind: "custom"; startDate: string; endDate: string };
 
-  let quarterStart: Date;
+interface InitialState {
+  startDate: string;
+  endDate: string;
+  selectedPreset: string;
+}
 
-  if (month >= 6 && month <= 8) {
-    // Q1: July-September
-    quarterStart = new Date(year, 6, 1);
-  } else if (month >= 9 && month <= 11) {
-    // Q2: October-December
-    quarterStart = new Date(year, 9, 1);
-  } else if (month >= 0 && month <= 2) {
-    // Q3: January-March
-    quarterStart = new Date(year, 0, 1);
-  } else {
-    // Q4: April-June
-    quarterStart = new Date(year, 3, 1);
+function readSaved(): SavedRange | null {
+  try {
+    // One-time cleanup of the pre-v2 entry.
+    sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as SavedRange;
+
+    if (parsed?.kind === "preset" && isPreset(parsed.preset)) {
+      return parsed;
+    }
+    if (parsed?.kind === "custom" && parsed.startDate && parsed.endDate) {
+      return parsed;
+    }
+    return null;
+  } catch (e) {
+    console.error("Error reading saved date range:", e);
+    return null;
+  }
+}
+
+/** Resolve what the app should show on this load. */
+function getInitialState(): InitialState {
+  const saved = readSaved();
+
+  if (saved?.kind === "custom") {
+    return {
+      startDate: saved.startDate,
+      endDate: saved.endDate,
+      selectedPreset: "",
+    };
   }
 
-  return quarterStart.toISOString().split("T")[0];
-};
+  // Either a saved preset or the default. Both resolve against today's date.
+  const preset = saved?.kind === "preset" ? saved.preset : DEFAULT_PRESET;
+  const { start, end } = calculatePresetDates(preset);
+  return { startDate: start, endDate: end, selectedPreset: preset };
+}
 
 export const DateProvider = ({ children }: { children: ReactNode }) => {
-  // Initialize with saved date range from sessionStorage (persists across refreshes, clears when browser closes)
-  // Falls back to This Quarter if nothing saved
-  const [startDate, setStartDate] = useState<string>(() => {
-    const saved = sessionStorage.getItem("cafeDateRange");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.startDate;
-      } catch (e) {
-        console.error("Error parsing saved date range:", e);
-      }
-    }
-    return getQuarterStartDate();
-  });
+  // Computed once, then split across the three pieces of state, so all three
+  // always describe the same range.
+  const [initial] = useState<InitialState>(getInitialState);
 
-  const [endDate, setEndDate] = useState<string>(() => {
-    const saved = sessionStorage.getItem("cafeDateRange");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.endDate;
-      } catch (e) {
-        console.error("Error parsing saved date range:", e);
-      }
-    }
-    return getTodayLocal();
-  });
-
-  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
-    const saved = sessionStorage.getItem("cafeDateRange");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.preset || "";
-      } catch (e) {
-        console.error("Error parsing saved date range:", e);
-      }
-    }
-    return "This Quarter";
-  });
+  const [startDate, setStartDate] = useState<string>(initial.startDate);
+  const [endDate, setEndDate] = useState<string>(initial.endDate);
+  const [selectedPreset, setSelectedPreset] = useState<string>(
+    initial.selectedPreset
+  );
 
   const setDateRange = (start: string, end: string, preset: string) => {
     setStartDate(start);
     setEndDate(end);
     setSelectedPreset(preset);
 
-    // Save to sessionStorage so it persists across page refreshes
-    // (but clears when browser is closed - fresh start each day)
+    const toSave: SavedRange = isPreset(preset)
+      ? { kind: "preset", preset }
+      : { kind: "custom", startDate: start, endDate: end };
+
     try {
-      sessionStorage.setItem(
-        "cafeDateRange",
-        JSON.stringify({
-          startDate: start,
-          endDate: end,
-          preset: preset,
-        })
-      );
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {
       console.error("Error saving date range to sessionStorage:", e);
     }

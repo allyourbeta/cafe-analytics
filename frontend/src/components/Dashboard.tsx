@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDateRange } from "../context/DateContext";
 import { getTodayPacificTime } from "../utils/formatters";
+import { PRESETS, calculatePresetDates } from "../utils/datePresets";
 import {
   DollarSign,
   TrendingUp,
@@ -246,145 +247,6 @@ export default function Dashboard() {
     return `${startFormatted} - ${endFormatted}`;
   };
 
-  // Helper to format date as YYYY-MM-DD in local timezone (no UTC conversion)
-  const formatLocalDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Calculate date range for presets
-  const calculatePresetDates = (preset: string) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    let start = new Date();
-    let end = new Date();
-
-    switch (preset) {
-      case "Today":
-        start = today;
-        end = today;
-        break;
-      case "Yesterday":
-        start = yesterday;
-        end = yesterday;
-        break;
-      case "This Week":
-        // Get Monday of current week
-        start = new Date(today);
-        const dayOfWeek = start.getDay(); // 0=Sunday, 1=Monday, etc.
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        start.setDate(start.getDate() - daysToMonday);
-        end = today;
-        break;
-      case "Last Week":
-        // Get Monday of last week
-        start = new Date(today);
-        const lastWeekDayOfWeek = start.getDay(); // 0=Sunday, 1=Monday, etc.
-        const daysToLastMonday =
-          lastWeekDayOfWeek === 0 ? 6 : lastWeekDayOfWeek - 1;
-        start.setDate(start.getDate() - daysToLastMonday - 7); // Go back to last week's Monday
-        // End is Sunday of last week
-        end = new Date(start);
-        end.setDate(end.getDate() + 6);
-        break;
-      case "This Month":
-        start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = today;
-        break;
-      case "Last Month":
-        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        end = new Date(today.getFullYear(), today.getMonth(), 0);
-        break;
-      case "This Quarter":
-        // Quarters: Q1=July-Sept, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-June
-        const year = today.getFullYear();
-        const month = today.getMonth(); // 0=Jan, 6=July, etc.
-
-        if (month >= 6 && month <= 8) {
-          // Q1: July-September
-          start = new Date(year, 6, 1);
-        } else if (month >= 9 && month <= 11) {
-          // Q2: October-December
-          start = new Date(year, 9, 1);
-        } else if (month >= 0 && month <= 2) {
-          // Q3: January-March
-          start = new Date(year, 0, 1);
-        } else {
-          // Q4: April-June
-          start = new Date(year, 3, 1);
-        }
-        end = today;
-        break;
-      case "Last Quarter":
-        // Quarters: Q1=July-Sept, Q2=Oct-Dec, Q3=Jan-Mar, Q4=Apr-June
-        const lqYear = today.getFullYear();
-        const lqMonth = today.getMonth(); // 0=Jan, 6=July, etc.
-
-        if (lqMonth >= 6 && lqMonth <= 8) {
-          // Currently in Q1 (July-Sept), so last quarter was Q4 (Apr-June)
-          start = new Date(lqYear, 3, 1); // April 1
-          end = new Date(lqYear, 5, 30); // June 30
-        } else if (lqMonth >= 9 && lqMonth <= 11) {
-          // Currently in Q2 (Oct-Dec), so last quarter was Q1 (July-Sept)
-          start = new Date(lqYear, 6, 1); // July 1
-          end = new Date(lqYear, 8, 30); // September 30
-        } else if (lqMonth >= 0 && lqMonth <= 2) {
-          // Currently in Q3 (Jan-Mar), so last quarter was Q2 (Oct-Dec of last year)
-          start = new Date(lqYear - 1, 9, 1); // October 1 of last year
-          end = new Date(lqYear - 1, 11, 31); // December 31 of last year
-        } else {
-          // Currently in Q4 (Apr-June), so last quarter was Q3 (Jan-Mar)
-          start = new Date(lqYear, 0, 1); // January 1
-          end = new Date(lqYear, 2, 31); // March 31
-        }
-        break;
-      case "This FY":
-        // FY starts July 1
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0=Jan, 6=July
-        // If we're in July or later, FY started July 1 this year
-        // If we're before July, FY started July 1 last year
-        const fyStartYear = currentMonth >= 6 ? currentYear : currentYear - 1;
-        start = new Date(fyStartYear, 6, 1); // July 1
-        end = today;
-        break;
-      case "Last FY":
-        // Last FY: Complete previous fiscal year (July 1 - June 30)
-        const lyCurrentYear = today.getFullYear();
-        const lyCurrentMonth = today.getMonth(); // 0=Jan, 6=July
-
-        // If we're in July or later, last FY ended June 30 of current year
-        // If we're before July, last FY ended June 30 of last year
-        if (lyCurrentMonth >= 6) {
-          // Currently in July+ of this FY, so last FY was:
-          // July 1 (last year) to June 30 (this year)
-          start = new Date(lyCurrentYear - 1, 6, 1); // July 1, last year
-          end = new Date(lyCurrentYear, 5, 30); // June 30, this year
-        } else {
-          // Currently in Jan-June of this FY, so last FY was:
-          // July 1 (two years ago) to June 30 (last year)
-          start = new Date(lyCurrentYear - 2, 6, 1); // July 1, two years ago
-          end = new Date(lyCurrentYear - 1, 5, 30); // June 30, last year
-        }
-        break;
-      default:
-        return { start: "", end: "" };
-    }
-
-    // Set to 12:01 PM (noon) to avoid timezone boundary issues
-    // This ensures dates don't shift when converted between timezones
-    start.setHours(12, 1, 0, 0);
-    end.setHours(12, 1, 0, 0);
-
-    return {
-      start: formatLocalDate(start),
-      end: formatLocalDate(end),
-    };
-  };
 
   // Handle preset selection (updates temp state)
   const handlePresetClick = (preset: string) => {
@@ -601,18 +463,7 @@ export default function Dashboard() {
             >
               {/* Presets grid */}
               <div className="grid grid-cols-5 gap-2 mb-4">
-                {[
-                  "Today",
-                  "Yesterday",
-                  "This Week",
-                  "Last Week",
-                  "This Month",
-                  "Last Month",
-                  "This Quarter",
-                  "Last Quarter",
-                  "This FY",
-                  "Last FY",
-                ].map((preset) => (
+                {PRESETS.map((preset) => (
                   <button
                     key={preset}
                     onClick={() => handlePresetClick(preset)}
